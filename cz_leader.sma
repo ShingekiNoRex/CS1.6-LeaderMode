@@ -52,7 +52,7 @@ TR:
 #include <offset>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.6"
+#define VERSION	"1.6.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -75,7 +75,7 @@ TR:
 
 enum TacticalScheme_e
 {
-	Scheme_UNASSIGNED = 0,
+	Scheme_UNASSIGNED = 0,	// dispution
 	Doctrine_SuperiorFirepower,
 	Doctrine_MassAssault,
 	Doctrine_GrandBattleplan,
@@ -83,7 +83,7 @@ enum TacticalScheme_e
 	
 	SCHEMES_COUNT
 };
-new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "群龍無首", "火力優勢學說", "數量優勢學說", "質量優勢學說", "(未完成)機動作戰學說" };
+new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "(未開放)機動作戰學說" };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
 
@@ -141,6 +141,7 @@ public plugin_init()
 	
 	// client commands
 	register_clcmd("votescheme", "Command_VoteTS");
+	register_clcmd("say \vote scheme", "Command_VoteTS");
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -352,10 +353,36 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		
 		for (new j = TEAM_TERRORIST; j <= TEAM_CT; j++)
 		{
+			new TacticalScheme_e:iSavedTS = g_rgTeamTacticalScheme[j];
+			
 			for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
 			{
 				if (g_rgiBallotBox[j][i] > g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])
 					g_rgTeamTacticalScheme[j] = i;
+				else if (g_rgTeamTacticalScheme[j] != i && g_rgiBallotBox[j][i] > 0 && g_rgiBallotBox[j][i] == g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])	// dispution
+					g_rgTeamTacticalScheme[j] = Scheme_UNASSIGNED;
+			}
+			
+			if (iSavedTS != g_rgTeamTacticalScheme[j])	// announce new scheme.
+			{
+				new rgColor[3] = { 255, 100, 255 };
+				new Float:flCoordinate[2] = { -1.0, 0.30 };
+				new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
+				
+				for (new i = 1; i <= global_get(glb_maxClients); i++)
+				{
+					if (!is_user_connected(i))
+						continue;
+					
+					if (is_user_bot(i))
+						continue;
+					
+					new iTeam = get_pdata_int(i, m_iTeam);
+					if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+						continue;
+
+					ShowHudMessage(i, rgColor, flCoordinate, 0, rgflTime, -1, "已開始執行新團隊策略: %s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[j]]);
+				}
 			}
 		}
 	}
@@ -750,7 +777,7 @@ stock ShowHudMessage(iPlayer, const Color[3], const Float:Coordinate[2], const E
 	show_hudmessage(iPlayer, buffer);
 }
 
-stock DEBUG_LOG(const szText[], any:...)
+stock DEBUG_LOG_TXT(const szText[], any:...)
 {
 	static bool:bInitiated;
 	static hFile;
