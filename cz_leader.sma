@@ -8,7 +8,7 @@
 火力優勢學說：彈匣內子彈自動填充	✔
 數量優勢學說：復活速度固定4秒		✔
 質量優勢學說：金錢自動增加			✔
-機動作戰學說：隊員可以重新部署位置	❌
+機動作戰學說：隊員重生時部署於隊長附近	✔
 
 CT:
 指挥官	(1)
@@ -50,9 +50,10 @@ TR:
 #include <fakemeta>
 #include <hamsandwich>
 #include <offset>
+#include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.6.1"
+#define VERSION	"1.6.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -75,11 +76,11 @@ TR:
 
 enum TacticalScheme_e
 {
-	Scheme_UNASSIGNED = 0,	// dispution
+	Scheme_UNASSIGNED = 0,	// disputation
 	Doctrine_SuperiorFirepower,
 	Doctrine_MassAssault,
 	Doctrine_GrandBattleplan,
-	Doctrine_MobileWarfare,	// UNDONE
+	Doctrine_MobileWarfare,
 	
 	SCHEMES_COUNT
 };
@@ -99,7 +100,7 @@ enum Role_e
 	Arsonist
 };
 
-new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "(未開放)機動作戰學說" };
+new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
 
@@ -133,6 +134,7 @@ public plugin_init()
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1)
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_Weapon_PrimaryAttack, g_szWeaponEntity[i], "HamF_WeaponPriAttack_Post", 1)
+	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
@@ -158,7 +160,7 @@ public plugin_init()
 	
 	// client commands
 	register_clcmd("votescheme", "Command_VoteTS");
-	register_clcmd("say \vote scheme", "Command_VoteTS");
+	register_clcmd("say /vote scheme", "Command_VoteTS");
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -230,6 +232,67 @@ public HamF_WeaponPriAttack_Post(iEntity)
 	// Firerate for CT leader
 	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1])
 		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack), 4);
+}
+
+public HamF_CS_RoundRespawn_Post(pPlayer)
+{
+	if (!is_user_connected(pPlayer))
+		return;
+	
+	new iTeam = get_pdata_int(pPlayer, m_iTeam);
+	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+		return;
+	
+	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(g_iLeader[iTeam - 1]))
+	{
+		new Float:vecCandidates[9][3], Float:vecDest[3], bool:bFind = false;
+		for (new i = 0; i < 9; i++)
+			pev(g_iLeader[iTeam - 1], pev_origin, vecCandidates[i]);
+		
+		xs_vec_add(vecCandidates[0], Float:{0.0, 64.0, 0.0}, vecCandidates[0]);
+		xs_vec_add(vecCandidates[1], Float:{64.0, 64.0, 0.0}, vecCandidates[1]);
+		xs_vec_add(vecCandidates[2], Float:{64.0, 0.0, 0.0}, vecCandidates[2]);
+		xs_vec_add(vecCandidates[3], Float:{64.0, -64.0, 0.0}, vecCandidates[3]);
+		xs_vec_add(vecCandidates[4], Float:{0.0, -64.0, 0.0}, vecCandidates[4]);
+		xs_vec_add(vecCandidates[5], Float:{-64.0, -64.0, 0.0}, vecCandidates[5]);
+		xs_vec_add(vecCandidates[6], Float:{-64.0, 0.0, 0.0}, vecCandidates[6]);
+		xs_vec_add(vecCandidates[7], Float:{-64.0, 64.0, 0.0}, vecCandidates[7]);
+		
+		new Float:flFraction, tr[8];
+		for (new i = 0; i < 8; i++)
+		{
+			tr[i] = create_tr2();
+			engfunc(EngFunc_TraceHull, vecCandidates[8], vecCandidates[i], DONT_IGNORE_MONSTERS, HULL_HEAD, g_iLeader[iTeam - 1], tr[i]);
+			get_tr2(tr[i], TR_flFraction, flFraction);
+			
+			if (flFraction >= 1.0)
+			{
+				bFind = true;
+				xs_vec_copy(vecCandidates[i], vecDest);
+				break;
+			}
+			
+			get_tr2(tr[i], TR_vecEndPos, vecCandidates[i]);
+			
+			if (UTIL_CheckPassibility(vecCandidates[i]))
+			{
+				bFind = true;
+				xs_vec_copy(vecCandidates[i], vecDest);
+				break;
+			}
+		}
+		
+		if (bFind)
+		{
+			set_pev(pPlayer, pev_flags, pev(pPlayer, pev_flags) | FL_DUCKING);
+			engfunc(EngFunc_SetSize, pPlayer, {-16.0, -16.0, -18.0}, {16.0, 16.0, 32.0});
+			set_pev(pPlayer, pev_view_ofs, {0.0, 0.0, 12.0});
+			set_pev(pPlayer, pev_origin, vecDest);
+		}
+		
+		for (new i = 0; i < 8; i++)
+			free_tr2(tr[i]);
+	}
 }
 
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, iSet)
@@ -385,7 +448,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			{
 				if (g_rgiBallotBox[j][i] > g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])
 					g_rgTeamTacticalScheme[j] = i;
-				else if (g_rgTeamTacticalScheme[j] != i && g_rgiBallotBox[j][i] > 0 && g_rgiBallotBox[j][i] == g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])	// dispution
+				else if (g_rgTeamTacticalScheme[j] != i && g_rgiBallotBox[j][i] > 0 && g_rgiBallotBox[j][i] == g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])	// disputation
 					g_rgTeamTacticalScheme[j] = Scheme_UNASSIGNED;
 			}
 			
@@ -511,7 +574,7 @@ public Task_PlayerResurrection(iPlayer)
 	
 	new iTeam = get_pdata_int(iPlayer, m_iTeam);
 	
-	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)	// this is a spector
+	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)	// this is a spectator
 		return;
 	
 	if (!is_user_alive(g_iLeader[iTeam - 1]))
@@ -717,6 +780,7 @@ public fw_BotForwardRegister_Post(iPlayer)
 		unregister_forward(FM_PlayerPostThink, g_fwBotForwardRegister, 1)
 		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed_Post", 1)
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage_Post", 1);
+		RegisterHamFromEntity(Ham_CS_RoundRespawn, iPlayer, "HamF_CS_RoundRespawn_Post", 1);
 	}
 }
 
@@ -831,3 +895,32 @@ stock DEBUG_LOG_TXT(const szText[], any:...)
 	
 	fputs(hFile, szText);
 }
+
+stock bool:is_user_stucked(iPlayer)
+{
+	static Float:vecOrigin[3]
+	pev(iPlayer, pev_origin, vecOrigin)
+	
+	static tr;
+	if (!tr)
+		tr = create_tr2();
+	
+	engfunc(EngFunc_TraceHull, vecOrigin, vecOrigin, DONT_IGNORE_MONSTERS, (pev(iPlayer, pev_flags) & FL_DUCKING) ? HULL_HEAD : HULL_HUMAN, iPlayer, tr);
+	
+	return !!(get_tr2(tr, TR_StartSolid) || get_tr2(tr, TR_AllSolid) || !get_tr2(tr, TR_InOpen));
+}
+
+stock bool:UTIL_CheckPassibility(const Float:vecOrigin[3])
+{
+	static tr;
+	if (!tr)
+		tr = create_tr2();
+	
+	engfunc(EngFunc_TraceHull, vecOrigin, vecOrigin, DONT_IGNORE_MONSTERS, HULL_HEAD, 0, tr);
+	
+	return !!(get_tr2(tr, TR_StartSolid) || get_tr2(tr, TR_AllSolid) || !get_tr2(tr, TR_InOpen));
+}
+
+
+
+
