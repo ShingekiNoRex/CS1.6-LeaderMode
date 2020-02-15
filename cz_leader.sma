@@ -462,20 +462,20 @@ public Event_FreezePhaseEnd()
 	ewrite_byte(g_iLeader[1]);	// head of CTs
 	ewrite_byte(SCOREATTRIB_VIP);
 	emessage_end();
+	
+	new iPlayerAmount = 0;
+	for (new i = 1; i < 33; i ++)
+		if (is_user_alive(i))
+			iPlayerAmount ++;
+
+	g_iHumanResource[0] = get_pcvar_num(cvar_humanresource) * iPlayerAmount;
+	g_iHumanResource[1] = get_pcvar_num(cvar_humanresource) * iPlayerAmount;
 }
 
 public Event_HLTV()
 {
 	g_iLeader[0] = -1;
 	g_iLeader[1] = -1;
-	
-	new iAmount = 0;
-	for (new i = 1; i < 33; i ++)
-		if (is_user_alive(i))
-			iAmount ++;
-
-	g_iHumanResource[0] = get_pcvar_num(cvar_humanresource) * iAmount;
-	g_iHumanResource[1] = get_pcvar_num(cvar_humanresource) * iAmount;
 	
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
