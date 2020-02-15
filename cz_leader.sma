@@ -53,12 +53,12 @@ TR:
 
 #define PLUGIN	"CZ Leader"
 #define VERSION	"1.5"
-#define AUTHOR	"ShingekiNoRex & Hydrogen"
+#define AUTHOR	"REX"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
 #define HUD_SHOWHUD		2	//HUD属性信息通道
 
-#define REDCHAT		1
+#define REDCHAT	 1
 #define BLUECHAT	2
 #define GREYCHAT	3
 #define NORMALCHAT  4
@@ -73,7 +73,7 @@ TR:
 #define TEAM_CT				2
 #define TEAM_SPECTATOR		3
 
-new const teamname[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
+new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
 
 //地图实体
 new const g_objective_ents[][] =
@@ -93,9 +93,9 @@ new const g_objective_ents[][] =
 }
 
 new g_fwBotForwardRegister
-new g_iLeader[2], g_iHumanResource[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64];
-new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33];
-new cvar_WMDLkilltime, cvar_humanleader, cvar_humanresource;
+new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
+new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink;
+new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 
 public plugin_init()
 {
@@ -121,7 +121,7 @@ public plugin_init()
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
-	cvar_humanresource	= register_cvar("lm_human_resource_multi",				"10");
+	cvar_menpower		= register_cvar("lm_starting_menpower",					"50");
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -141,43 +141,13 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	if (victim == g_iLeader[0])
 	{
 		print_chat_color(0, BLUECHAT, "恐怖分子首领已被击毙。(The leader of Terrorist has been killed.)")
-		
-		for (new i = 1; i <= global_get(glb_maxClients); i++)
-		{
-			if (!is_user_connected(i))
-				continue;
-			
-			if (is_user_bot(i))
-				continue;
-			
-			if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)
-				UTIL_BarTime(i, 0);	// hide the bartime.
-		}
-		
 		g_bRoundStarted = false;
 	}
-	
-	if (victim == g_iLeader[1])
+	else if (victim == g_iLeader[1])
 	{
 		print_chat_color(0, BLUECHAT, "反恐精英领袖已被击毙。(The leader of CT has been killed.)")
-		
-		for (new i = 1; i <= global_get(glb_maxClients); i++)
-		{
-			if (!is_user_connected(i))
-				continue;
-			
-			if (is_user_bot(i))
-				continue;
-			
-			if (get_pdata_int(i, m_iTeam) == TEAM_CT)
-				UTIL_BarTime(i, 0);	// hide the bartime.
-		}
-		
 		g_bRoundStarted = false;
 	}
-
-	if (!is_user_connected(victim))
-		return;
 
 	new iTeam = get_pdata_int(victim, m_iTeam);
 	
@@ -203,7 +173,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 {
 	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
 		return;
-
+	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
 	
@@ -266,6 +236,11 @@ public fw_StartFrame_Post()
 	
 	if (g_bRoundStarted && g_flNewPlayerScan <= fCurTime)
 	{
+		g_flNewPlayerScan = fCurTime + 3.0;
+		
+		if (!is_user_connected(g_iLeader[TEAM_CT - 1]) || !is_user_connected(g_iLeader[TEAM_TERRORIST - 1]))
+			goto TAG_SKIP_NEW_PLAYER_SCAN;
+		
 		new Float:flHealth[4];
 		pev(g_iLeader[TEAM_CT - 1], pev_health, flHealth[TEAM_CT]);
 		pev(g_iLeader[TEAM_TERRORIST - 1], pev_health, flHealth[TEAM_TERRORIST]);
@@ -296,8 +271,35 @@ public fw_StartFrame_Post()
 			UTIL_BarTime(i, iResurrectionTime);
 			g_rgbResurrecting[i] = true;
 		}
+TAG_SKIP_NEW_PLAYER_SCAN:
+	}
+	
+	if (g_flStopResurrectingThink <= fCurTime)
+	{
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_connected(i))
+				continue;
+			
+			if (is_user_bot(i))
+				continue;
+			
+			if (!g_rgbResurrecting[i])
+				continue;
+			
+			new iTeam = get_pdata_int(i, m_iTeam);
+			
+			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+				continue;
+			
+			if (!is_user_alive(g_iLeader[iTeam - 1]) || g_rgiTeamMenPower[iTeam] <= 0)
+			{
+				UTIL_BarTime(i, 0);	// hide the bartime.
+				g_rgbResurrecting[i] = false;
+			}
+		}
 		
-		g_flNewPlayerScan = fCurTime + random_float(3.0, 5.0);
+		g_flStopResurrectingThink = fCurTime + 0.1;
 	}
 }
 
@@ -315,10 +317,10 @@ public fw_PlayerPostThink_Post(pPlayer)
 	new Float:flCoordinate[2] = { -1.0, 0.90 };
 	new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 	
-	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|人力剩餘:%d", g_szLeaderNetname[iTeam - 1], g_iHumanResource[iTeam - 1]);
+	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|兵源剩餘:%d", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam]);
 }
 
-public fw_Spawn(iEntity)	//移除任务实体
+public fw_Spawn(iEntity)	//移除任务实体 & 修改出生点
 {
 	if (!pev_valid(iEntity))
 		return FMRES_IGNORED
@@ -351,18 +353,24 @@ public Task_PlayerResurrection(iPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)	// this is a spector
 		return;
 	
-	if (!is_user_alive(g_iLeader[0]) && iTeam == TEAM_TERRORIST)
+	if (!is_user_alive(g_iLeader[iTeam - 1]))
 		return;
 	
-	if (!is_user_alive(g_iLeader[1]) && iTeam == TEAM_CT)
-		return;
-	
-	if (g_iHumanResource[iTeam - 1] <= 0)
+	if (g_rgiTeamMenPower[iTeam] <= 0)
 		return;
 	
 	ExecuteHamB(Ham_CS_RoundRespawn, iPlayer);
 	g_rgbResurrecting[iPlayer] = false;
-	g_iHumanResource[iTeam - 1] --;
+	g_rgiTeamMenPower[iTeam] --;
+	
+	if (!g_rgiTeamMenPower[iTeam])
+	{
+		new rgColor[3] = { 255, 100, 255 };
+		new Float:flCoordinate[2] = { -1.0, 0.30 };
+		new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
+		
+		ShowHudMessage(0, rgColor, flCoordinate, 0, rgflTime, -1, "%s可用兵源已經耗盡!", g_rgszTeamName[iTeam]);
+	}
 }
 
 public Event_FreezePhaseEnd()
@@ -390,7 +398,7 @@ public Event_FreezePhaseEnd()
 			szPlayer[1][iAmount[1]] = i;
 		}
 		
-		//fm_set_user_money(i, 16000)
+		fm_set_user_money(i, 16000)
 	}
 	
 	if (!iAmount[0])
@@ -433,6 +441,13 @@ public Event_FreezePhaseEnd()
 	set_pev(g_iLeader[0], pev_health, 1000.0)
 	set_pev(g_iLeader[1], pev_health, 1000.0)
 	
+	new rgColor[3] = { 255, 100, 255 };
+	new Float:flCoordinate[2] = { -1.0, 0.30 };
+	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
+	
+	ShowHudMessage(g_iLeader[0], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s隊長!", g_rgszTeamName[TEAM_TERRORIST]);
+	ShowHudMessage(g_iLeader[1], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s隊長!", g_rgszTeamName[TEAM_CT]);
+	
 	g_bRoundStarted = true;
 
 	for (new i = 1; i < 33; i++)
@@ -462,14 +477,6 @@ public Event_FreezePhaseEnd()
 	ewrite_byte(g_iLeader[1]);	// head of CTs
 	ewrite_byte(SCOREATTRIB_VIP);
 	emessage_end();
-	
-	new iPlayerAmount = 0;
-	for (new i = 1; i < 33; i ++)
-		if (is_user_alive(i))
-			iPlayerAmount ++;
-
-	g_iHumanResource[0] = get_pcvar_num(cvar_humanresource) * iPlayerAmount;
-	g_iHumanResource[1] = get_pcvar_num(cvar_humanresource) * iPlayerAmount;
 }
 
 public Event_HLTV()
@@ -479,6 +486,12 @@ public Event_HLTV()
 	
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
+	
+	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower);
+	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower);
+	
+	for (new i = 0; i < 33; i++)
+		g_rgbResurrecting[i] = false;
 }
 
 public Message_Health(msg_id, msg_dest, msg_entity)
@@ -532,15 +545,12 @@ stock ShowChat(const iPlayer, const Color, const Message[])
 	}
 	
 	Client = max(Client, iPlayer)
-
-	if (!is_user_connected(Client))
-		return
 	
 	if (1 <= Color <= 3)
 	{
 		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
 		write_byte(Client)
-		write_string(teamname[Color])
+		write_string(g_rgszTeamName[Color])
 		message_end()
 	}
 	
@@ -553,16 +563,13 @@ stock ShowChat(const iPlayer, const Color, const Message[])
 	{
 		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
 		write_byte(Client)
-		write_string(teamname[get_pdata_int(Client, m_iTeam, 5)])
+		write_string(g_rgszTeamName[get_pdata_int(Client, m_iTeam, 5)])
 		message_end()
 	}
 }
 
 stock fm_set_user_money(index, iMoney, bool:bSignal = true)
 {
-	if (!is_user_connected(index))
-		return;
-
 	if (iMoney > 16000)
 		iMoney = 16000;
 	else if (iMoney < 800)
@@ -578,9 +585,6 @@ stock fm_set_user_money(index, iMoney, bool:bSignal = true)
 
 stock UTIL_AddAccount(pPlayer, iAmount, bool:bSignal = true)
 {
-	if (!is_user_connected(pPlayer))
-		return;
-
 	fm_set_user_money(pPlayer, get_pdata_int(pPlayer, m_iAccount) + iAmount, bSignal);
 }
 
@@ -621,5 +625,5 @@ stock DEBUG_LOG(const szText[], any:...)
 	static buffer[192];
 	vformat(buffer, charsmax(buffer), szText, 2);
 	
-	fprintf(hFile, szText);
+	fputs(hFile, szText);
 }
