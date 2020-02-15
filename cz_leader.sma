@@ -497,47 +497,50 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		}
 	}
 	
-	if (g_rgflTeamTSEffectThink[TEAM_CT] <= fCurTime && g_rgTeamTacticalScheme[TEAM_CT] != Scheme_UNASSIGNED)
+	for (new j = TEAM_TERRORIST; j <= TEAM_CT; j++)	// Team Tactical Scheme Effect Think
 	{
-		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		if (g_rgflTeamTSEffectThink[j] <= fCurTime && g_rgTeamTacticalScheme[j] != Scheme_UNASSIGNED)
 		{
-			if (!is_user_connected(i))
-				continue;
+			for (new i = 1; i <= global_get(glb_maxClients); i++)
+			{
+				if (!is_user_connected(i))
+					continue;
+				
+				if (get_pdata_int(i, m_iTeam) != j)
+					continue;
+				
+				switch (g_rgTeamTacticalScheme[j])
+				{
+					case Doctrine_GrandBattleplan:
+						UTIL_AddAccount(i, get_pcvar_num(cvar_TSDmoneyaddnum));
+						
+					case Doctrine_SuperiorFirepower:
+					{
+						new iEntity = get_pdata_cbase(i, m_pActiveItem);
+						if (pev_valid(iEntity))
+						{
+							new iId = get_pdata_int(iEntity, m_iId, 4);
+							if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG)	// these weapons are not allowed to have clip.
+								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + 1, 4);
+						}
+					}
+					
+					default:
+						continue;
+				}
+			}
 			
-			if (get_pdata_int(i, m_iTeam) != TEAM_CT)
-				continue;
-			
-			switch (g_rgTeamTacticalScheme[TEAM_CT])
+			switch (g_rgTeamTacticalScheme[j])
 			{
 				case Doctrine_GrandBattleplan:
-					UTIL_AddAccount(i, get_pcvar_num(cvar_TSDmoneyaddnum));
-					
+					g_rgflTeamTSEffectThink[j] = fCurTime + get_pcvar_float(cvar_TSDmoneyaddinv);
+				
 				case Doctrine_SuperiorFirepower:
-				{
-					new iEntity = get_pdata_cbase(i, m_pActiveItem);
-					if (pev_valid(iEntity))
-					{
-						new iId = get_pdata_int(iEntity, m_iId, 4);
-						if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG)	// these weapons are not allowed to have clip.
-							set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + 1, 4);
-					}
-				}
+					g_rgflTeamTSEffectThink[j] = fCurTime + get_pcvar_float(cvar_TSDrefillinv);
 				
 				default:
-					continue;
+					g_rgflTeamTSEffectThink[j] = fCurTime + 5.0;
 			}
-		}
-		
-		switch (g_rgTeamTacticalScheme[TEAM_CT])
-		{
-			case Doctrine_GrandBattleplan:
-				g_rgflTeamTSEffectThink[TEAM_CT] = fCurTime + get_pcvar_float(cvar_TSDmoneyaddinv);
-			
-			case Doctrine_SuperiorFirepower:
-				g_rgflTeamTSEffectThink[TEAM_CT] = fCurTime + get_pcvar_float(cvar_TSDrefillinv);
-			
-			default:
-				g_rgflTeamTSEffectThink[TEAM_CT] = fCurTime + 5.0;
 		}
 	}
 }
