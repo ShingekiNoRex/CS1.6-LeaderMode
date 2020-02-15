@@ -58,9 +58,9 @@ TR:
 #define HUD_SHOWMARK	1	//HUD提示消息通道
 #define HUD_SHOWHUD		2	//HUD属性信息通道
 
-#define REDCHAT     1
-#define BLUECHAT    2
-#define GREYCHAT    3
+#define REDCHAT		1
+#define BLUECHAT	2
+#define GREYCHAT	3
 #define NORMALCHAT  4
 #define GREENCHAT   5
 
@@ -78,18 +78,18 @@ new const teamname[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
 //地图实体
 new const g_objective_ents[][] =
 {
-    "func_bomb_target",
-    "info_bomb_target",
-    "hostage_entity",
-    "monster_scientist",
-    "func_hostage_rescue",
-    "info_hostage_rescue",
-    "info_vip_start",
-    "func_vip_safetyzone",
-    "func_escapezone",
-    "armoury_entity",
-    "game_player_equip",
-    "game_player_team"
+	"func_bomb_target",
+	"info_bomb_target",
+	"hostage_entity",
+	"monster_scientist",
+	"func_hostage_rescue",
+	"info_hostage_rescue",
+	"info_vip_start",
+	"func_vip_safetyzone",
+	"func_escapezone",
+	"armoury_entity",
+	"game_player_equip",
+	"game_player_team"
 }
 
 new g_fwBotForwardRegister
@@ -127,7 +127,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-    register_forward(FM_Spawn, "fw_Spawn")
+	register_forward(FM_Spawn, "fw_Spawn")
 }
 
 public client_putinserver(pPlayer)
@@ -175,6 +175,9 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		g_bRoundStarted = false;
 	}
 
+	if (!is_user_connected(victim))
+		return;
+
 	new iTeam = get_pdata_int(victim, m_iTeam);
 	
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
@@ -197,6 +200,9 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 
 public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
 {
+	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
+		return;
+
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
 	
@@ -313,22 +319,22 @@ public fw_PlayerPostThink_Post(pPlayer)
 
 public fw_Spawn(iEntity)	//移除任务实体
 {
-    if (!pev_valid(iEntity))
+	if (!pev_valid(iEntity))
 		return FMRES_IGNORED
-    
-    static classname[32]
-    pev(iEntity, pev_classname, classname, charsmax(classname))
-    
-    for (new i = 0; i < sizeof g_objective_ents; i ++)
-    {
-        if (equal(classname, g_objective_ents[i]))
-        {
-            engfunc(EngFunc_RemoveEntity, iEntity)
-            return FMRES_SUPERCEDE
-        }
-    }
 	
-    return FMRES_IGNORED
+	static classname[32]
+	pev(iEntity, pev_classname, classname, charsmax(classname))
+	
+	for (new i = 0; i < sizeof g_objective_ents; i ++)
+	{
+		if (equal(classname, g_objective_ents[i]))
+		{
+			engfunc(EngFunc_RemoveEntity, iEntity)
+			return FMRES_SUPERCEDE
+		}
+	}
+	
+	return FMRES_IGNORED
 }
 
 public Task_PlayerResurrection(iPlayer)
@@ -343,7 +349,7 @@ public Task_PlayerResurrection(iPlayer)
 	
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)	// this is a spector
 		return;
-    
+	
 	if (!is_user_alive(g_iLeader[0]) && iTeam == TEAM_TERRORIST)
 		return;
 	
@@ -489,55 +495,61 @@ public fw_BotForwardRegister_Post(iPlayer)
 
 stock print_chat_color(const iPlayer, const Color, const Message[], any:...)
 {
-    static buffer[192]
-    if (1 <= Color <= 3) buffer[0] = 0x03
-    else if (Color == 4) buffer[0] = 0x01
-    else if (Color == 5) buffer[0] = 0x04
-    vformat(buffer[1], charsmax(buffer), Message, 4)
-    ShowChat(iPlayer, Color, buffer)
+	static buffer[192]
+	if (1 <= Color <= 3) buffer[0] = 0x03
+	else if (Color == 4) buffer[0] = 0x01
+	else if (Color == 5) buffer[0] = 0x04
+	vformat(buffer[1], charsmax(buffer), Message, 4)
+	ShowChat(iPlayer, Color, buffer)
 }
 
 stock ShowChat(const iPlayer, const Color, const Message[])
 {
-    new Client
-    
-    if (!iPlayer)
-    {
-        for (Client = 1; Client < 33; Client ++)
-        {
-            if (!is_user_connected(Client))
-            continue
-    
-            break
-        }
-    }
-    
-    Client = max(Client, iPlayer)
-    
-    if (1 <= Color <= 3)
-    {
-        message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
-        write_byte(Client)
-        write_string(teamname[Color])
-        message_end()
-    }
-    
-    message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("SayText"), _, Client)
-    write_byte(Client)
-    write_string(Message)
-    message_end()
-    
-    if (1 <= Color <= 3)
-    {
-        message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
-        write_byte(Client)
-        write_string(teamname[get_pdata_int(Client, m_iTeam, 5)])
-        message_end()
-    }
+	new Client
+	
+	if (!iPlayer)
+	{
+		for (Client = 1; Client < 33; Client ++)
+		{
+			if (!is_user_connected(Client))
+			continue
+	
+			break
+		}
+	}
+	
+	Client = max(Client, iPlayer)
+
+	if (!is_user_connected(Client))
+		return
+	
+	if (1 <= Color <= 3)
+	{
+		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
+		write_byte(Client)
+		write_string(teamname[Color])
+		message_end()
+	}
+	
+	message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("SayText"), _, Client)
+	write_byte(Client)
+	write_string(Message)
+	message_end()
+	
+	if (1 <= Color <= 3)
+	{
+		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
+		write_byte(Client)
+		write_string(teamname[get_pdata_int(Client, m_iTeam, 5)])
+		message_end()
+	}
 }
 
 stock fm_set_user_money(index, iMoney, bool:bSignal = true)
 {
+	if (!is_user_connected(index))
+		return;
+
 	if (iMoney > 16000)
 		iMoney = 16000;
 	else if (iMoney < 800)
@@ -553,6 +565,9 @@ stock fm_set_user_money(index, iMoney, bool:bSignal = true)
 
 stock UTIL_AddAccount(pPlayer, iAmount, bool:bSignal = true)
 {
+	if (!is_user_connected(pPlayer))
+		return;
+
 	fm_set_user_money(pPlayer, get_pdata_int(pPlayer, m_iAccount) + iAmount, bSignal);
 }
 
