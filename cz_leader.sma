@@ -1,11 +1,10 @@
 /**
 
- - 金錢有限，以傷害為準
- - 死亡總次數有限，復活時間 = 隊長HP / 100
- - 
+ - 金錢有限，以傷害為準	✔ (LUNA)
+ - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
 
 
-策略：
+策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。(LUNA)
 火力優勢學說：彈匣內子彈自動填充
 數量優勢學說：復活速度固定4秒
 質量優勢學說：金錢自動增加
@@ -13,7 +12,7 @@
 CT:
 突擊隊長	(1)
 (輕機槍，標記黑手位置，射速加倍&受傷減半)
-(被動：HP 1000)
+(被動：HP 1000) ✔ (REX)
 重裝步兵
 (步槍，立即填充所有手榴彈，轉移90%傷害至護甲)
 (被動：AP 200)
@@ -30,7 +29,7 @@ CT:
 TR:
 黑手(隊長)	(1)
 (手槍，將HP均分至周圍角色10秒，手槍改為燃燒彈藥)
-(被動：HP 1000)
+(被動：HP 1000) ✔ (REX)
 暴徒
 (步槍，將步槍轉換為霰彈槍5秒，手榴彈改為燃燒，煙霧彈改為毒霧)
 (被動：擊殺賞金均全額賦予)
@@ -52,17 +51,17 @@ TR:
 #include <offset>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.5"
-#define AUTHOR	"ShingekiNoRex & Hydrogen"
+#define VERSION	"1.5.1"
+#define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
 #define HUD_SHOWHUD		2	//HUD属性信息通道
 
-#define REDCHAT	 1
+#define REDCHAT		1
 #define BLUECHAT	2
 #define GREYCHAT	3
-#define NORMALCHAT  4
-#define GREENCHAT   5
+#define NORMALCHAT	4
+#define GREENCHAT	5
 
 #define SCOREATTRIB_DEAD	(1<<0)
 #define SCOREATTRIB_BOMB	(1<<1)
@@ -317,10 +316,13 @@ public fw_PlayerPostThink_Post(pPlayer)
 	new Float:flCoordinate[2] = { -1.0, 0.90 };
 	new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 	
-	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|兵源剩餘:%d", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam]);
+	if (!is_user_alive(g_iLeader[iTeam - 1]))
+		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長已陣亡|兵源補給中斷");
+	else
+		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|兵源剩餘:%d", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam]);
 }
 
-public fw_Spawn(iEntity)	//移除任务实体 & 修改出生点
+public fw_Spawn(iEntity)	//移除任务实体
 {
 	if (!pev_valid(iEntity))
 		return FMRES_IGNORED
@@ -397,8 +399,6 @@ public Event_FreezePhaseEnd()
 			iAmount[1] ++;
 			szPlayer[1][iAmount[1]] = i;
 		}
-		
-		fm_set_user_money(i, 16000)
 	}
 	
 	if (!iAmount[0])
@@ -570,6 +570,9 @@ stock ShowChat(const iPlayer, const Color, const Message[])
 
 stock fm_set_user_money(index, iMoney, bool:bSignal = true)
 {
+	if (!is_user_connected(index))
+		return;
+	
 	if (iMoney > 16000)
 		iMoney = 16000;
 	else if (iMoney < 800)
