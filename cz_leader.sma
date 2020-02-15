@@ -172,8 +172,10 @@ public plugin_init()
 	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"50");
 	
 	// client commands
+	register_clcmd("vs", "Command_VoteTS");
 	register_clcmd("votescheme", "Command_VoteTS");
-	register_clcmd("say /vote scheme", "Command_VoteTS");
+	register_clcmd("say /votescheme", "Command_VoteTS");
+	register_clcmd("say /vs", "Command_VoteTS");
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -200,6 +202,9 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		print_chat_color(0, BLUECHAT, "反恐精英领袖已被击毙。(The leader of CT has been killed.)")
 		g_bRoundStarted = false;
 	}
+
+	if (!is_user_connected(victim))
+		return;
 
 	new iTeam = get_pdata_int(victim, m_iTeam);
 	
@@ -254,6 +259,9 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	
 	new iTeam = get_pdata_int(pPlayer, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+		return;
+
+	if (!g_bRoundStarted)	// avoid the new round error
 		return;
 	
 	if (!g_bRoundStarted)	// avoid the new round error
@@ -822,14 +830,16 @@ stock ShowChat(const iPlayer, const Color, const Message[])
 		for (Client = 1; Client < 33; Client ++)
 		{
 			if (!is_user_connected(Client))
-			continue
+				continue
 	
 			break
 		}
 	}
 	
 	Client = max(Client, iPlayer)
-	
+	if (!is_user_connected(Client))
+		return	
+
 	if (1 <= Color <= 3)
 	{
 		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
