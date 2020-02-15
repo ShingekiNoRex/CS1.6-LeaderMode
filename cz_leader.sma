@@ -5,9 +5,10 @@
 
 
 策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。(LUNA)
-火力優勢學說：彈匣內子彈自動填充
-數量優勢學說：復活速度固定4秒
-質量優勢學說：金錢自動增加
+火力優勢學說：彈匣內子彈自動填充	✔
+數量優勢學說：復活速度固定4秒		✔
+質量優勢學說：金錢自動增加			✔
+機動作戰學說：隊員可以重新部署位置	❌
 
 CT:
 突擊隊長	(1)
@@ -51,7 +52,7 @@ TR:
 #include <offset>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.5.1"
+#define VERSION	"1.6"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -71,6 +72,18 @@ TR:
 #define TEAM_TERRORIST		1
 #define TEAM_CT				2
 #define TEAM_SPECTATOR		3
+
+enum TacticalScheme_e
+{
+	Scheme_UNASSIGNED = 0,
+	Doctrine_SuperiorFirepower,
+	Doctrine_MassAssault,
+	Doctrine_GrandBattleplan,
+	Doctrine_MobileWarfare,	// UNDONE
+	
+	SCHEMES_COUNT
+};
+new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "群龍無首", "火力優勢學說", "數量優勢學說", "質量優勢學說", "(未完成)機動作戰學說" };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
 
@@ -93,8 +106,8 @@ new const g_objective_ents[][] =
 
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
-new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink;
-new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
+new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
+new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDrefillinv, cvar_TSDresurrect;
 
 public plugin_init()
 {
@@ -121,6 +134,13 @@ public plugin_init()
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
 	cvar_menpower		= register_cvar("lm_starting_menpower",					"50");
+	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
+	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"4.0");
+	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
+	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"50");
+	
+	// client commands
+	register_clcmd("votescheme", "Command_VoteTS");
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -163,6 +183,9 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	pev(g_iLeader[iTeam - 1], pev_health, flHealth);
 	
 	new iResurrectionTime = max(floatround(flHealth / 1000.0 * 10.0), 1);
+	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MassAssault)
+		iResurrectionTime = floatround(get_pcvar_float(cvar_TSDresurrect));
+	
 	set_task(float(iResurrectionTime), "Task_PlayerResurrection", victim);
 	UTIL_BarTime(victim, iResurrectionTime);
 	g_rgbResurrecting[victim] = true;
@@ -266,6 +289,9 @@ public fw_StartFrame_Post()
 				return;
 
 			new iResurrectionTime = max(floatround(flHealth[iTeam] / 1000.0 * 10.0), 1);
+			if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MassAssault)
+				iResurrectionTime = floatround(get_pcvar_float(cvar_TSDresurrect));
+
 			set_task(float(iResurrectionTime), "Task_PlayerResurrection", i);
 			UTIL_BarTime(i, iResurrectionTime);
 			g_rgbResurrecting[i] = true;
@@ -300,6 +326,83 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		
 		g_flStopResurrectingThink = fCurTime + 0.1;
 	}
+	
+	if (g_flTeamTacticalSchemeThink <= fCurTime)
+	{
+		g_flTeamTacticalSchemeThink = fCurTime + 0.2;
+		
+		for (new i = 0; i < 4; i++)
+			for (new TacticalScheme_e:j = Scheme_UNASSIGNED; j < SCHEMES_COUNT; j++)
+				g_rgiBallotBox[i][j] = 0;	// re-zero before each vote.
+		
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_connected(i))
+				continue;
+			
+			if (is_user_bot(i))	// TODO: shall bots get to vote?
+				continue;
+			
+			new iTeam = get_pdata_int(i, m_iTeam);
+			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+				continue;
+			
+			g_rgiBallotBox[iTeam][g_rgTacticalSchemeVote[i]]++;
+		}
+		
+		for (new j = TEAM_TERRORIST; j <= TEAM_CT; j++)
+		{
+			for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
+			{
+				if (g_rgiBallotBox[j][i] > g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])
+					g_rgTeamTacticalScheme[j] = i;
+			}
+		}
+	}
+	
+	if (g_rgflTeamTSEffectThink[TEAM_CT] <= fCurTime && g_rgTeamTacticalScheme[TEAM_CT] != Scheme_UNASSIGNED)
+	{
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_connected(i))
+				continue;
+			
+			if (get_pdata_int(i, m_iTeam) != TEAM_CT)
+				continue;
+			
+			switch (g_rgTeamTacticalScheme[TEAM_CT])
+			{
+				case Doctrine_GrandBattleplan:
+					UTIL_AddAccount(i, get_pcvar_num(cvar_TSDmoneyaddnum));
+					
+				case Doctrine_SuperiorFirepower:
+				{
+					new iEntity = get_pdata_cbase(i, m_pActiveItem);
+					if (pev_valid(iEntity))
+					{
+						new iId = get_pdata_int(iEntity, m_iId, 4);
+						if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG)	// these weapons are not allowed to have clip.
+							set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + 1, 4);
+					}
+				}
+				
+				default:
+					continue;
+			}
+		}
+		
+		switch (g_rgTeamTacticalScheme[TEAM_CT])
+		{
+			case Doctrine_GrandBattleplan:
+				g_rgflTeamTSEffectThink[TEAM_CT] = fCurTime + get_pcvar_float(cvar_TSDmoneyaddinv);
+			
+			case Doctrine_SuperiorFirepower:
+				g_rgflTeamTSEffectThink[TEAM_CT] = fCurTime + get_pcvar_float(cvar_TSDrefillinv);
+			
+			default:
+				g_rgflTeamTSEffectThink[TEAM_CT] = fCurTime + 5.0;
+		}
+	}
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -316,13 +419,16 @@ public fw_PlayerPostThink_Post(pPlayer)
 	new Float:flCoordinate[2] = { -1.0, 0.90 };
 	new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 	
-	if (!is_user_alive(g_iLeader[iTeam - 1]))
-		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長已陣亡|兵源補給中斷");
+	static szText[192];
+	if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
+		formatex(szText, charsmax(szText), "隊長已陣亡|兵源補給中斷|%s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 	else
-		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|兵源剩餘:%d", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam]);
+		formatex(szText, charsmax(szText), "隊長:%s|兵源剩餘:%d|%s", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+	
+	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
 }
 
-public fw_Spawn(iEntity)	//移除任务实体
+public fw_Spawn(iEntity)	// 移除任务实体
 {
 	if (!pev_valid(iEntity))
 		return FMRES_IGNORED
@@ -507,6 +613,43 @@ public Message_Health(msg_id, msg_dest, msg_entity)
 
 	set_msg_arg_int(1, ARG_BYTE, max(floatround(flHealth / 1000.0 * 100.0), 1));
 	return PLUGIN_CONTINUE;
+}
+
+public Command_VoteTS(pPlayer)
+{
+	if (!is_user_connected(pPlayer))
+		return PLUGIN_HANDLED;
+	
+	new iTeam = get_pdata_int(pPlayer, m_iTeam);
+	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+		return PLUGIN_HANDLED;
+	
+	new szBuffer[192];
+	formatex(szBuffer, charsmax(szBuffer), "\r當前策略: \y%s^n\w投票以變更團隊策略:", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+	
+	new hMenu = menu_create(szBuffer, "MenuHandler_VoteTS");
+	
+	new szItem[SCHEMES_COUNT][64];
+	for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
+		formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgiBallotBox[iTeam][i]);
+	
+	strcat(szItem[g_rgTacticalSchemeVote[pPlayer]], " - 已投票", charsmax(szItem[]))
+	
+	for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
+		menu_additem(hMenu, szItem[i]);
+	
+	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
+	menu_display(pPlayer, hMenu, 0);
+	return PLUGIN_HANDLED;
+}
+
+public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
+{
+	if (iItem >= 0)	// for example, MENU_EXIT is -3... you can see the pattern.
+		g_rgTacticalSchemeVote[pPlayer] = TacticalScheme_e:iItem;
+	
+	menu_destroy(hMenu);
+	return PLUGIN_HANDLED;
 }
 
 public fw_BotForwardRegister_Post(iPlayer)
