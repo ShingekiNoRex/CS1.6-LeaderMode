@@ -1,0 +1,16 @@
+{
+    "name"      : "ClearMultiDamage",
+    "library"   : "mod",
+    "arguments" :
+    [
+    ],
+    "identifiers":
+    [
+        {
+            "os"    : "windows",
+            "mod"   : "cstrike",
+            "value" : [0x90,0x33,0xc0,0xa3,"*","*","*","*",0xa3,"*","*","*","*",0xa3,"*","*","*","*",0xc3],
+            "displacement" : 1
+        }
+    ]
+}

@@ -256,6 +256,9 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
+	if (!g_bRoundStarted)	// avoid the new round error
+		return;
+	
 	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(g_iLeader[iTeam - 1]))
 	{
 		new Float:vecCandidates[9][3], Float:vecDest[3], bool:bFind = false;
