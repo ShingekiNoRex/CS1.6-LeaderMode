@@ -469,8 +469,8 @@ public Event_HLTV()
 	g_iLeader[0] = -1;
 	g_iLeader[1] = -1;
 
-	g_iHumanResource[0] = cvar_humanresource * global_get(glb_maxClients);
-	g_iHumanResource[1] = cvar_humanresource * global_get(glb_maxClients);
+	g_iHumanResource[0] = get_pcvar_num(cvar_humanresource) * global_get(glb_maxClients);
+	g_iHumanResource[1] = get_pcvar_num(cvar_humanresource) * global_get(glb_maxClients);
 	
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
@@ -595,4 +595,26 @@ stock ShowHudMessage(iPlayer, const Color[3], const Float:Coordinate[2], const E
 	show_hudmessage(iPlayer, buffer);
 }
 
-
+stock DEBUG_LOG(const szText[], any:...)
+{
+	static bool:bInitiated;
+	static hFile;
+	
+	if (!bInitiated)
+	{
+		static file[256], logs[32];
+		get_localinfo("amxx_logs", logs, charsmax(logs));
+		formatex(file, charsmax(file), "%s/DEBUG_cz_leader.txt", logs);
+		
+		hFile = fopen(file, "at+");
+		bInitiated = true;
+	}
+	
+	if (!hFile)
+		return;
+	
+	static buffer[192];
+	vformat(buffer, charsmax(buffer), szText, 2);
+	
+	fprintf(hFile, szText);
+}
