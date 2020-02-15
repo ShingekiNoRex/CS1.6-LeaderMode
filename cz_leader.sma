@@ -135,7 +135,7 @@ public plugin_init()
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
-	cvar_menpower		= register_cvar("lm_starting_menpower",					"50");
+	cvar_menpower		= register_cvar("lm_starting_menpower",					"10");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"4.0");
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
@@ -646,7 +646,7 @@ public Event_FreezePhaseEnd()
 	
 	g_bRoundStarted = true;
 
-	for (new i = 1; i < 33; i++)
+	for (new i = 1; i < global_get(glb_maxClients); i++)
 	{
 		if (!is_user_alive(i))
 			continue
@@ -673,6 +673,14 @@ public Event_FreezePhaseEnd()
 	ewrite_byte(g_iLeader[1]);	// head of CTs
 	ewrite_byte(SCOREATTRIB_VIP);
 	emessage_end();
+	
+	new iPlayerAmount = 0;
+	for (new i = 1; i < global_get(glb_maxClients); i ++)
+		if (is_user_alive(i))
+			iPlayerAmount ++;
+	
+	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
+	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 }
 
 public Event_HLTV()
@@ -682,9 +690,6 @@ public Event_HLTV()
 	
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
-	
-	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower);
-	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower);
 	
 	for (new i = 0; i < 33; i++)
 		g_rgbResurrecting[i] = false;
