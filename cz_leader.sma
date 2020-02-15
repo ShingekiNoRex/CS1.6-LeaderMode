@@ -357,8 +357,12 @@ public Task_PlayerResurrection(iPlayer)
 	if (!is_user_alive(g_iLeader[1]) && iTeam == TEAM_CT)
 		return;
 	
+	if (g_iHumanResource[iTeam - 1] <= 0)
+		return;
+	
 	ExecuteHamB(Ham_CS_RoundRespawn, iPlayer);
 	g_rgbResurrecting[iPlayer] = false;
+	g_iHumanResource[iTeam - 1] --;
 }
 
 public Event_FreezePhaseEnd()
