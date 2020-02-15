@@ -93,9 +93,9 @@ new const g_objective_ents[][] =
 }
 
 new g_fwBotForwardRegister
-new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64];
+new g_iLeader[2], g_iHumanResource[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33];
-new cvar_WMDLkilltime, cvar_humanleader;
+new cvar_WMDLkilltime, cvar_humanleader, cvar_humanresource;
 
 public plugin_init()
 {
@@ -121,6 +121,7 @@ public plugin_init()
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
+	cvar_humanresource	= register_cvar("lm_human_resource_multi",				"10");
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -314,7 +315,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 	new Float:flCoordinate[2] = { -1.0, 0.90 };
 	new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 	
-	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|人力剩餘:%d", g_szLeaderNetname[iTeam - 1], 0);
+	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, "隊長:%s|人力剩餘:%d", g_szLeaderNetname[iTeam - 1], g_iHumanResource[iTeam - 1]);
 }
 
 public fw_Spawn(iEntity)	//移除任务实体
@@ -385,7 +386,7 @@ public Event_FreezePhaseEnd()
 			szPlayer[1][iAmount[1]] = i;
 		}
 		
-		fm_set_user_money(i, 16000)
+		//fm_set_user_money(i, 16000)
 	}
 	
 	if (!iAmount[0])
@@ -463,6 +464,9 @@ public Event_HLTV()
 {
 	g_iLeader[0] = -1;
 	g_iLeader[1] = -1;
+
+	g_iHumanResource[0] = cvar_humanresource * global_get(glb_maxClients);
+	g_iHumanResource[1] = cvar_humanresource * global_get(glb_maxClients);
 	
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
