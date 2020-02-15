@@ -11,38 +11,38 @@
 機動作戰學說：隊員可以重新部署位置	❌
 
 CT:
-突擊隊長	(1)
-(輕機槍，標記黑手位置，射速加倍&受傷減半)
+指挥官	(1)
+(標記黑手位置，10秒内射速加倍&受傷減半)
 (被動：HP 1000) ✔ (REX)
-重裝步兵
-(步槍，立即填充所有手榴彈，轉移90%傷害至護甲)
+S.W.A.T
+(立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
 (被動：AP 200)
-霰彈槍手
-(霰彈槍，一擊必殺200英尺內所有普通敵人，霰彈改為寒冰彈藥)
-(被動：
-狙擊手
-(狙擊槍，強制命中頭部3秒，命中的目標致盲3秒)
-(被動：狙擊槍散射和後座力減半)
-軍醫
-(衝鋒槍，犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半，手榴彈及煙霧彈改為治療效果)
+爆破手
+(10秒内无限高爆手雷，爆炸伤害+50%)
+(被動：死后爆炸)
+神射手
+(10秒内强制爆头，命中的目標致盲3秒)
+(被動：枪械散射和後座力減半)
+医疗兵
+(犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半，10秒内手榴彈及煙霧彈改為治療效果)
 (被動：移動速度+25%)
 
 TR:
-黑手(隊長)	(1)
-(手槍，將HP均分至周圍角色10秒，手槍改為燃燒彈藥)
+教父	(1)
+(周围友军瞬间恢复生命，10秒内受伤减半)
 (被動：HP 1000) ✔ (REX)
-暴徒
-(步槍，將步槍轉換為霰彈槍5秒，手榴彈改為燃燒，煙霧彈改為毒霧)
+狂战士
+(血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)
 (被動：擊殺賞金均全額賦予)
-技師
-(衝鋒槍，衝鋒槍改為電擊彈藥，將瞄準目標吸往自己的方向)
+疯狂科学家
+(電擊彈藥，將瞄準目標吸往自己的方向)
 (被動：遭受的AP傷害以電擊雙倍返還)
-幽靈
+暗杀者
 (消音武器，標記突擊隊長位置，隱身10秒)
 (被動：消音武器有1%的概率暴擊)
-逃犯
-(輕機槍/部分步槍/霰彈槍，將損失的HP的35%轉換為傷害，主動絕唱6秒立刻死亡)
-(被動：裝備價格折扣35%)
+纵火犯
+(火焰弹药，)
+(被動：高爆手雷改为燃烧瓶)
 
 **/
 
@@ -83,6 +83,22 @@ enum TacticalScheme_e
 	
 	SCHEMES_COUNT
 };
+
+enum Role_e
+{
+	Commander,
+	SWAT,
+	Blaster,
+	Sharpshooter,
+	Medic,
+
+	Godfather,
+	Berserker,
+	MadScientist,
+	Assassin,
+	Arsonist
+};
+
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "(未開放)機動作戰學說" };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
@@ -116,6 +132,7 @@ public plugin_init()
 	// Ham hooks
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1)
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
+	RegisterHam(Ham_Weapon_PrimaryAttack, g_szWeaponEntity[i], "HamF_WeaponPriAttack_Post", 1)
 	
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
@@ -204,6 +221,15 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 		UTIL_AddAccount(iAttacker, floatround(flDamage));
 	else
 		UTIL_AddAccount(iAttacker, -floatround(flDamage));
+}
+
+public HamF_WeaponPriAttack_Post(iEntity)
+{
+	new iID = get_pdata_int(iEntity, m_iId, 4), iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
+	
+	// Firerate for CT leader
+	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1])
+		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack), 4);
 }
 
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, iSet)
