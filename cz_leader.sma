@@ -53,7 +53,7 @@ TR:
 
 #define PLUGIN	"CZ Leader"
 #define VERSION	"1.5"
-#define AUTHOR	"REX"
+#define AUTHOR	"ShingekiNoRex & Hydrogen"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
 #define HUD_SHOWHUD		2	//HUD属性信息通道
