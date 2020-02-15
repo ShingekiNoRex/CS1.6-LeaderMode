@@ -104,6 +104,9 @@ new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
 
+new const g_szWeaponEntity[][] = { "", "weapon_p228", "", "weapon_scout", "weapon_hegrenade", "weapon_xm1014", "weapon_c4", "weapon_mac10", "weapon_aug", "weapon_smokegrenade", "weapon_elite", "weapon_fiveseven", "weapon_ump45", "weapon_sg550", "weapon_galil", "weapon_famas",
+	"weapon_usp", "weapon_glock18", "weapon_awp", "weapon_mp5navy", "weapon_m249", "weapon_m3", "weapon_m4a1", "weapon_tmp", "weapon_g3sg1", "weapon_flashbang", "weapon_deagle", "weapon_sg552", "weapon_ak47", "weapon_knife", "weapon_p90" }
+
 //地图实体
 new const g_objective_ents[][] =
 {
@@ -133,9 +136,19 @@ public plugin_init()
 	// Ham hooks
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1)
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
-	RegisterHam(Ham_Weapon_PrimaryAttack, g_szWeaponEntity[i], "HamF_WeaponPriAttack_Post", 1)
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	
+	for(new i = 0; i < sizeof g_szWeaponEntity; i++)
+	{
+		if(!g_szWeaponEntity[i][0])
+			continue;
+		
+		if(i == CSW_XM1014 || i == CSW_M3 || i == CSW_C4 || i == CSW_HEGRENADE || i == CSW_KNIFE || i == CSW_SMOKEGRENADE || i == CSW_FLASHBANG)
+			continue;
+
+		RegisterHam(Ham_Weapon_PrimaryAttack, g_szWeaponEntity[i], "HamF_WeaponPriAttack_Post", 1);
+	}
+
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
 	register_forward(FM_SetModel, "fw_SetModel");
@@ -227,7 +240,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 
 public HamF_WeaponPriAttack_Post(iEntity)
 {
-	new iID = get_pdata_int(iEntity, m_iId, 4), iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
+	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
 	// Firerate for CT leader
 	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1])
