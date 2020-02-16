@@ -19,7 +19,7 @@
 
 CT:
 指挥官	(1)
-(標記黑手位置，10秒内自身射速加倍&受傷減半)
+(標記黑手位置，自身射速加倍&受傷減半)
 (被動：HP 1000，可以发动空袭) ✔ (REX)
 S.W.A.T.
 (立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
@@ -36,7 +36,7 @@ S.W.A.T.
 
 TR:
 教父	(1)
-(將自身HP均分至周圍角色，20秒後收回。10秒内自身受伤减半)
+(將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
 (血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)
@@ -243,6 +243,7 @@ public plugin_init()
 	// Ham hooks
 	RegisterHam(Ham_Killed, "player", "HamF_Killed");
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1);
+	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage");
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	
@@ -355,6 +356,17 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	set_task(float(iResurrectionTime), "Task_PlayerResurrection", victim);
 	UTIL_BarTime(victim, iResurrectionTime);
 	g_rgbResurrecting[victim] = true;
+}
+
+public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
+{
+	if (is_user_alive(iVictim) && g_rgbUsingSkill[iVictim])
+	{
+		if (g_rgPlayerRole[iVictim] == Role_Godfather || g_rgPlayerRole[iVictim] == Role_Commander)
+			SetHamParamFloat(4, flDamage * 0.5);
+	}
+	
+	return HAM_IGNORED;
 }
 
 public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
