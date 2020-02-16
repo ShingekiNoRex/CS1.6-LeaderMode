@@ -97,5 +97,6 @@ public Commander_RevokeSkill(iTaskId)
 public Commander_TerminateSkill()
 {
 	remove_task(COMMANDER_TASK);
-	g_rgbUsingSkill[THE_COMMANDER] = false;
+	if (is_user_connected(THE_COMMANDER))
+		g_rgbUsingSkill[THE_COMMANDER] = false;
 }
