@@ -36,6 +36,9 @@ public Commander_ExecuteSkill(pPlayer)
 		engfunc(EngFunc_WriteCoord, vecOrigin[1]);
 		engfunc(EngFunc_WriteCoord, vecOrigin[2]);
 		message_end();
+
+		if (i != THE_COMMANDER)
+			print_chat_color(i, GREENCHAT, "指挥官发动了技能，敌方教父位置已在雷达上标出！");
 	}
 	
 	g_rgbUsingSkill[THE_COMMANDER] = true;
