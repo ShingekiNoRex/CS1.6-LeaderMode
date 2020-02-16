@@ -6,6 +6,9 @@
 #define GODFATHER_TEXT	g_rgszRoleNames[Role_Godfather]
 #define GODFATHER_TASK	3654861	// just some random number.
 
+#define GODFATHER_GRAND_SFX		"leadermode/sfx_event_sainthood_01.wav"
+#define GODFATHER_REVOKE_SFX	"leadermode/sfx_bloodline_add_bloodline_01.wav"
+
 new g_iGodchildrenCount = 0, g_rgiGodchildren[33];
 new Float:g_flGodfatherSavedHP = 1000.0, Float:g_rgflGodchildrenSavedHP[33];
 new cvar_godfatherRadius, cvar_godfatherDuration;
@@ -31,6 +34,8 @@ public Godfather_ExecuteSkill(pPlayer)
 	new iGodchild = -1, Float:vecOrigin[3];
 	pev(pPlayer, pev_origin, vecOrigin);
 	
+	client_cmd(pPlayer, "spk %s", GODFATHER_GRAND_SFX);
+	
 	while ((iGodchild = engfunc(EngFunc_FindEntityInSphere, iGodchild, vecOrigin, get_pcvar_float(cvar_godfatherRadius))) > 0)
 	{
 		if (!is_user_connected(iGodchild))
@@ -44,6 +49,8 @@ public Godfather_ExecuteSkill(pPlayer)
 		
 		g_iGodchildrenCount++;	// thus, the indexes are started from 1 and end with its exact number.
 		g_rgiGodchildren[g_iGodchildrenCount] = iGodchild;
+		
+		client_cmd(iGodchild, "spk %s", GODFATHER_GRAND_SFX);
 	}
 	
 	new Float:flGodfatherHealth, Float:flDividedHealth;
@@ -71,12 +78,18 @@ public Godfather_RevokeSkill(iTaskId)
 	for (new i = 1; i <= g_iGodchildrenCount; i++)
 	{
 		if (is_user_alive(g_rgiGodchildren[i]))
+		{
 			set_pev(g_rgiGodchildren[i], pev_health, g_rgflGodchildrenSavedHP[g_rgiGodchildren[i]]);
+			client_cmd(g_rgiGodchildren[i], "spk %s", GODFATHER_REVOKE_SFX);
+		}
 	}
 	
 	// the only way to stop it is the death of the Godfather
 	if (is_user_alive(THE_GODFATHER))
+	{
 		set_pev(THE_GODFATHER, pev_health, g_flGodfatherSavedHP);
+		client_cmd(THE_GODFATHER, "spk %s", GODFATHER_REVOKE_SFX);
+	}
 	
 	// g_iGodchildrenCount == 0 could be an indicator of the skill usage status ???
 	// what if skill was fail due to nobody near Godfather?
