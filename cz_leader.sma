@@ -176,6 +176,40 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	""
 };
 
+stock g_rgSkillDuration[ROLE_COUNT] =
+{
+	-1,
+	
+	-1,
+	-1,
+	-1,
+	-1,
+	-1,
+	
+	-1,
+	-1,
+	-1,
+	-1,
+	-1
+};
+
+stock g_rgSkillCooldown[ROLE_COUNT] =
+{
+	-1,
+	
+	-1,
+	-1,
+	-1,
+	-1,
+	-1,
+	
+	-1,
+	-1,
+	-1,
+	-1,
+	-1
+};
+
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
 new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "/y如果多數人/g舉棋不定/y，又或者隊伍內/t存在爭議/y：則全隊/t不會獲得/y任何加成。", "/t每秒/y都會填充當前武器/t最大/y彈容量的/g4%%%%", "/y隊伍/t復活速度/y達到/g極限/y，並且擁有/g雙倍/y人力資源。", "/y緩慢/g補充金錢/y並增加/t造成傷害/y及/t擊殺/y的/g賞金/y。", "/y增援隊員/g部署/y於/t隊長/y附近，並允許在/g任何位置/y購買裝備。" };
 new const g_rgiTacticalSchemeDescColor[SCHEMES_COUNT] = { GREYCHAT, REDCHAT, BLUECHAT, BLUECHAT, REDCHAT };
@@ -756,6 +790,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 	{
 		new rgColor[3] = { 255, 255, 0 };
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
+		new Float:flGoalCoordinate[2] = { -1.0, 0.05 };
 		new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 		
 		static szText[192], szSkillText[192], szGoal[192];
@@ -766,15 +801,18 @@ public fw_PlayerPostThink_Post(pPlayer)
 			new Float:flCooldownTimeLeft = g_rgflSkillCooldown[pPlayer] - get_gametime();
 			if (flCooldownTimeLeft > 0.0)
 			{
-				new Float:flCooldownLength = 60.0;	// UNDONE: what about others?
-				new iDotNum = floatround((flCooldownTimeLeft / flCooldownLength) * 20.0);	// keep the 20.0 sync with the 20 below.
-				new iLineNum = max(20 - iDotNum, 0);
+				if (g_rgSkillCooldown[g_rgPlayerRole[pPlayer]] > -1)
+				{
+					new Float:flCooldownLength = get_pcvar_float(g_rgSkillCooldown[g_rgPlayerRole[pPlayer]]);	// Done by Rex
+					new iDotNum = floatround((flCooldownTimeLeft / flCooldownLength) * 20.0);	// keep the 20.0 sync with the 20 below.
+					new iLineNum = max(20 - iDotNum, 0);
 				
-				for (new i = 0; i < iLineNum; i++)
-					strcat(szSkillText, "|", charsmax(szSkillText));
+					for (new i = 0; i < iLineNum; i++)
+						strcat(szSkillText, "|", charsmax(szSkillText));
 				
-				for (new i = 0; i < iDotNum; i++)
-					strcat(szSkillText, "•", charsmax(szSkillText));
+					for (new i = 0; i < iDotNum; i++)
+						strcat(szSkillText, "•", charsmax(szSkillText));
+				}
 			}
 		}
 		else if (!g_rgbAllowSkill[pPlayer] && g_rgbUsingSkill[pPlayer])	// still working
@@ -782,15 +820,18 @@ public fw_PlayerPostThink_Post(pPlayer)
 			new Float:flSkillEffectLeft = get_gametime() - g_rgflSkillExecutedTime[pPlayer];	// YES, these two are reverted. think it through logic.
 			if (flSkillEffectLeft > 0.0)
 			{
-				new Float:flSkillEffectLength = 20.0;	// UNDONE: what about others?
-				new iDotNum = floatround((flSkillEffectLeft / flSkillEffectLength) * 20.0);
-				new iLineNum = max(20 - iDotNum, 0);
+				if (g_rgSkillDuration[g_rgPlayerRole[pPlayer]] > -1)
+				{
+					new Float:flSkillEffectLength = get_pcvar_float(g_rgSkillDuration[g_rgPlayerRole[pPlayer]]);	// Done by Rex
+					new iDotNum = floatround((flSkillEffectLeft / flSkillEffectLength) * 20.0);
+					new iLineNum = max(20 - iDotNum, 0);
 				
-				for (new i = 0; i < iLineNum; i++)
-					strcat(szSkillText, "|", charsmax(szSkillText));
+					for (new i = 0; i < iLineNum; i++)
+						strcat(szSkillText, "|", charsmax(szSkillText));
 				
-				for (new i = 0; i < iDotNum; i++)
-					strcat(szSkillText, "•", charsmax(szSkillText));
+					for (new i = 0; i < iDotNum; i++)
+						strcat(szSkillText, "•", charsmax(szSkillText));
+				}
 			}
 		}
 		
@@ -805,10 +846,10 @@ public fw_PlayerPostThink_Post(pPlayer)
 		if (!is_user_alive(g_iLeader[2 - iTeam]) && g_iLeader[2 - iTeam] > 0)
 			formatex(szGoal, charsmax(szGoal), "任务目标：扫荡残敌");
 		else
-			formatex(szGoal, charsmax(szGoal), "任务目标：击杀敌方%s %s", g_rgszRoleNames[g_iLeader[2 - iTeam], g_szLeaderNetname[2 - iTeam]]);
-
+			formatex(szGoal, charsmax(szGoal), "任务目标：击杀敌方%s %s", g_rgszRoleNames[g_rgPlayerRole[g_iLeader[2 - iTeam]]], g_szLeaderNetname[2 - iTeam]);
+		
 		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
-		ShowHudMessage(pPlayer, rgColor, { -1.0， 0.10 }, 0, rgflTime, HUD_SHOWGOAL, szGoal);
+		ShowHudMessage(pPlayer, rgColor, flGoalCoordinate, 0, rgflTime, HUD_SHOWGOAL, szGoal);
 	}
 	
 	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare)

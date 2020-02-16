@@ -18,6 +18,9 @@ public Godfather_Initialize()
 	cvar_godfatherRadius	= register_cvar("lm_godfather_radius",		"250.0");
 	cvar_godfatherDuration	= register_cvar("lm_godfather_duration",	"20.0");
 	cvar_godfatherCooldown	= register_cvar("lm_godfather_cooldown",	"60.0");
+
+	g_rgSkillDuration[Role_Godfather] = cvar_godfatherDuration;
+	g_rgSkillCooldown[Role_Godfather] = cvar_godfatherCooldown;
 }
 
 public Godfather_TerminateSkill()

@@ -15,6 +15,9 @@ public Commander_Initialize()
 {
 	cvar_commanderMarkingDur	= register_cvar("lm_commander_marking_duration",	"20.0");
 	cvar_commanderCooldown		= register_cvar("lm_commander_cooldown",			"60.0");
+
+	g_rgSkillDuration[Role_Commander] = cvar_commanderMarkingDur;
+	g_rgSkillCooldown[Role_Commander] = cvar_commanderCooldown;
 }
 
 public Commander_ExecuteSkill(pPlayer)
