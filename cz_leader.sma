@@ -1037,6 +1037,7 @@ public Event_HLTV()
 	
 	// custom role HLTV events
 	Godfather_TerminateSkill();
+	Commander_TerminateSkill();
 
 	for (new i = 1; i < 33; i ++)
 	{
