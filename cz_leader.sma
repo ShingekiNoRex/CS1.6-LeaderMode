@@ -60,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.7.3"
+#define VERSION	"1.8"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -236,6 +236,7 @@ new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefilli
 
 // DIVIDE ET IMPERA
 #include "godfather.sma"
+#include "commander.sma"
 
 public plugin_init()
 {
@@ -289,9 +290,11 @@ public plugin_init()
 	register_clcmd("votescheme", "Command_VoteTS");
 	register_clcmd("say /votescheme", "Command_VoteTS");
 	register_clcmd("say /vs", "Command_VoteTS");
+	register_clcmd("test",	"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
+	Commander_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 }
@@ -329,10 +332,12 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	{
 		print_chat_color(0, REDCHAT, "%s已被擊斃!", g_rgszRoleNames[Role_Godfather]);
 		Godfather_TerminateSkill();
+		Commander_RevokeSkill(COMMANDER_TASK);
 	}
 	else if (victim == g_iLeader[1])
 	{
 		print_chat_color(0, BLUECHAT, "%s陣亡!", g_rgszRoleNames[Role_Commander]);
+		Commander_TerminateSkill();
 	}
 
 	if (!is_user_connected(victim))
@@ -758,6 +763,11 @@ public fw_PlayerPostThink_Post(pPlayer)
 			print_chat_color(pPlayer, GREENCHAT, "技能冷卻完毕！");
 		}
 	}
+	
+	if (iTeam == TEAM_CT)	// Commander's skill
+	{
+		Commander_SkillThink(pPlayer);
+	}
 }
 
 public fw_Spawn(iEntity)	// 移除任务实体
@@ -1025,6 +1035,12 @@ public Command_VoteTS(pPlayer)
 	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
 	menu_display(pPlayer, hMenu, 0);
 	return PLUGIN_HANDLED;
+}
+
+public Command_Test(pPlayer)
+{
+	if (pPlayer == THE_COMMANDER)
+		Commander_ExecuteSkill(pPlayer);
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
