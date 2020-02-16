@@ -12,8 +12,8 @@
 
 CT:
 指挥官	(1)
-(標記黑手位置，10秒内射速加倍&受傷減半)
-(被動：HP 1000) ✔ (REX)
+(標記黑手位置，10秒内自身射速加倍&受傷減半)
+(被動：HP 1000，可以发动空袭) ✔ (REX)
 S.W.A.T.
 (立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
 (被動：AP 200)
@@ -29,8 +29,8 @@ S.W.A.T.
 
 TR:
 教父	(1)
-(周围友军瞬间恢复生命，10秒内受伤减半)
-(被動：HP 1000) ✔ (REX)
+(周围友军瞬间恢复生命，10秒内自身受伤减半)
+(被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
 (血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)
 (被動：擊殺賞金均全額賦予)
@@ -38,10 +38,10 @@ TR:
 (電擊彈藥，將瞄準目標吸往自己的方向)
 (被動：遭受的AP傷害以電擊雙倍返還)
 暗杀者
-(消音武器，標記突擊隊長位置，隱身10秒)
+(消音武器，標記敌方指挥官位置，隱身10秒)
 (被動：消音武器有1%的概率暴擊)
 纵火犯
-(火焰弹药，)
+(火焰弹药，燃烧伤害附带减速效果)
 (被動：高爆手雷改为燃烧瓶)
 
 **/
@@ -144,6 +144,7 @@ stock const g_rgszRoleNames[ROLE_COUNT][] =
 };
 
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
+new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "未决定策略", "彈匣內子彈自動填充", "復活速度固定為最低值", "金錢緩慢補充、賞金增加", "隊員重生時部署於隊長附近" };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
@@ -204,6 +205,8 @@ new const g_rgszEntityToRemove[][] =
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
+new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCountdown[33], Float:g_rgflSkillCooldown[33];
+new cvar_SkillCountdown, cvar_SkillCooldown;
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
 
 public plugin_init()
@@ -232,6 +235,7 @@ public plugin_init()
 	register_forward(FM_SetModel, "fw_SetModel");
 	register_forward(FM_StartFrame, "fw_StartFrame_Post", 1);
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
+	register_forward(FM_CmdStart, "fw_CmdStart")
 	
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
@@ -243,14 +247,16 @@ public plugin_init()
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
-	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"10");
+	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
 	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
 	cvar_TSDrefillratio	= register_cvar("lm_TSD_SFD_clip_refill_ratio",			"0.04");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
-	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"50");
+	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"200");
 	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
+	cvar_SkillCountdown	= register_cvar("lm_skill_countdown",					"10.0");
+	cvar_SkillCooldown	= register_cvar("lm_skill_cooldown",					"60.0");
 	
 	// client commands
 	register_clcmd("vs", "Command_VoteTS");
@@ -642,6 +648,9 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
+	new Float:fCurTime;
+	global_get(glb_time, fCurTime);
+	
 	// HUD
 	if (!is_user_bot(pPlayer))
 	{
@@ -692,6 +701,22 @@ public fw_PlayerPostThink_Post(pPlayer)
 		// this signal flag will be cancelled automatically if you have another scheme executed.
 		set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
 	}
+	
+	if (g_rgbUsingSkill[pPlayer])
+	{
+		if (g_rgflSkillCountdown[pPlayer] <= fCurTime)
+		{
+			g_rgbUsingSkill[pPlayer] = false;
+			g_rgflSkillCooldown[pPlayer] = fCurTime + get_pcvar_float(cvar_SkillCooldown);
+		}
+	}
+	else if (!g_rgbAllowSkill[pPlayer])
+	{
+		if (g_rgflSkillCooldown[pPlayer] <= fCurTime)
+		{
+			g_rgbAllowSkill[pPlayer] = true;
+		}
+	}
 }
 
 public fw_Spawn(iEntity)	// 移除任务实体
@@ -712,6 +737,38 @@ public fw_Spawn(iEntity)	// 移除任务实体
 	}
 	
 	return FMRES_IGNORED
+}
+
+public fw_CmdStart(iPlayer, uc_handle, seed)
+{
+	if(!is_user_alive(iPlayer))
+		return FMRES_IGNORED;
+
+	if(get_uc(uc_handle, UC_Impulse) != 201)
+		return FMRES_IGNORED;
+
+	if(g_rgbUsingSkill[iPlayer])
+	{
+		print_chat_color(iPlayer, GREYCHAT, "技能正在使用中!");
+		return FMRES_IGNORED;
+	}
+
+	if(!g_rgbAllowSkill[iPlayer])
+	{
+		print_chat_color(iPlayer, GREYCHAT, "技能正在冷卻中!");
+		return FMRES_IGNORED;
+	}
+
+	g_rgbUsingSkill[iPlayer] = true;
+	g_rgbAllowSkill[iPlayer] = false;
+	
+	new Float:fCurTime;
+	global_get(glb_time, fCurTime);
+	
+	g_rgflSkillCountdown[iPlayer] = fCurTime + get_pcvar_float(cvar_SkillCountdown);
+	set_uc(uc_handle, UC_Impulse, 0);
+
+	return FMRES_IGNORED;
 }
 
 public Task_PlayerResurrection(iPlayer)
@@ -904,7 +961,7 @@ public Command_VoteTS(pPlayer)
 	
 	new szItem[SCHEMES_COUNT][64];
 	for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
-		formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgiBallotBox[iTeam][i]);
+		formatex(szItem[i], charsmax(szItem[]), "\w%s - %s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgszTacticalSchemeDesc[i], g_rgiBallotBox[iTeam][i]);
 	
 	strcat(szItem[g_rgTacticalSchemeVote[pPlayer]], " - 已投票", charsmax(szItem[]))
 	
