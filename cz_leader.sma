@@ -60,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.7.2"
+#define VERSION	"1.7.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -151,7 +151,8 @@ stock const g_rgszRoleNames[ROLE_COUNT][] =
 };
 
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
-new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "未决定策略", "彈匣子彈自動填充", "快速復活", "金錢緩慢補充、賞金增加", "隊員部署於隊長附近、全图购买" };
+new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "/y如果多數人/g舉棋不定/y，又或者隊伍內/t存在爭議/y：則全隊/t不會獲得/y任何加成。", "/t每秒/y都會填充當前武器/t最大/y彈容量的/g4%%", "/y隊伍/t復活速度/y達到/g極限/y，並且擁有/g雙倍/y人力資源。", "/y緩慢/g補充金錢/y並增加/t造成傷害/y及/t擊殺/y的/g賞金/y。", "/y增援隊員/g部署/y於/t隊長/y附近，並允許在/g任何位置/y購買裝備。" };
+new const g_rgiTacticalSchemeDescColor[SCHEMES_COUNT] = { GREYCHAT, REDCHAT, BLUECHAT, BLUECHAT, REDCHAT };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
@@ -211,11 +212,11 @@ new const g_rgszEntityToRemove[][] =
 
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
-new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
+new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCountdown[33], Float:g_rgflSkillCooldown[33];
 new cvar_SkillCountdown, cvar_SkillCooldown;
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
-new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown, cvar_showTSdetail;
+new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
 
 // DIVIDE ET IMPERA
 #include "godfather.sma"
@@ -260,7 +261,6 @@ public plugin_init()
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
 	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
 	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
-	cvar_showTSdetail	= register_cvar("lm_display_TS_detail",					"1");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
 	cvar_TSDrefillratio	= register_cvar("lm_TSD_SFD_clip_refill_ratio",			"0.04");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
@@ -550,9 +550,9 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		g_flStopResurrectingThink = fCurTime + 0.1;
 	}
 	
-	if (g_flTeamTacticalSchemeThink <= fCurTime)	// Team Tactical Scheme Voting Think
+	if (g_flOpeningBallotBoxes <= fCurTime)
 	{
-		g_flTeamTacticalSchemeThink = fCurTime + (g_bRoundStarted ? get_pcvar_float(cvar_TSVcooldown) : 0.1);
+		g_flOpeningBallotBoxes = fCurTime + 0.1;
 		
 		for (new i = 0; i < 4; i++)
 			for (new TacticalScheme_e:j = Scheme_UNASSIGNED; j < SCHEMES_COUNT; j++)
@@ -572,6 +572,11 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			
 			g_rgiBallotBox[iTeam][g_rgTacticalSchemeVote[i]]++;
 		}
+	}
+	
+	if (g_flTeamTacticalSchemeThink <= fCurTime)	// Team Tactical Scheme Voting Think
+	{
+		g_flTeamTacticalSchemeThink = fCurTime + (g_bRoundStarted ? get_pcvar_float(cvar_TSVcooldown) : 0.2);
 		
 		for (new j = TEAM_TERRORIST; j <= TEAM_CT; j++)
 		{
@@ -1008,12 +1013,7 @@ public Command_VoteTS(pPlayer)
 	
 	new szItem[SCHEMES_COUNT][64];
 	for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
-	{
-		if (get_pcvar_num(cvar_showTSdetail))
-			formatex(szItem[i], charsmax(szItem[]), "\w%s - %s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgszTacticalSchemeDesc[i], g_rgiBallotBox[iTeam][i]);
-		else
-			formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgszTacticalSchemeDesc[i], g_rgiBallotBox[iTeam][i]);
-	}
+		formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgiBallotBox[iTeam][i]);
 	
 	strcat(szItem[g_rgTacticalSchemeVote[pPlayer]], " - 已投票", charsmax(szItem[]))
 	
@@ -1028,7 +1028,10 @@ public Command_VoteTS(pPlayer)
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
 {
 	if (iItem >= 0)	// for example, MENU_EXIT is -3... you can see the pattern.
+	{
 		g_rgTacticalSchemeVote[pPlayer] = TacticalScheme_e:iItem;
+		UTIL_ColorfulPrintChat(pPlayer, g_rgszTacticalSchemeDesc[TacticalScheme_e:iItem], g_rgiTacticalSchemeDescColor[TacticalScheme_e:iItem]);
+	}
 	
 	menu_destroy(hMenu);
 	return PLUGIN_HANDLED;
@@ -1095,6 +1098,49 @@ stock ShowChat(const iPlayer, const Color, const Message[])
 		write_byte(Client)
 		write_string(g_rgszTeamName[get_pdata_int(Client, m_iTeam, 5)])
 		message_end()
+	}
+}
+
+stock UTIL_ColorfulPrintChat(pPlayer, const szText[], iTeamColor = 0, any:...)
+{
+	static szBuffer[192];
+	vformat(szBuffer, charsmax(szBuffer), szText, 4);
+	
+	replace_all(szBuffer, charsmax(szBuffer), "/y", "^1");	// yellow
+	replace_all(szBuffer, charsmax(szBuffer), "/t", "^3");	// team
+	replace_all(szBuffer, charsmax(szBuffer), "/g", "^4");	// green
+	
+	new bool:bAll = !(pPlayer > 0);
+	if (!is_user_connected(pPlayer))
+	{
+		bAll = true;
+		
+		for (pPlayer = 1; pPlayer <= global_get(glb_maxClients); pPlayer++)
+		{
+			if (is_user_connected(pPlayer))
+				break;	// the "tool-ish guy"
+		}
+	}
+	
+	if (REDCHAT <= iTeamColor <= GREYCHAT)
+	{
+		message_begin(bAll ? MSG_ALL : MSG_ONE, get_user_msgid("TeamInfo"), _, pPlayer);
+		write_byte(pPlayer);
+		write_string(g_rgszTeamName[iTeamColor]);
+		message_end();
+	}
+	
+	message_begin(bAll ? MSG_ALL : MSG_ONE, get_user_msgid("SayText"), _, pPlayer);
+	write_byte(pPlayer);
+	write_string(szBuffer);
+	message_end();
+	
+	if (REDCHAT <= iTeamColor <= GREYCHAT)
+	{
+		message_begin(bAll ? MSG_ALL : MSG_ONE, get_user_msgid("TeamInfo"), _, pPlayer);
+		write_byte(pPlayer);
+		write_string(g_rgszTeamName[get_pdata_int(pPlayer, m_iTeam)]);
+		message_end();
 	}
 }
 
