@@ -135,7 +135,7 @@ enum Role_e
 
 stock const g_rgszRoleNames[ROLE_COUNT][] =
 {
-	"觀察者",
+	"士兵",
 	
 	"指揮官",
 	"S.W.A.T.",
@@ -148,6 +148,23 @@ stock const g_rgszRoleNames[ROLE_COUNT][] =
 	"瘋狂科學家",
 	"刺客",
 	"縱火犯"
+};
+
+stock const g_rgszRoleSkills[ROLE_COUNT][] =
+{
+	"",
+	
+	"[T]標記黑手位置，自身射速加倍&受傷減半",
+	"",
+	"",
+	"",
+	"",
+	
+	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
+	"",
+	"",
+	"",
+	""
 };
 
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
@@ -684,9 +701,9 @@ public fw_PlayerPostThink_Post(pPlayer)
 		
 		static szText[192];
 		if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
-			formatex(szText, charsmax(szText), "%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			formatex(szText, charsmax(szText), "身份：%s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], g_rgszRoleSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		else
-			formatex(szText, charsmax(szText), "%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			formatex(szText, charsmax(szText), "身份：%s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], g_rgszRoleSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		
 		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
 	}
