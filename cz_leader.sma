@@ -735,7 +735,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		if (g_rgflSkillCooldown[pPlayer] <= fCurTime)
 		{
 			g_rgbAllowSkill[pPlayer] = true;
-			print_chat_color(iPlayer, GREENCHAT, "技能冷卻完毕！");
+			print_chat_color(pPlayer, GREENCHAT, "技能冷卻完毕！");
 		}
 	}
 }
