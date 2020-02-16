@@ -11,12 +11,13 @@
 
 new g_iGodchildrenCount = 0, g_rgiGodchildren[33];
 new Float:g_flGodfatherSavedHP = 1000.0, Float:g_rgflGodchildrenSavedHP[33];
-new cvar_godfatherRadius, cvar_godfatherDuration;
+new cvar_godfatherRadius, cvar_godfatherDuration, cvar_godfatherCooldown;
 
 public Godfather_Initialize()
 {
 	cvar_godfatherRadius	= register_cvar("lm_godfather_radius",		"250.0");
 	cvar_godfatherDuration	= register_cvar("lm_godfather_duration",	"20.0");
+	cvar_godfatherCooldown	= register_cvar("lm_godfather_cooldown",	"60.0");
 }
 
 public Godfather_TerminateSkill()
@@ -84,11 +85,17 @@ public Godfather_RevokeSkill(iTaskId)
 		}
 	}
 	
+	static Float:fCurTime;
+	global_get(glb_time, fCurTime);
+	g_rgbUsingSkill[THE_GODFATHER] = false;
+	g_rgflSkillCooldown[THE_GODFATHER] = fCurTime + get_pcvar_float(cvar_godfatherCooldown);
+
 	// the only way to stop it is the death of the Godfather
 	if (is_user_alive(THE_GODFATHER))
 	{
 		set_pev(THE_GODFATHER, pev_health, g_flGodfatherSavedHP);
 		client_cmd(THE_GODFATHER, "spk %s", GODFATHER_REVOKE_SFX);
+		print_chat_color(THE_GODFATHER, REDCHAT, "技能已结束！");
 	}
 	
 	// g_iGodchildrenCount == 0 could be an indicator of the skill usage status ???
