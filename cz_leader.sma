@@ -4,11 +4,17 @@
  - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
 
 
-策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。 ✔ (LUNA)
-火力優勢學說：彈匣內子彈自動填充		✔
-數量優勢學說：復活速度固定為最低值		✔
-質量優勢學說：金錢緩慢補充、賞金增加	✔
-機動作戰學說：隊員重生時部署於隊長附近	✔
+策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。策略每20秒得以更換。 ✔ (LUNA)
+火力優勢學說：	✔
+	彈匣內每秒填充4%的彈藥。
+數量優勢學說：	✔
+	復活速度固定為1秒。
+質量優勢學說：	✔
+	每5秒獲得50金錢。
+	造成傷害及擊殺賞金翻倍。
+機動作戰學說：	✔
+	增援會部署於指揮官附近。
+	可以於任意地點購買裝備。
 
 CT:
 指挥官	(1)
@@ -29,7 +35,7 @@ S.W.A.T.
 
 TR:
 教父	(1)
-(周围友军瞬间恢复生命，10秒内自身受伤减半)
+(將自身HP均分至周圍角色，20秒後收回。10秒内自身受伤减半)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
 (血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)
@@ -53,7 +59,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.7"
+#define VERSION	"1.7.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -303,12 +309,12 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 {
 	if (victim == g_iLeader[0])
 	{
-		print_chat_color(0, BLUECHAT, "恐怖分子首领已被击毙。(The leader of Terrorist has been killed.)")
+		print_chat_color(0, REDCHAT, "%s已被擊斃!", g_rgszRoleNames[Role_Godfather]);
 		Godfather_TerminateSkill();
 	}
 	else if (victim == g_iLeader[1])
 	{
-		print_chat_color(0, BLUECHAT, "反恐精英领袖已被击毙。(The leader of CT has been killed.)")
+		print_chat_color(0, BLUECHAT, "%s陣亡!", g_rgszRoleNames[Role_Commander]);
 	}
 
 	if (!is_user_connected(victim))
@@ -613,7 +619,13 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 				switch (g_rgTeamTacticalScheme[j])
 				{
 					case Doctrine_GrandBattleplan:
-						UTIL_AddAccount(i, get_pcvar_num(cvar_TSDmoneyaddnum));
+					{
+						if (get_pdata_int(i, m_iAccount) < 16000)
+						{
+							UTIL_AddAccount(i, get_pcvar_num(cvar_TSDmoneyaddnum));
+							client_cmd(i, "spk %s", "leadermode/money_in.wav");
+						}
+					}
 						
 					case Doctrine_SuperiorFirepower:
 					{
@@ -668,9 +680,9 @@ public fw_PlayerPostThink_Post(pPlayer)
 		
 		static szText[192];
 		if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
-			formatex(szText, charsmax(szText), "隊長已陣亡|兵源補給中斷|%s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			formatex(szText, charsmax(szText), "%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		else
-			formatex(szText, charsmax(szText), "隊長:%s|兵源剩餘:%d|%s", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			formatex(szText, charsmax(szText), "%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		
 		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
 	}
@@ -884,26 +896,26 @@ public Event_FreezePhaseEnd()
 	new Float:flCoordinate[2] = { -1.0, 0.30 };
 	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
 	
-	ShowHudMessage(g_iLeader[0], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s隊長!", g_rgszTeamName[TEAM_TERRORIST]);
-	ShowHudMessage(g_iLeader[1], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s隊長!", g_rgszTeamName[TEAM_CT]);
+	ShowHudMessage(g_iLeader[0], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", g_rgszRoleNames[Role_Godfather]);
+	ShowHudMessage(g_iLeader[1], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", g_rgszRoleNames[Role_Commander]);
 	
 	g_bRoundStarted = true;
 
 	for (new i = 1; i < global_get(glb_maxClients); i++)
 	{
 		if (!is_user_alive(i))
-			continue
+			continue;
 			
 		if (is_user_bot(i))
-			continue
-			
+			continue;
+		
 		if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)	// for TRs
 		{
-			print_chat_color(i, REDCHAT, "%s是反恐精英领袖，击杀他以阻止反恐精英重生。(%s is the leader of CT. Kill him to stop their respawn.)", g_szLeaderNetname[1], g_szLeaderNetname[1]);
+			print_chat_color(i, REDCHAT, "%s是%s, 殺死他以切斷%s兵源補給!", g_szLeaderNetname[TEAM_CT - 1], g_rgszRoleNames[Role_Commander], g_rgszTeamName[TEAM_CT]);
 		}
 		else if (get_pdata_int(i, m_iTeam) == TEAM_CT)	// for CTs
 		{
-			print_chat_color(i, REDCHAT, "%s是恐怖分子首领，击杀他以阻止恐怖分子重生。(%s is the leader of Terrorist. Kill him to stop their respawn.)", g_szLeaderNetname[0], g_szLeaderNetname[0]);
+			print_chat_color(i, BLUECHAT, "%s是%s, 殺死他以切斷%s兵源補給!", g_szLeaderNetname[TEAM_TERRORIST - 1], g_rgszRoleNames[Role_Godfather], g_rgszTeamName[TEAM_TERRORIST]);
 		}
 	}
 	
