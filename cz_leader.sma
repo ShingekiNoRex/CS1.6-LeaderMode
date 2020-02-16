@@ -272,7 +272,6 @@ public plugin_init()
 	register_clcmd("votescheme", "Command_VoteTS");
 	register_clcmd("say /votescheme", "Command_VoteTS");
 	register_clcmd("say /vs", "Command_VoteTS");
-	register_clcmd("test", "Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -348,7 +347,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
 	
 	if (iVictimTeam != iAttackerTeam)
-		UTIL_AddAccount(iAttacker, floatround(flDamage * (g_rgTeamTacticalScheme[iAttacker] == Doctrine_GrandBattleplan ? get_pcvar_float(cvar_TSDbountymul) : 1.0 )) );
+		UTIL_AddAccount(iAttacker, floatround(flDamage * (g_rgTeamTacticalScheme[iAttackerTeam] == Doctrine_GrandBattleplan ? get_pcvar_float(cvar_TSDbountymul) : 1.0 )) );
 	else
 		UTIL_AddAccount(iAttacker, -floatround(flDamage * 3.0));
 }
@@ -780,6 +779,17 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		return FMRES_IGNORED;
 	}
 
+	switch (g_rgPlayerRole[iPlayer])
+	{
+		case Role_Godfather:
+		{
+			Godfather_ExecuteSkill(iPlayer);
+		}
+		default:
+			return FMRES_IGNORED;
+	}
+
+	print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
 	g_rgbUsingSkill[iPlayer] = true;
 	g_rgbAllowSkill[iPlayer] = false;
 	
@@ -897,7 +907,9 @@ public Event_FreezePhaseEnd()
 	new Float:flCoordinate[2] = { -1.0, 0.30 };
 	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
 	
+	g_rgPlayerRole[g_iLeader[0]] = Role_Godfather;
 	ShowHudMessage(g_iLeader[0], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", g_rgszRoleNames[Role_Godfather]);
+	g_rgPlayerRole[g_iLeader[1]] = Role_Commander;
 	ShowHudMessage(g_iLeader[1], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", g_rgszRoleNames[Role_Commander]);
 	
 	g_bRoundStarted = true;
@@ -997,12 +1009,6 @@ public Command_VoteTS(pPlayer)
 	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
 	menu_display(pPlayer, hMenu, 0);
 	return PLUGIN_HANDLED;
-}
-
-public Command_Test(pPlayer)
-{
-	if (pPlayer == g_iLeader[TEAM_TERRORIST - 1])
-		Godfather_ExecuteSkill(pPlayer);
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
