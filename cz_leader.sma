@@ -60,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.8"
+#define VERSION	"1.8.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -308,6 +308,7 @@ public plugin_precache()
 	// Gamerules
 	engfunc(EngFunc_PrecacheSound, "leadermode/start_game_01.wav");
 	engfunc(EngFunc_PrecacheSound, "leadermode/start_game_02.wav");
+	engfunc(EngFunc_PrecacheSound, "leadermode/unable_manpower_alert.wav");
 	
 	// Schemes
 	engfunc(EngFunc_PrecacheSound, "leadermode/money_in.wav");
@@ -901,6 +902,7 @@ public Task_PlayerResurrection(iPlayer)
 		new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
 		
 		ShowHudMessage(0, rgColor, flCoordinate, 0, rgflTime, -1, "%s可用兵源已經耗盡!", g_rgszTeamName[iTeam]);
+		client_cmd(0, "spk %s", "leadermode/unable_manpower_alert.wav");
 	}
 }
 
