@@ -53,7 +53,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.6.3"
+#define VERSION	"1.7"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -209,6 +209,9 @@ new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33
 new cvar_SkillCountdown, cvar_SkillCooldown;
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
 
+// DIVIDE ET IMPERA
+#include "godfather.sma"
+
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
@@ -263,6 +266,10 @@ public plugin_init()
 	register_clcmd("votescheme", "Command_VoteTS");
 	register_clcmd("say /votescheme", "Command_VoteTS");
 	register_clcmd("say /vs", "Command_VoteTS");
+	register_clcmd("test", "Command_Test");
+	
+	// roles custom initiation
+	Godfather_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
 }
@@ -297,6 +304,7 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	if (victim == g_iLeader[0])
 	{
 		print_chat_color(0, BLUECHAT, "恐怖分子首领已被击毙。(The leader of Terrorist has been killed.)")
+		Godfather_TerminateSkill();
 	}
 	else if (victim == g_iLeader[1])
 	{
@@ -863,12 +871,14 @@ public Event_FreezePhaseEnd()
 	if (!iAmount[0] || !iAmount[1])
 		return;
 	
-	g_iLeader[0] = szPlayer[0][random_num(1, iAmount[0])]
-	g_iLeader[1] = szPlayer[1][random_num(1, iAmount[1])]
+	g_iLeader[0] = szPlayer[0][random_num(1, iAmount[0])];
+	g_iLeader[1] = szPlayer[1][random_num(1, iAmount[1])];
 	pev(g_iLeader[0], pev_netname, g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]));
 	pev(g_iLeader[1], pev_netname, g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]));
-	set_pev(g_iLeader[0], pev_health, 1000.0)
-	set_pev(g_iLeader[1], pev_health, 1000.0)
+	set_pev(g_iLeader[0], pev_health, 1000.0);
+	set_pev(g_iLeader[0], pev_max_health, 1000.0);
+	set_pev(g_iLeader[1], pev_health, 1000.0);
+	set_pev(g_iLeader[1], pev_max_health, 1000.0);
 	
 	new rgColor[3] = { 255, 100, 255 };
 	new Float:flCoordinate[2] = { -1.0, 0.30 };
@@ -928,6 +938,9 @@ public Event_HLTV()
 		g_rgbResurrecting[i] = false;
 	
 	g_bRoundStarted = false;
+	
+	// custom role HLTV events
+	Godfather_TerminateSkill();
 }
 
 public Message_Health(msg_id, msg_dest, msg_entity)
@@ -971,6 +984,12 @@ public Command_VoteTS(pPlayer)
 	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
 	menu_display(pPlayer, hMenu, 0);
 	return PLUGIN_HANDLED;
+}
+
+public Command_Test(pPlayer)
+{
+	if (pPlayer == g_iLeader[TEAM_TERRORIST - 1])
+		Godfather_ExecuteSkill(pPlayer);
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
