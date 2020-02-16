@@ -4,17 +4,17 @@
  - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
 
 
-策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。(LUNA)
-火力優勢學說：彈匣內子彈自動填充	✔
-數量優勢學說：復活速度固定4秒		✔
-質量優勢學說：金錢自動增加			✔
+策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。 ✔ (LUNA)
+火力優勢學說：彈匣內子彈自動填充		✔
+數量優勢學說：復活速度固定為最低值		✔
+質量優勢學說：金錢緩慢補充、賞金增加	✔
 機動作戰學說：隊員重生時部署於隊長附近	✔
 
 CT:
 指挥官	(1)
 (標記黑手位置，10秒内射速加倍&受傷減半)
 (被動：HP 1000) ✔ (REX)
-S.W.A.T
+S.W.A.T.
 (立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
 (被動：AP 200)
 爆破手
@@ -53,7 +53,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.6.2"
+#define VERSION	"1.6.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -87,28 +87,83 @@ enum TacticalScheme_e
 
 enum Role_e
 {
-	Commander,
-	SWAT,
-	Blaster,
-	Sharpshooter,
-	Medic,
+	Role_UNASSIGNED = 0,
+	
+	Role_Commander = 1,
+	Role_SWAT,
+	Role_Blaster,
+	Role_Sharpshooter,
+	Role_Medic,
 
-	Godfather,
-	Berserker,
-	MadScientist,
-	Assassin,
-	Arsonist
+	Role_Godfather,
+	Role_Berserker,
+	Role_MadScientist,
+	Role_Assassin,
+	Role_Arsonist,
+	
+	ROLE_COUNT
+};
+
+stock const g_rgszRoleNames[ROLE_COUNT][] =
+{
+	"觀察者",
+	
+	"指揮官",
+	"S.W.A.T.",
+	"爆破手",
+	"神射手",
+	"軍醫",
+	
+	"教父",
+	"狂戰士",
+	"瘋狂科學家",
+	"刺客",
+	"縱火犯"
 };
 
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
 
-new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR"}
+new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
-new const g_szWeaponEntity[][] = { "", "weapon_p228", "", "weapon_scout", "weapon_hegrenade", "weapon_xm1014", "weapon_c4", "weapon_mac10", "weapon_aug", "weapon_smokegrenade", "weapon_elite", "weapon_fiveseven", "weapon_ump45", "weapon_sg550", "weapon_galil", "weapon_famas",
-	"weapon_usp", "weapon_glock18", "weapon_awp", "weapon_mp5navy", "weapon_m249", "weapon_m3", "weapon_m4a1", "weapon_tmp", "weapon_g3sg1", "weapon_flashbang", "weapon_deagle", "weapon_sg552", "weapon_ak47", "weapon_knife", "weapon_p90" }
+stock const g_rgszWeaponEntity[][] =
+{
+	"",
+	"weapon_p228",
+	"",
+	"weapon_scout",
+	"weapon_hegrenade",
+	"weapon_xm1014",
+	"weapon_c4",
+	"weapon_mac10",
+	"weapon_aug",
+	"weapon_smokegrenade",
+	"weapon_elite",
+	"weapon_fiveseven",
+	"weapon_ump45",
+	"weapon_sg550",
+	"weapon_galil",
+	"weapon_famas",
+	"weapon_usp",
+	"weapon_glock18",
+	"weapon_awp",
+	"weapon_mp5navy",
+	"weapon_m249",
+	"weapon_m3",
+	"weapon_m4a1",
+	"weapon_tmp",
+	"weapon_g3sg1",
+	"weapon_flashbang",
+	"weapon_deagle",
+	"weapon_sg552",
+	"weapon_ak47",
+	"weapon_knife",
+	"weapon_p90"
+};
 
-//地图实体
-new const g_objective_ents[][] =
+//														 5				  10				  15				  20				  25				30	// if this isn't lined up, please use Notepad++
+stock const g_rgiDefaultMaxClip[] = { -1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 30, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 };
+
+new const g_rgszEntityToRemove[][] =
 {
 	"func_bomb_target",
 	"info_bomb_target",
@@ -127,26 +182,27 @@ new const g_objective_ents[][] =
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
-new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDrefillinv, cvar_TSDresurrect;
+new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect;
 
 public plugin_init()
 {
-	register_plugin(PLUGIN, VERSION, AUTHOR)
+	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
 	// Ham hooks
-	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1)
+	RegisterHam(Ham_Killed, "player", "HamF_Killed");
+	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1);
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	
-	for(new i = 0; i < sizeof g_szWeaponEntity; i++)
+	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
-		if(!g_szWeaponEntity[i][0])
+		if(!g_rgszWeaponEntity[i][0])
 			continue;
 		
 		if(i == CSW_XM1014 || i == CSW_M3 || i == CSW_C4 || i == CSW_HEGRENADE || i == CSW_KNIFE || i == CSW_SMOKEGRENADE || i == CSW_FLASHBANG)
 			continue;
 
-		RegisterHam(Ham_Weapon_PrimaryAttack, g_szWeaponEntity[i], "HamF_WeaponPriAttack_Post", 1);
+		RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[i], "HamF_Weapon_PrimaryAttack_Post", 1);
 	}
 
 	// FM hooks
@@ -165,11 +221,13 @@ public plugin_init()
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
-	cvar_menpower		= register_cvar("lm_starting_menpower",					"10");
+	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"10");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
+	cvar_TSDrefillratio	= register_cvar("lm_TSD_SFD_clip_refill_ratio",			"0.04");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"4.0");
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
 	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"50");
+	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
 	
 	// client commands
 	register_clcmd("vs", "Command_VoteTS");
@@ -182,7 +240,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	register_forward(FM_Spawn, "fw_Spawn")
+	register_forward(FM_Spawn, "fw_Spawn");
 }
 
 public client_putinserver(pPlayer)
@@ -190,31 +248,40 @@ public client_putinserver(pPlayer)
 	g_rgbResurrecting[pPlayer] = false;
 }
 
+public HamF_Killed(iVictim, iAttacker, bShouldGib)
+{
+	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
+		return;
+	
+	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
+	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
+	
+	if (g_rgTeamTacticalScheme[iAttackerTeam] == Doctrine_GrandBattleplan && iVictimTeam != iAttackerTeam)
+	{
+		// for the +600 efx, don't notify client.dll here.
+		set_pdata_int(iAttacker, m_iAccount, get_pdata_int(iAttacker, m_iAccount) + floatround(300.0 * (get_pcvar_float(cvar_TSDbountymul) - 1.0)) );
+	}
+}
+
 public HamF_Killed_Post(victim, attacker, shouldgib)
 {
 	if (victim == g_iLeader[0])
 	{
 		print_chat_color(0, BLUECHAT, "恐怖分子首领已被击毙。(The leader of Terrorist has been killed.)")
-		g_bRoundStarted = false;
 	}
 	else if (victim == g_iLeader[1])
 	{
 		print_chat_color(0, BLUECHAT, "反恐精英领袖已被击毙。(The leader of CT has been killed.)")
-		g_bRoundStarted = false;
 	}
 
 	if (!is_user_connected(victim))
 		return;
 
 	new iTeam = get_pdata_int(victim, m_iTeam);
-	
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
-	if (!is_user_alive(g_iLeader[0]) && iTeam == TEAM_TERRORIST)
-		return;
-	
-	if (!is_user_alive(g_iLeader[1]) && iTeam == TEAM_CT)
+	if (!is_user_alive(g_iLeader[iTeam - 1]))
 		return;
 	
 	new Float:flHealth;
@@ -238,12 +305,12 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
 	
 	if (iVictimTeam != iAttackerTeam)
-		UTIL_AddAccount(iAttacker, floatround(flDamage));
+		UTIL_AddAccount(iAttacker, floatround(flDamage * (g_rgTeamTacticalScheme[iAttacker] == Doctrine_GrandBattleplan ? get_pcvar_float(cvar_TSDbountymul) : 1.0 )) );
 	else
-		UTIL_AddAccount(iAttacker, -floatround(flDamage));
+		UTIL_AddAccount(iAttacker, -floatround(flDamage * 3.0));
 }
 
-public HamF_WeaponPriAttack_Post(iEntity)
+public HamF_Weapon_PrimaryAttack_Post(iEntity)
 {
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
@@ -261,9 +328,6 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 
-	if (!g_bRoundStarted)	// avoid the new round error
-		return;
-	
 	if (!g_bRoundStarted)	// avoid the new round error
 		return;
 	
@@ -490,11 +554,8 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 					if (is_user_bot(i))
 						continue;
 					
-					new iTeam = get_pdata_int(i, m_iTeam);
-					if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
-						continue;
-
-					ShowHudMessage(i, rgColor, flCoordinate, 0, rgflTime, -1, "已開始執行新團隊策略: %s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[j]]);
+					if (get_pdata_int(i, m_iTeam) == j)
+						ShowHudMessage(i, rgColor, flCoordinate, 0, rgflTime, -1, "已開始執行新團隊策略: %s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[j]]);
 				}
 			}
 		}
@@ -524,7 +585,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 						{
 							new iId = get_pdata_int(iEntity, m_iId, 4);
 							if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG)	// these weapons are not allowed to have clip.
-								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + 1, 4);
+								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + floatround(float(g_rgiDefaultMaxClip[iId]) * get_pcvar_float(cvar_TSDrefillratio)), 4);
 						}
 					}
 					
@@ -579,9 +640,9 @@ public fw_Spawn(iEntity)	// 移除任务实体
 	static classname[32]
 	pev(iEntity, pev_classname, classname, charsmax(classname))
 	
-	for (new i = 0; i < sizeof g_objective_ents; i ++)
+	for (new i = 0; i < sizeof g_rgszEntityToRemove; i ++)
 	{
-		if (equal(classname, g_objective_ents[i]))
+		if (equal(classname, g_rgszEntityToRemove[i]))
 		{
 			engfunc(EngFunc_RemoveEntity, iEntity)
 			return FMRES_SUPERCEDE
@@ -746,6 +807,8 @@ public Event_HLTV()
 	
 	for (new i = 0; i < 33; i++)
 		g_rgbResurrecting[i] = false;
+	
+	g_bRoundStarted = false;
 }
 
 public Message_Health(msg_id, msg_dest, msg_entity)
@@ -804,8 +867,10 @@ public fw_BotForwardRegister_Post(iPlayer)
 {
 	if (is_user_bot(iPlayer))
 	{
-		unregister_forward(FM_PlayerPostThink, g_fwBotForwardRegister, 1)
-		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed_Post", 1)
+		unregister_forward(FM_PlayerPostThink, g_fwBotForwardRegister, 1);
+		
+		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed");
+		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed_Post", 1);
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage_Post", 1);
 		RegisterHamFromEntity(Ham_CS_RoundRespawn, iPlayer, "HamF_CS_RoundRespawn_Post", 1);
 	}
