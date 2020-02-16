@@ -74,6 +74,28 @@ TR:
 #define TEAM_CT				2
 #define TEAM_SPECTATOR		3
 
+#define SIGNAL_BUY			(1<<0)
+#define SIGNAL_BOMB			(1<<1)
+#define SIGNAL_RESCUE		(1<<2)
+#define SIGNAL_ESCAPE		(1<<3)
+#define SIGNAL_VIPSAFETY	(1<<4)
+
+// weapons redefine
+#define CSW_ACR			CSW_AUG
+#define CSW_CM901		CSW_GALIL
+#define CSW_QBZ95		CSW_FAMAS
+#define CSW_SCARL		CSW_SG552
+#define CSW_MP7A1		CSW_TMP
+#define CSW_PM9			CSW_MAC10
+#define CSW_MK46		CSW_M249
+#define CSW_KSG12		CSW_M3
+#define CSW_STRIKER		CSW_XM1014
+#define CSW_ANACONDA	CSW_P228
+#define CSW_SVD			CSW_G3SG1
+#define CSW_M14EBR		CSW_SG550
+#define CSW_P99			CSW_ELITE
+#define CSW_M200		CSW_SCOUT
+
 enum TacticalScheme_e
 {
 	Scheme_UNASSIGNED = 0,	// disputation
@@ -161,7 +183,7 @@ stock const g_rgszWeaponEntity[][] =
 };
 
 //														 5				  10				  15				  20				  25				30	// if this isn't lined up, please use Notepad++
-stock const g_rgiDefaultMaxClip[] = { -1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 30, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 };
+stock const g_rgiDefaultMaxClip[] = { -1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 20, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 };
 
 new const g_rgszEntityToRemove[][] =
 {
@@ -182,7 +204,7 @@ new const g_rgszEntityToRemove[][] =
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
-new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect;
+new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
 
 public plugin_init()
 {
@@ -222,9 +244,10 @@ public plugin_init()
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
 	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"10");
+	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
 	cvar_TSDrefillratio	= register_cvar("lm_TSD_SFD_clip_refill_ratio",			"0.04");
-	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"4.0");
+	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
 	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"50");
 	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
@@ -505,9 +528,9 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		g_flStopResurrectingThink = fCurTime + 0.1;
 	}
 	
-	if (g_flTeamTacticalSchemeThink <= fCurTime)
+	if (g_flTeamTacticalSchemeThink <= fCurTime)	// Team Tactical Scheme Voting Think
 	{
-		g_flTeamTacticalSchemeThink = fCurTime + 0.2;
+		g_flTeamTacticalSchemeThink = fCurTime + (g_bRoundStarted ? get_pcvar_float(cvar_TSVcooldown) : 0.1);
 		
 		for (new i = 0; i < 4; i++)
 			for (new TacticalScheme_e:j = Scheme_UNASSIGNED; j < SCHEMES_COUNT; j++)
@@ -611,7 +634,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 
 public fw_PlayerPostThink_Post(pPlayer)
 {
-	if (!is_user_connected(pPlayer) || is_user_bot(pPlayer))
+	if (!is_user_connected(pPlayer))
 		return;
 	
 	new iTeam = get_pdata_int(pPlayer, m_iTeam);
@@ -619,17 +642,56 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
-	new rgColor[3] = { 255, 255, 0 };
-	new Float:flCoordinate[2] = { -1.0, 0.90 };
-	new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
+	// HUD
+	if (!is_user_bot(pPlayer))
+	{
+		new rgColor[3] = { 255, 255, 0 };
+		new Float:flCoordinate[2] = { -1.0, 0.90 };
+		new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
+		
+		static szText[192];
+		if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
+			formatex(szText, charsmax(szText), "隊長已陣亡|兵源補給中斷|%s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+		else
+			formatex(szText, charsmax(szText), "隊長:%s|兵源剩餘:%d|%s", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+		
+		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
+	}
 	
-	static szText[192];
-	if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
-		formatex(szText, charsmax(szText), "隊長已陣亡|兵源補給中斷|%s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
-	else
-		formatex(szText, charsmax(szText), "隊長:%s|兵源剩餘:%d|%s", g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
-	
-	ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
+	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare)
+	{
+		/**
+		// copy from player.h
+		class CUnifiedSignals
+		{
+		public:
+			CUnifiedSignals(void)
+			{
+				m_flSignal = 0;
+				m_flState = 0;
+			}
+
+		public:
+			void Update(void)
+			{
+				m_flState = m_flSignal;
+				m_flSignal = 0;
+			}
+
+			void Signal(int flags) { m_flSignal |= flags; }
+			int GetSignal(void) { return m_flSignal; }
+			int GetState(void) { return m_flState; }
+
+		private:
+			int m_flSignal;	// this is m_signals[0]
+			int m_flState;	// this is m_signals[1]
+		};
+		**/
+		
+		// Doctrine_MobileWarfare allows player to buying everywhere.
+		// this signal flag will be cancelled automatically if you have another scheme executed.
+		set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
+	}
 }
 
 public fw_Spawn(iEntity)	// 移除任务实体
