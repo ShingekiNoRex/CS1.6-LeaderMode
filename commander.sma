@@ -5,11 +5,12 @@
 #define THE_COMMANDER	g_iLeader[TEAM_CT - 1]
 #define COMMANDER_TASK	2876674
 
-new cvar_commanderMarkingDur;
+new cvar_commanderMarkingDur, cvar_commanderCooldown;
 
 public Commander_Initialize()
 {
 	cvar_commanderMarkingDur	= register_cvar("lm_commander_marking_duration",	"20.0");
+	cvar_commanderCooldown		= register_cvar("lm_commander_cooldown",			"60.0");
 }
 
 public Commander_ExecuteSkill(pPlayer)
@@ -79,8 +80,12 @@ public Commander_RevokeSkill(iTaskId)
 		message_end();
 	}
 	
+	print_chat_color(THE_COMMANDER, REDCHAT, "技能已结束！");
 	remove_task(COMMANDER_TASK);
 	g_rgbUsingSkill[THE_COMMANDER] = false;
+	static Float:fCurTime;
+	global_get(glb_time, fCurTime);
+	g_rgflSkillCooldown[THE_COMMANDER] = fCurTime + get_pcvar_float(cvar_commanderCooldown);
 }
 
 public Commander_TerminateSkill()

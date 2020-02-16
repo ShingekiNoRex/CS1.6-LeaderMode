@@ -24,6 +24,7 @@ public Godfather_TerminateSkill()
 {
 	g_iGodchildrenCount = 0;
 	remove_task(GODFATHER_TASK);
+	g_rgbUsingSkill[THE_GODFATHER] = false;
 }
 
 public Godfather_ExecuteSkill(pPlayer)

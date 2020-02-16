@@ -291,7 +291,6 @@ public plugin_init()
 	register_clcmd("votescheme", "Command_VoteTS");
 	register_clcmd("say /votescheme", "Command_VoteTS");
 	register_clcmd("say /vs", "Command_VoteTS");
-	register_clcmd("test",	"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -828,6 +827,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		{
 			Godfather_ExecuteSkill(iPlayer);
 		}
+		case Role_Commander:
+		{
+			Commander_ExecuteSkill(iPlayer);
+		}
 		default:
 			return FMRES_IGNORED;
 	}
@@ -1047,12 +1050,6 @@ public Command_VoteTS(pPlayer)
 	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
 	menu_display(pPlayer, hMenu, 0);
 	return PLUGIN_HANDLED;
-}
-
-public Command_Test(pPlayer)
-{
-	if (pPlayer == THE_COMMANDER)
-		Commander_ExecuteSkill(pPlayer);
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
