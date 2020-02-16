@@ -302,6 +302,7 @@ public plugin_init()
 public plugin_precache()
 {
 	register_forward(FM_Spawn, "fw_Spawn");
+	engfunc(EngFunc_PrecacheSound, "leadermode/money_in.wav");
 	engfunc(EngFunc_PrecacheSound, GODFATHER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
 }
