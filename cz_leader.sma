@@ -60,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.8.1"
+#define VERSION	"1.8.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -86,6 +86,14 @@ TR:
 #define SIGNAL_RESCUE		(1<<2)
 #define SIGNAL_ESCAPE		(1<<3)
 #define SIGNAL_VIPSAFETY	(1<<4)
+
+#define HIDEHUD_WEAPONS		(1<<0)
+#define HIDEHUD_FLASHLIGHT	(1<<1)
+#define HIDEHUD_ALL			(1<<2)
+#define HIDEHUD_HEALTH		(1<<3)
+#define HIDEHUD_TIMER		(1<<4)
+#define HIDEHUD_MONEY		(1<<5)
+#define HIDEHUD_CROSSHAIR	(1<<6)
 
 // weapons redefine
 #define CSW_ACR			CSW_AUG
@@ -434,14 +442,14 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 		for (new i = 0; i < 9; i++)
 			pev(g_iLeader[iTeam - 1], pev_origin, vecCandidates[i]);
 		
-		xs_vec_add(vecCandidates[0], Float:{0.0, 64.0, 0.0}, vecCandidates[0]);
-		xs_vec_add(vecCandidates[1], Float:{64.0, 64.0, 0.0}, vecCandidates[1]);
-		xs_vec_add(vecCandidates[2], Float:{64.0, 0.0, 0.0}, vecCandidates[2]);
-		xs_vec_add(vecCandidates[3], Float:{64.0, -64.0, 0.0}, vecCandidates[3]);
-		xs_vec_add(vecCandidates[4], Float:{0.0, -64.0, 0.0}, vecCandidates[4]);
-		xs_vec_add(vecCandidates[5], Float:{-64.0, -64.0, 0.0}, vecCandidates[5]);
-		xs_vec_add(vecCandidates[6], Float:{-64.0, 0.0, 0.0}, vecCandidates[6]);
-		xs_vec_add(vecCandidates[7], Float:{-64.0, 64.0, 0.0}, vecCandidates[7]);
+		xs_vec_add(vecCandidates[0], Float:{0.0, 128.0, 0.0}, vecCandidates[0]);
+		xs_vec_add(vecCandidates[1], Float:{128.0, 128.0, 0.0}, vecCandidates[1]);
+		xs_vec_add(vecCandidates[2], Float:{128.0, 0.0, 0.0}, vecCandidates[2]);
+		xs_vec_add(vecCandidates[3], Float:{128.0, -128.0, 0.0}, vecCandidates[3]);
+		xs_vec_add(vecCandidates[4], Float:{0.0, -128.0, 0.0}, vecCandidates[4]);
+		xs_vec_add(vecCandidates[5], Float:{-128.0, -128.0, 0.0}, vecCandidates[5]);
+		xs_vec_add(vecCandidates[6], Float:{-128.0, 0.0, 0.0}, vecCandidates[6]);
+		xs_vec_add(vecCandidates[7], Float:{-128.0, 128.0, 0.0}, vecCandidates[7]);
 		
 		new Float:flFraction, tr[8];
 		for (new i = 0; i < 8; i++)
@@ -985,11 +993,14 @@ public Event_FreezePhaseEnd()
 	
 	g_bRoundStarted = true;
 
-	for (new i = 1; i < global_get(glb_maxClients); i++)
+	new iPlayerAmount = 0;
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
 		if (!is_user_alive(i))
 			continue;
-			
+		
+		iPlayerAmount ++;
+		
 		if (is_user_bot(i))
 			continue;
 		
@@ -1001,6 +1012,8 @@ public Event_FreezePhaseEnd()
 		{
 			print_chat_color(i, BLUECHAT, "%s是%s, 殺死他以切斷%s兵源補給!", g_szLeaderNetname[TEAM_TERRORIST - 1], g_rgszRoleNames[Role_Godfather], g_rgszTeamName[TEAM_TERRORIST]);
 		}
+		
+		set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) | HIDEHUD_TIMER);
 	}
 	
 	emessage_begin(MSG_BROADCAST, get_user_msgid("ScoreAttrib"));
@@ -1012,11 +1025,6 @@ public Event_FreezePhaseEnd()
 	ewrite_byte(g_iLeader[1]);	// head of CTs
 	ewrite_byte(SCOREATTRIB_VIP);
 	emessage_end();
-	
-	new iPlayerAmount = 0;
-	for (new i = 1; i < global_get(glb_maxClients); i ++)
-		if (is_user_alive(i))
-			iPlayerAmount ++;
 	
 	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
@@ -1045,13 +1053,15 @@ public Event_HLTV()
 	Godfather_TerminateSkill();
 	Commander_TerminateSkill();
 
-	for (new i = 1; i < 33; i ++)
+	for (new i = 1; i <= global_get(glb_maxClients); i ++)
 	{
 		if (is_user_connected(i))
 		{
 			g_rgPlayerRole[i] = Role_UNASSIGNED;
 			g_rgbUsingSkill[i] = false;
 			g_rgflSkillCooldown[i] = 0.0;
+			
+			set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) & ~HIDEHUD_TIMER);
 		}
 	}
 }
