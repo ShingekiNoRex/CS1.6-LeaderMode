@@ -3,7 +3,11 @@
 **/
 
 #define THE_COMMANDER	g_iLeader[TEAM_CT - 1]
-#define COMMANDER_TASK	2876674
+#define COMMANDER_TEXT	g_rgszRoleNames[Role_Commander]
+#define COMMANDER_TASK	2876674	// just some random number.
+
+#define COMMANDER_GRAND_SFX		"leadermode/peace_summary_message_01.wav"
+#define COMMANDER_REVOKE_SFX	"leadermode/assign_leader_02.wav"
 
 new cvar_commanderMarkingDur, cvar_commanderCooldown;
 
@@ -38,7 +42,9 @@ public Commander_ExecuteSkill(pPlayer)
 		message_end();
 
 		if (i != THE_COMMANDER)
-			print_chat_color(i, GREENCHAT, "指挥官发动了技能，敌方教父位置已在雷达上标出！");
+			print_chat_color(i, GREENCHAT, "指挥官发动了技能，%s的位置已在雷达上标出！", GODFATHER_TEXT);
+		
+		client_cmd(i, "spk %s", COMMANDER_GRAND_SFX);
 	}
 	
 	g_rgbUsingSkill[THE_COMMANDER] = true;
@@ -84,19 +90,26 @@ public Commander_RevokeSkill(iTaskId)
 		message_begin(MSG_ONE, get_user_msgid("HostageK"), _, i);
 		write_byte(1);	// hostage index
 		message_end();
+		
+		client_cmd(i, "spk %s", COMMANDER_REVOKE_SFX);
 	}
 	
 	print_chat_color(THE_COMMANDER, REDCHAT, "技能已结束！");
+	
 	remove_task(COMMANDER_TASK);
 	g_rgbUsingSkill[THE_COMMANDER] = false;
-	static Float:fCurTime;
-	global_get(glb_time, fCurTime);
-	g_rgflSkillCooldown[THE_COMMANDER] = fCurTime + get_pcvar_float(cvar_commanderCooldown);
+	g_rgflSkillCooldown[THE_COMMANDER] = get_gametime() + get_pcvar_float(cvar_commanderCooldown);
 }
 
 public Commander_TerminateSkill()
 {
 	remove_task(COMMANDER_TASK);
+	
 	if (is_user_connected(THE_COMMANDER))
+	{
+		print_chat_color(THE_COMMANDER, REDCHAT, "技能已结束！");
+		
 		g_rgbUsingSkill[THE_COMMANDER] = false;
+		g_rgflSkillCooldown[THE_COMMANDER] = get_gametime() + get_pcvar_float(cvar_commanderCooldown);
+	}
 }

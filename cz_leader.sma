@@ -301,10 +301,28 @@ public plugin_init()
 
 public plugin_precache()
 {
+	static szFile[192];
+	
 	register_forward(FM_Spawn, "fw_Spawn");
+	
+	// Gamerules
+	engfunc(EngFunc_PrecacheSound, "leadermode/start_game_01.wav");
+	engfunc(EngFunc_PrecacheSound, "leadermode/start_game_02.wav");
+	
+	// Schemes
 	engfunc(EngFunc_PrecacheSound, "leadermode/money_in.wav");
+	
+	for (new i = 1; i <= 7; i++)
+	{
+		formatex(szFile, charsmax(szFile), "leadermode/infantry_rifle_cartridge_0%d.wav", i);
+		engfunc(EngFunc_PrecacheSound, szFile);
+	}
+	
+	// Roles
 	engfunc(EngFunc_PrecacheSound, GODFATHER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
+	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
+	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
 }
 
 public client_putinserver(pPlayer)
@@ -679,8 +697,17 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 						if (pev_valid(iEntity))
 						{
 							new iId = get_pdata_int(iEntity, m_iId, 4);
-							if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG)	// these weapons are not allowed to have clip.
+							if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG && get_pdata_int(iEntity, m_iClip, 4) < 127)	// these weapons are not allowed to have clip.
+							{
 								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + floatround(float(g_rgiDefaultMaxClip[iId]) * get_pcvar_float(cvar_TSDrefillratio)), 4);
+								
+								if (!random_num(0, 3))	// constant sound makes player annoying.
+								{
+									static szSound[64];
+									formatex(szSound, charsmax(szSound), "leadermode/infantry_rifle_cartridge_0%d.wav", random_num(1, 7));
+									client_cmd(i, "spk %s", szSound);
+								}
+							}
 						}
 					}
 					
@@ -991,6 +1018,8 @@ public Event_FreezePhaseEnd()
 	
 	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
+	
+	client_cmd(0, "spk %s", random_num(0, 1) ? "leadermode/start_game_01.wav" : "leadermode/start_game_02.wav");
 }
 
 public Event_HLTV()

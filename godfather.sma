@@ -24,6 +24,7 @@ public Godfather_TerminateSkill()
 {
 	g_iGodchildrenCount = 0;
 	remove_task(GODFATHER_TASK);
+	
 	if (is_user_connected(THE_GODFATHER))
 		g_rgbUsingSkill[THE_GODFATHER] = false;
 }
@@ -87,15 +88,14 @@ public Godfather_RevokeSkill(iTaskId)
 		}
 	}
 	
-	static Float:fCurTime;
-	global_get(glb_time, fCurTime);
 	g_rgbUsingSkill[THE_GODFATHER] = false;
-	g_rgflSkillCooldown[THE_GODFATHER] = fCurTime + get_pcvar_float(cvar_godfatherCooldown);
+	g_rgflSkillCooldown[THE_GODFATHER] = get_gametime() + get_pcvar_float(cvar_godfatherCooldown);
 
 	// the only way to stop it is the death of the Godfather
 	if (is_user_alive(THE_GODFATHER))
 	{
 		set_pev(THE_GODFATHER, pev_health, g_flGodfatherSavedHP);
+		
 		client_cmd(THE_GODFATHER, "spk %s", GODFATHER_REVOKE_SFX);
 		print_chat_color(THE_GODFATHER, REDCHAT, "技能已结束！");
 	}
