@@ -23,7 +23,7 @@ public Commander_ExecuteSkill(pPlayer)
 	
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
-		if (!is_user_connected(i))
+		if (!is_user_connected(i) || is_user_bot(i))
 			continue;
 		
 		if (get_pdata_int(i, m_iTeam) != TEAM_CT)
@@ -48,6 +48,9 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	
 	if (!is_user_alive(THE_COMMANDER) || !g_rgbUsingSkill[THE_COMMANDER])
 		return;
+
+	if (is_user_bot(pPlayer))
+		return;
 	
 	static Float:vecOrigin[3];
 	pev(THE_GODFATHER, pev_origin, vecOrigin);
@@ -69,7 +72,7 @@ public Commander_RevokeSkill(iTaskId)
 {
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
-		if (!is_user_connected(i))
+		if (!is_user_connected(i) || is_user_bot(i))
 			continue;
 		
 		if (get_pdata_int(i, m_iTeam) != TEAM_CT)
