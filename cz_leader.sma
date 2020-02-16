@@ -60,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.8.2"
+#define VERSION	"1.8.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -238,7 +238,7 @@ new const g_rgszEntityToRemove[][] =
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
-new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33];
+new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
 
@@ -757,11 +757,49 @@ public fw_PlayerPostThink_Post(pPlayer)
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
 		new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 		
-		static szText[192];
+		static szText[192], szSkillText[192];
+		formatex(szSkillText, charsmax(szSkillText), "");	// have to clear it each frame, or the strcpy() will fuck everything up.
+		
+		if (!g_rgbAllowSkill[pPlayer] && !g_rgbUsingSkill[pPlayer])	// Cooling down
+		{
+			new Float:flCooldownTimeLeft = g_rgflSkillCooldown[pPlayer] - get_gametime();
+			if (flCooldownTimeLeft > 0.0)
+			{
+				new Float:flCooldownLength = 60.0;	// UNDONE: what about others?
+				new iDotNum = floatround((flCooldownTimeLeft / flCooldownLength) * 20.0);	// keep the 20.0 sync with the 20 below.
+				new iLineNum = max(20 - iDotNum, 0);
+				
+				for (new i = 0; i < iLineNum; i++)
+					strcat(szSkillText, "|", charsmax(szSkillText));
+				
+				for (new i = 0; i < iDotNum; i++)
+					strcat(szSkillText, "•", charsmax(szSkillText));
+			}
+		}
+		else if (!g_rgbAllowSkill[pPlayer] && g_rgbUsingSkill[pPlayer])	// still working
+		{
+			new Float:flSkillEffectLeft = get_gametime() - g_rgflSkillExecutedTime[pPlayer];	// YES, these two are reverted. think it through logic.
+			if (flSkillEffectLeft > 0.0)
+			{
+				new Float:flSkillEffectLength = 20.0;	// UNDONE: what about others?
+				new iDotNum = floatround((flSkillEffectLeft / flSkillEffectLength) * 20.0);
+				new iLineNum = max(20 - iDotNum, 0);
+				
+				for (new i = 0; i < iLineNum; i++)
+					strcat(szSkillText, "|", charsmax(szSkillText));
+				
+				for (new i = 0; i < iDotNum; i++)
+					strcat(szSkillText, "•", charsmax(szSkillText));
+			}
+		}
+		
+		if (!strlen(szSkillText))
+			copy(szSkillText, charsmax(szSkillText), g_rgszRoleSkills[g_rgPlayerRole[pPlayer]]);
+		
 		if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
-			formatex(szText, charsmax(szText), "身份：%s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], g_rgszRoleSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			formatex(szText, charsmax(szText), "身份: %s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		else
-			formatex(szText, charsmax(szText), "身份：%s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], g_rgszRoleSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			formatex(szText, charsmax(szText), "身份: %s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		
 		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
 	}

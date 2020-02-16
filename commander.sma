@@ -47,8 +47,8 @@ public Commander_ExecuteSkill(pPlayer)
 		client_cmd(i, "spk %s", COMMANDER_GRAND_SFX);
 	}
 	
-	g_rgbUsingSkill[THE_COMMANDER] = true;
 	set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
+	g_rgflSkillExecutedTime[THE_COMMANDER] = get_gametime();
 }
 
 public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
