@@ -1021,6 +1021,10 @@ public Event_FreezePhaseEnd()
 	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 	
+	for (new i = TEAM_TERRORIST; i <= TEAM_CT; i++)
+		if (g_rgTeamTacticalScheme[i] == Doctrine_MassAssault)
+			g_rgiTeamMenPower[i] *= 2;
+	
 	client_cmd(0, "spk %s", random_num(0, 1) ? "leadermode/start_game_01.wav" : "leadermode/start_game_02.wav");
 }
 
