@@ -144,7 +144,7 @@ stock const g_rgszRoleNames[ROLE_COUNT][] =
 };
 
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
-new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "未决定策略", "彈匣內子彈自動填充", "復活速度固定為最低值", "金錢緩慢補充、賞金增加", "隊員重生時部署於隊長附近" };
+new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "未决定策略", "彈匣子彈自動填充", "快速復活", "金錢緩慢補充、賞金增加", "隊員部署於隊長附近、全图购买" };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
@@ -235,7 +235,7 @@ public plugin_init()
 	register_forward(FM_SetModel, "fw_SetModel");
 	register_forward(FM_StartFrame, "fw_StartFrame_Post", 1);
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
-	register_forward(FM_CmdStart, "fw_CmdStart")
+	register_forward(FM_CmdStart, "fw_CmdStart");
 	
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
@@ -264,7 +264,7 @@ public plugin_init()
 	register_clcmd("say /votescheme", "Command_VoteTS");
 	register_clcmd("say /vs", "Command_VoteTS");
 	
-	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1)
+	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 }
 
 public plugin_precache()
@@ -296,11 +296,11 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 {
 	if (victim == g_iLeader[0])
 	{
-		print_chat_color(0, BLUECHAT, "恐怖分子首领已被击毙。(The leader of Terrorist has been killed.)")
+		print_chat_color(0, BLUECHAT, "恐怖分子首领已被击毙。(The leader of Terrorist has been killed.)");
 	}
 	else if (victim == g_iLeader[1])
 	{
-		print_chat_color(0, BLUECHAT, "反恐精英领袖已被击毙。(The leader of CT has been killed.)")
+		print_chat_color(0, BLUECHAT, "反恐精英领袖已被击毙。(The leader of CT has been killed.)");
 	}
 
 	if (!is_user_connected(victim))
@@ -715,6 +715,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		if (g_rgflSkillCooldown[pPlayer] <= fCurTime)
 		{
 			g_rgbAllowSkill[pPlayer] = true;
+			print_chat_color(iPlayer, GREENCHAT, "技能冷卻完毕！");
 		}
 	}
 }
@@ -749,13 +750,13 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 
 	if(g_rgbUsingSkill[iPlayer])
 	{
-		print_chat_color(iPlayer, GREYCHAT, "技能正在使用中!");
+		print_chat_color(iPlayer, GREYCHAT, "技能正在使用中！");
 		return FMRES_IGNORED;
 	}
 
 	if(!g_rgbAllowSkill[iPlayer])
 	{
-		print_chat_color(iPlayer, GREYCHAT, "技能正在冷卻中!");
+		print_chat_color(iPlayer, GREYCHAT, "技能正在冷卻中！");
 		return FMRES_IGNORED;
 	}
 
