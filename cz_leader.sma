@@ -19,7 +19,7 @@
 
 CT:
 指挥官	(1)
-(標記黑手位置，10秒内自身射速加倍&受傷減半)	✔ (LUNA) (預訂)
+(標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA) (預訂)
 (被動：HP 1000，可以发动空袭) ✔ (REX)
 S.W.A.T.
 (立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
@@ -36,7 +36,7 @@ S.W.A.T.
 
 TR:
 教父	(1)
-(將自身HP均分至周圍角色，20秒後收回。10秒内自身受伤减半) ✔ (LUNA) (UNDONE)
+(將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
 (血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)
@@ -168,7 +168,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 };
 
 new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
-new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "/y如果多數人/g舉棋不定/y，又或者隊伍內/t存在爭議/y：則全隊/t不會獲得/y任何加成。", "/t每秒/y都會填充當前武器/t最大/y彈容量的/g4%%", "/y隊伍/t復活速度/y達到/g極限/y，並且擁有/g雙倍/y人力資源。", "/y緩慢/g補充金錢/y並增加/t造成傷害/y及/t擊殺/y的/g賞金/y。", "/y增援隊員/g部署/y於/t隊長/y附近，並允許在/g任何位置/y購買裝備。" };
+new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "/y如果多數人/g舉棋不定/y，又或者隊伍內/t存在爭議/y：則全隊/t不會獲得/y任何加成。", "/t每秒/y都會填充當前武器/t最大/y彈容量的/g4%%%%", "/y隊伍/t復活速度/y達到/g極限/y，並且擁有/g雙倍/y人力資源。", "/y緩慢/g補充金錢/y並增加/t造成傷害/y及/t擊殺/y的/g賞金/y。", "/y增援隊員/g部署/y於/t隊長/y附近，並允許在/g任何位置/y購買裝備。" };
 new const g_rgiTacticalSchemeDescColor[SCHEMES_COUNT] = { GREYCHAT, REDCHAT, BLUECHAT, BLUECHAT, REDCHAT };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
@@ -245,6 +245,7 @@ public plugin_init()
 	// Ham hooks
 	RegisterHam(Ham_Killed, "player", "HamF_Killed");
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1);
+	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage");
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	
@@ -360,6 +361,17 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	set_task(float(iResurrectionTime), "Task_PlayerResurrection", victim);
 	UTIL_BarTime(victim, iResurrectionTime);
 	g_rgbResurrecting[victim] = true;
+}
+
+public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
+{
+	if (is_user_alive(iVictim) && g_rgbUsingSkill[iVictim])
+	{
+		if (g_rgPlayerRole[iVictim] == Role_Godfather || g_rgPlayerRole[iVictim] == Role_Commander)
+			SetHamParamFloat(4, flDamage * 0.5);
+	}
+	
+	return HAM_IGNORED;
 }
 
 public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
