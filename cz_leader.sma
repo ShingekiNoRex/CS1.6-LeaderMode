@@ -1037,6 +1037,16 @@ public Event_HLTV()
 	
 	// custom role HLTV events
 	Godfather_TerminateSkill();
+
+	for (new i = 1; i < 33; i ++)
+	{
+		if (is_user_connected(i))
+		{
+			g_rgPlayerRole[i] = Role_UNASSIGNED;
+			g_rgbUsingSkill[i] = false;
+			g_rgflSkillCooldown[i] = 0.0;
+		}
+	}
 }
 
 public Message_Health(msg_id, msg_dest, msg_entity)
