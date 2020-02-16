@@ -9,6 +9,7 @@
 	彈匣內每秒填充4%的彈藥。
 數量優勢學說：	✔
 	復活速度固定為1秒。
+	兵源消耗減半。
 質量優勢學說：	✔
 	每5秒獲得50金錢。
 	造成傷害及擊殺賞金翻倍。
@@ -59,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.7.1"
+#define VERSION	"1.7.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -213,7 +214,8 @@ new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiT
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCountdown[33], Float:g_rgflSkillCooldown[33];
 new cvar_SkillCountdown, cvar_SkillCooldown;
-new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
+new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
+new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown, cvar_showTSdetail;
 
 // DIVIDE ET IMPERA
 #include "godfather.sma"
@@ -258,6 +260,7 @@ public plugin_init()
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
 	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
 	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
+	cvar_showTSdetail	= register_cvar("lm_display_TS_detail",					"1");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
 	cvar_TSDrefillratio	= register_cvar("lm_TSD_SFD_clip_refill_ratio",			"0.04");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
@@ -599,6 +602,12 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 					if (get_pdata_int(i, m_iTeam) == j)
 						ShowHudMessage(i, rgColor, flCoordinate, 0, rgflTime, -1, "已開始執行新團隊策略: %s", g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[j]]);
 				}
+				
+				// the effect of Doctrine_MassAssault is here instead of below.
+				if (g_rgTeamTacticalScheme[j] == Doctrine_MassAssault)	// switching to Doctrine_MassAssault
+					g_rgiTeamMenPower[j] *= 2;
+				else if (iSavedTS == Doctrine_MassAssault)	// switching to others
+					g_rgiTeamMenPower[j] /= 2;
 			}
 		}
 	}
@@ -999,7 +1008,12 @@ public Command_VoteTS(pPlayer)
 	
 	new szItem[SCHEMES_COUNT][64];
 	for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
-		formatex(szItem[i], charsmax(szItem[]), "\w%s - %s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgszTacticalSchemeDesc[i], g_rgiBallotBox[iTeam][i]);
+	{
+		if (get_pcvar_num(cvar_showTSdetail))
+			formatex(szItem[i], charsmax(szItem[]), "\w%s - %s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgszTacticalSchemeDesc[i], g_rgiBallotBox[iTeam][i]);
+		else
+			formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgszTacticalSchemeDesc[i], g_rgiBallotBox[iTeam][i]);
+	}
 	
 	strcat(szItem[g_rgTacticalSchemeVote[pPlayer]], " - 已投票", charsmax(szItem[]))
 	
