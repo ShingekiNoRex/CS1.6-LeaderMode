@@ -65,6 +65,7 @@ TR:
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
 #define HUD_SHOWHUD		2	//HUD属性信息通道
+#define HUD_SHOWGOAL	3	//HUD目标信息通道
 
 #define REDCHAT		1
 #define BLUECHAT	2
@@ -749,13 +750,19 @@ public fw_PlayerPostThink_Post(pPlayer)
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
 		new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
 		
-		static szText[192];
+		static szText[192], szGoal[192];
 		if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
 			formatex(szText, charsmax(szText), "身份：%s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], g_rgszRoleSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		else
 			formatex(szText, charsmax(szText), "身份：%s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], g_rgszRoleSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
-		
+
+		if (!is_user_alive(g_iLeader[2 - iTeam]) && g_iLeader[2 - iTeam] > 0)
+			formatex(szGoal, charsmax(szGoal), "任务目标：扫荡残敌");
+		else
+			formatex(szGoal, charsmax(szGoal), "任务目标：击杀敌方%s %s", g_rgszRoleNames[g_iLeader[2 - iTeam], g_szLeaderNetname[2 - iTeam]]);
+
 		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
+		ShowHudMessage(pPlayer, rgColor, { -1.0， 0.10 }, 0, rgflTime, HUD_SHOWGOAL, szGoal);
 	}
 	
 	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare)
