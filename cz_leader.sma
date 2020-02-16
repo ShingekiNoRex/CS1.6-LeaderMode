@@ -211,8 +211,7 @@ new const g_rgszEntityToRemove[][] =
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT];
-new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCountdown[33], Float:g_rgflSkillCooldown[33];
-new cvar_SkillCountdown, cvar_SkillCooldown;
+new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33];
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower, cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
 
 // DIVIDE ET IMPERA
@@ -264,8 +263,6 @@ public plugin_init()
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
 	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"200");
 	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
-	cvar_SkillCountdown	= register_cvar("lm_skill_countdown",					"10.0");
-	cvar_SkillCooldown	= register_cvar("lm_skill_cooldown",					"60.0");
 	
 	// client commands
 	register_clcmd("vs", "Command_VoteTS");
@@ -667,9 +664,6 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
-	new Float:fCurTime;
-	global_get(glb_time, fCurTime);
-	
 	// HUD
 	if (!is_user_bot(pPlayer))
 	{
@@ -720,17 +714,11 @@ public fw_PlayerPostThink_Post(pPlayer)
 		// this signal flag will be cancelled automatically if you have another scheme executed.
 		set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
 	}
-	
-	if (g_rgbUsingSkill[pPlayer])
+
+	if (!g_rgbUsingSkill[pPlayer] && !g_rgbAllowSkill[pPlayer])
 	{
-		if (g_rgflSkillCountdown[pPlayer] <= fCurTime)
-		{
-			g_rgbUsingSkill[pPlayer] = false;
-			g_rgflSkillCooldown[pPlayer] = fCurTime + get_pcvar_float(cvar_SkillCooldown);
-		}
-	}
-	else if (!g_rgbAllowSkill[pPlayer])
-	{
+		static Float:fCurTime;
+		global_get(glb_time, fCurTime);
 		if (g_rgflSkillCooldown[pPlayer] <= fCurTime)
 		{
 			g_rgbAllowSkill[pPlayer] = true;
@@ -792,11 +780,6 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 	print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
 	g_rgbUsingSkill[iPlayer] = true;
 	g_rgbAllowSkill[iPlayer] = false;
-	
-	new Float:fCurTime;
-	global_get(glb_time, fCurTime);
-	
-	g_rgflSkillCountdown[iPlayer] = fCurTime + get_pcvar_float(cvar_SkillCountdown);
 	set_uc(uc_handle, UC_Impulse, 0);
 
 	return FMRES_IGNORED;
