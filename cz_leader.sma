@@ -23,13 +23,13 @@
 CT:
 指挥官	(1)
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
-(被動：HP 1000，可以发动空袭) ✔ (REX)
+(被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
 S.W.A.T.
 (立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
 (被動：AP 200)
 爆破手
-(10秒内无限高爆手雷，爆炸伤害+50%)
-(被動：死后爆炸)
+(10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
+(被動：死后爆炸) ✔ (REX)
 神射手
 (10秒内强制爆头，命中的目標致盲3秒)	(LUNA預定)
 (被動：狙擊槍散射和後座力減半)
@@ -42,13 +42,13 @@ TR:
 (將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
-(血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)	(REX)
-(被動：擊殺賞金均全額賦予)
+(血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)	✔ (REX)
+(被動：擊殺賞金均全額賦予)	(UNDONE)
 疯狂科学家
 (電擊彈藥，將瞄準目標吸往自己的方向)
 (被動：遭受的AP傷害以電擊雙倍返還)
 暗杀者
-(消音武器，標記敌方指挥官位置，隱身10秒)
+(消音武器，標記敌方指挥官位置，隱身10秒) (LUNA預定)
 (被動：消音武器有1%的概率暴擊)
 纵火犯
 (火焰弹药，燃烧伤害附带减速效果)
@@ -188,12 +188,12 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"",
-	"",
+	"[T]无限高爆手雷，爆炸伤害+50%%%%",
 	"",
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
-	"",
+	"[T]血量越低伤害越高，承受致命伤不会立刻死亡",
 	"",
 	"",
 	""
@@ -318,6 +318,7 @@ new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefilli
 #include "godfather.sma"
 #include "commander.sma"
 #include "berserker.sma"
+#include "blaster.sma"
 
 public plugin_init()
 {
@@ -344,6 +345,7 @@ public plugin_init()
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
 	register_forward(FM_SetModel, "fw_SetModel");
+	register_forward(FM_SetModel, "fw_SetModel_Post", 1);
 	register_forward(FM_StartFrame, "fw_StartFrame_Post", 1);
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
 	register_forward(FM_CmdStart, "fw_CmdStart");
@@ -351,7 +353,7 @@ public plugin_init()
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
 	register_event("HLTV", "Event_HLTV", "a", "1=0", "2=0");
-	//register_event("CurWeapon", "Event_CurWeapon", "be", "1=1")
+	//register_event("CurWeapon", "Event_CurWeapon", "be", "1=1")(UNDONE: 空袭)
 	
 	// messages
 	register_message(get_user_msgid("Health"), "Message_Health");
@@ -393,7 +395,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, SFX_MENPOWER_DEPLETED);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_WON);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_LOST);
-	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);
+	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);(UNDONE: 空袭)
 	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_USE);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
@@ -414,6 +416,8 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
+
+	Blaster_Precache();
 }
 
 public client_putinserver(pPlayer)
@@ -449,6 +453,11 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		print_chat_color(0, BLUECHAT, "%s陣亡!", g_rgszRoleNames[Role_Commander]);
 		Commander_TerminateSkill();
 	}
+
+	g_rgbUsingSkill[victim] = false;
+
+	if (g_rgPlayerRole[victim] == Role_Blaster)
+		Blaster_Explosion(victim);
 	
 	new iTeam;
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
@@ -520,6 +529,21 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 				set_pev(iVictim, pev_health, 1.0);
 				return FMRES_SUPERCEDE;
 			}
+		}
+	}
+
+	if (is_user_alive(iAttacker) && g_rgbUsingSkill[iAttacker])
+	{
+		if (g_rgPlayerRole[iAttacker] == Role_Berserker)
+		{
+			new Float:flCurHealth;
+			pev(iVictim, pev_health, flCurHealth);
+			SetHamParamFloat(4, 100.0 - flCurHealth + flDamage);
+		}
+		else if (g_rgPlayerRole[iAttacker] == Role_Blaster)
+		{
+			if (bitsDamageTypes & DMG_BLAST || bitsDamageTypes & (1<<24))		// Blast or HE Grenade damage
+				SetHamParamFloat(4, flDamage * 1.5);
 		}
 	}
 	
@@ -670,6 +694,29 @@ public fw_SetModel(iEntity, szModel[])
 	set_pev(iEntity, pev_nextthink, get_gametime() + get_pcvar_float(cvar_WMDLkilltime));
 	
 	return FMRES_IGNORED
+}
+
+public fw_SetModel_Post(iEntity, szModel[])
+{
+	if (strlen(szModel) < 8)
+		return;
+	
+	if (szModel[7] != 'w' || szModel[8] != '_')
+		return;
+	
+	static szClassName[33];
+	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
+	if(strcmp(szClassName, "grenade"))
+		return;
+	
+	new iPlayer = pev(iEntity, pev_owner);
+
+	if (g_rgPlayerRole[iPlayer] != Role_Blaster || !g_rgbUsingSkill[iPlayer])
+		return;
+
+	fm_give_item(iPlayer, "weapon_hegrenade");
+	
+	return;
 }
 
 public fw_StartFrame_Post()
@@ -1074,6 +1121,14 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		{
 			Commander_ExecuteSkill(iPlayer);
 		}
+		case Role_Berserker:
+		{
+			Berserker_ExecuteSkill(iPlayer);
+		}
+		case Role_Blaster:
+		{
+			Blaster_ExecuteSkill(iPlayer);
+		}
 		default:
 			return FMRES_IGNORED;
 	}
@@ -1257,6 +1312,7 @@ public Event_HLTV()
 	Godfather_TerminateSkill();
 	Commander_TerminateSkill();
 	Berserker_TerminateSkill();
+	Blaster_TerminateSkill();
 
 	for (new i = 1; i <= global_get(glb_maxClients); i ++)
 	{
@@ -1273,7 +1329,7 @@ public Event_HLTV()
 	client_cmd(0, "stopsound");	// stop music
 	client_cmd(0, "mp3 stop");	// stop music
 }
-/*
+/*(UNDONE: 空袭)
 public Event_CurWeapon(iPlayer)
 {
 	if(g_rgPlayerRole[iPlayer] != Role_Commander)
