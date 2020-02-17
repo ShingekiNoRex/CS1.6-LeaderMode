@@ -1496,7 +1496,7 @@ public Command_VoteONC(pPlayer)
 		// clear the vote data from last vote.
 	
 	new szBuffer[192];
-	formatex(szBuffer, charsmax(szBuffer), "\r發起對%s\y%s\r的不信任動議:^n\w(尚餘\y%d\w次)", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1]);
+	formatex(szBuffer, charsmax(szBuffer), "\r發起對%s\y%s\r的不信任動議:^n\w(尚餘\y%d\w次)", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamCnfdnceMtnLeft[iTeam]);
 	
 	if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] > 0.0)	// open voting found!
 	{
