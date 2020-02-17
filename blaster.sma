@@ -12,8 +12,8 @@ public Blaster_Initialize()
 {
 	cvar_blasterDuration	= register_cvar("lm_blaster_duration",	"20.0");
 	cvar_blasterCooldown	= register_cvar("lm_blaster_cooldown",	"30.0");
-	cvar_explosionDamage	= register_cvar("lm_blaster_explosion_damage", "100.0");
-	cvar_explosionRange		= register_cvar("lm_blaster_explosion_range", "100.0");
+	cvar_explosionDamage	= register_cvar("lm_blaster_explosion_damage", "150.0");
+	cvar_explosionRange		= register_cvar("lm_blaster_explosion_range", "120.0");
 
 	g_rgSkillDuration[Role_Blaster] = cvar_blasterDuration;
 	g_rgSkillCooldown[Role_Blaster] = cvar_blasterCooldown;

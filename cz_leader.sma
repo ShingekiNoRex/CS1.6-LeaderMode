@@ -1471,7 +1471,7 @@ public Event_FreezePhaseEnd()
 	
 	for (new i = 1; i < 33; i++)
 	{
-		if (!is_user_alive(i) || i == THE_GODFATHER || i == THE_COMMANDER)
+		if (!is_user_alive(i) || is_user_bot(i) || i == THE_GODFATHER || i == THE_COMMANDER)
 			continue;
 			
 		if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)
@@ -1483,7 +1483,7 @@ public Event_FreezePhaseEnd()
 
 	for (new i = 1; i < 33; i++)
 	{
-		if (!is_user_alive(i) || i == THE_GODFATHER || i == THE_COMMANDER)
+		if (!is_user_alive(i) || is_user_bot(i) || i == THE_GODFATHER || i == THE_COMMANDER)
 			continue;
 			
 		if (get_pdata_int(i, m_iTeam) == TEAM_CT)
