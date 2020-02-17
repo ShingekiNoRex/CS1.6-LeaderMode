@@ -2,6 +2,8 @@
 
  - 金錢有限，以傷害為準	✔ (LUNA)
  - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
+ - 不信任動議投票 (罷免指揮官)
+ - 選舉(指揮官任命?)職業，職業人數限制
 
 
 策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。策略每20秒得以更換。 ✔ (LUNA)
@@ -13,13 +15,14 @@
 質量優勢學說：	✔
 	每5秒獲得50金錢。
 	造成傷害及擊殺賞金翻倍。
+	初始裝備包含護甲和各類手榴彈。
 機動作戰學說：	✔
 	增援會部署於指揮官附近。
 	可以於任意地點購買裝備。
 
 CT:
 指挥官	(1)
-(標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA) (預訂)
+(標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
 (被動：HP 1000，可以发动空袭) ✔ (REX)
 S.W.A.T.
 (立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
@@ -28,8 +31,8 @@ S.W.A.T.
 (10秒内无限高爆手雷，爆炸伤害+50%)
 (被動：死后爆炸)
 神射手
-(10秒内强制爆头，命中的目標致盲3秒)
-(被動：枪械散射和後座力減半)
+(10秒内强制爆头，命中的目標致盲3秒)	(LUNA預定)
+(被動：狙擊槍散射和後座力減半)
 医疗兵
 (犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半，10秒内手榴彈及煙霧彈改為治療效果)
 (被動：移動速度+25%)
@@ -536,6 +539,8 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	if (!g_bRoundStarted)	// avoid the new round error
 		return;
 	
+	set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) | HIDEHUD_TIMER);
+	
 	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(g_iLeader[iTeam - 1]))
 	{
 		new Float:vecCandidates[9][3], Float:vecDest[3], bool:bFind = false;
@@ -856,6 +861,9 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (!is_user_connected(pPlayer))
 		return;
 	
+	if (IsObserver(pPlayer))	// including player "afterlife".
+		return;
+	
 	new iTeam = get_pdata_int(pPlayer, m_iTeam);
 	
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
@@ -916,7 +924,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		if (!is_user_alive(g_iLeader[2 - iTeam]) && g_iLeader[2 - iTeam] > 0)
 			formatex(szGoal, charsmax(szGoal), "任務目標: 扫荡残敌");
 		else if (!g_bRoundStarted)	// not started yet.
-			formatex(szGoal, charsmax(szGoal), "任務目標: 投票決定作戰策略");
+			formatex(szGoal, charsmax(szGoal), "任務目標: 投票擬定作戰策略");
 		else
 			formatex(szGoal, charsmax(szGoal), "任務目標: 击杀敌方%s %s", g_rgszRoleNames[g_rgPlayerRole[g_iLeader[2 - iTeam]]], g_szLeaderNetname[2 - iTeam]);
 		
@@ -1530,6 +1538,10 @@ stock fm_give_item(iPlayer, const szName[])
 	return -1;
 }
 
+stock bool:IsObserver(pPlayer)
+{
+	return !!pev(pPlayer, pev_iuser1);
+}
 
 
 
