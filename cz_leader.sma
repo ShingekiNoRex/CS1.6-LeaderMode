@@ -978,7 +978,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			//if (iTimeLeft == floatround(get_pdata_float(cvar_VONCtimeLimit) / 2.0))
 		}
 		
-		if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] <= fCurTime)
+		if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] <= fCurTime && g_rgflTeamCnfdnceMtnTimeLimit[iTeam] > 0.0)
 		{
 			if (g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] >= g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE])
 			{
