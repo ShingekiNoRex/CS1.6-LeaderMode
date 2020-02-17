@@ -199,7 +199,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
 	"[T]血量越低伤害越高，承受致命伤不会立刻死亡",
 	"",
-	"",
+	"[T]標記指揮官位置並隱身",
 	""
 };
 
@@ -327,6 +327,7 @@ new cvar_VONCperTeam, cvar_VONCtimeLimit;
 #include "godfather.sma"
 #include "commander.sma"
 #include "berserker.sma"
+#include "assassin.sma"
 #include "blaster.sma"
 
 public plugin_init()
@@ -365,7 +366,8 @@ public plugin_init()
 	//register_event("CurWeapon", "Event_CurWeapon", "be", "1=1")(UNDONE: 空袭)
 	
 	// messages
-	register_message(get_user_msgid("Health"), "Message_Health");
+	register_message(get_user_msgid("Health"),		"Message_Health");
+	register_message(get_user_msgid("ScreenFade"),	"Message_ScreenFade");
 	
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
@@ -389,10 +391,12 @@ public plugin_init()
 	register_clcmd("vonc",				"Command_VoteONC");
 	register_clcmd("voteofnoconfidence","Command_VoteONC");
 	register_clcmd("say /vonc",			"Command_VoteONC");
+	register_clcmd("test",				"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
 	Commander_Initialize();
+	Assassin_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 }
@@ -414,7 +418,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
 	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_V);
-	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);	
+	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);
 
 	// Schemes
 	engfunc(EngFunc_PrecacheSound, SFX_TSD_GBD);
@@ -434,7 +438,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
-
+	engfunc(EngFunc_PrecacheSound, ASSASSIN_GRAND_SFX);
 	Blaster_Precache();
 }
 
@@ -446,6 +450,30 @@ public client_putinserver(pPlayer)
 	g_rgflSkillCooldown[pPlayer] = 0.0;
 	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
+}
+
+public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
+{
+	// terminating skill
+	switch (g_rgPlayerRole[pPlayer])
+	{
+		case Role_Commander:
+		{
+			Commander_TerminateSkill();
+		}
+		case Role_Godfather:
+		{
+			Godfather_TerminateSkill();
+			Commander_RevokeSkill(COMMANDER_TASK);
+		}
+		case Role_Assassin:
+		{
+			Assassin_TerminateSkill(pPlayer);
+		}
+		default:
+		{
+		}
+	}
 }
 
 public HamF_Killed(iVictim, iAttacker, bShouldGib)
@@ -521,6 +549,18 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	iTeam = get_pdata_int(victim, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
+	
+	// terminating skill
+	switch (g_rgPlayerRole[victim])
+	{
+		case Role_Assassin:
+		{
+			Assassin_TerminateSkill(victim);
+		}
+		default:
+		{
+		}
+	}
 	
 	if (!is_user_alive(g_iLeader[iTeam - 1]))
 		return;
@@ -673,7 +713,7 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	}
 }
 
-public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, iSet)
+public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
 	if (!is_user_connected(iHost))
 		return
@@ -681,7 +721,7 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, 
 	if (is_user_bot(iHost))
 		return
 	
-	if (iPlayer && is_user_alive(iHost))
+	if (bIsPlayer && is_user_alive(iHost))
 	{
 		if (iEntity == g_iLeader[0])
 		{
@@ -690,12 +730,16 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, 
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
 		}
-		if (iEntity == g_iLeader[1])
+		else if (iEntity == g_iLeader[1])
 		{
 			set_es(ES_Handle, ES_RenderFx, kRenderFxGlowShell)
 			set_es(ES_Handle, ES_RenderColor, {0, 0, 255})
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
+		}
+		else if (g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity])
+		{
+			set_es(ES_Handle, ES_Effects, EF_NODRAW);
 		}
 	}
 }
@@ -773,10 +817,10 @@ public fw_StartFrame_Post()
 			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 				return;
 		
-			if (!is_user_alive(g_iLeader[0]) && iTeam == TEAM_TERRORIST)
+			if (!is_user_alive(g_iLeader[iTeam - 1]))
 				return;
 			
-			if (!is_user_alive(g_iLeader[1]) && iTeam == TEAM_CT)
+			if (g_rgPlayerRole[i] == Role_Assassin && g_rgbUsingSkill[i])	// assassin will "look" like dead when using his invisible skill.
 				return;
 
 			new iResurrectionTime = max(floatround(flHealth[iTeam] / 1000.0 * 10.0), 1);
@@ -1000,30 +1044,62 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 					if (i == g_iLeader[iTeam - 1])
 						continue;
 					
+					if (is_user_bot(i) && get_pcvar_num(cvar_humanleader))
+						continue;
+					
 					iCandidateCount++;
 					iCandidates[iCandidateCount] = i;
 				}
 				
-				new iCromwell = iCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
-				if (!is_user_alive(iCromwell))
-					bCharlesI = true;
-				
-				if (iTeam == TEAM_TERRORIST)
-					Godfather_Assign(iCromwell);
-				else if (iTeam == TEAM_CT)
-					Commander_Assign(iCromwell);
-				
-				if (bCharlesI)
+				if (!iCandidateCount)	// only one player?
 				{
-					set_pev(iCharlesI, pev_health, 1.0);
-					ExecuteHamB(Ham_TakeDamage, iCharlesI, 0, iCharlesI, 10.0, DMG_FALL | DMG_NEVERGIB);
+					for (new i = 1; i <= global_get(glb_maxClients); i++)
+					{
+						if (!is_user_connected(i))
+							continue;
+						
+						if (get_pdata_int(i, m_iTeam) != iTeam)
+							continue;
+						
+						if (i == g_iLeader[iTeam - 1])
+							continue;
+						
+						iCandidateCount++;
+						iCandidates[iCandidateCount] = i;
+					}
 				}
 				
-				UTIL_ColorfulPrintChat(0, "/t不信任動議/y已經通過: /g%s/y已經被推舉為新的/g%s/y!", REDCHAT, g_szLeaderNetname[iTeam - 1], iTeam == TEAM_CT ? COMMANDER_TEXT : GODFATHER_TEXT);
-				client_cmd(0, "spk %s", SFX_VONC_PASSED);
+				if (iCandidateCount > 0)
+				{
+					new iCromwell = iCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
+					if (!is_user_alive(iCromwell))
+						bCharlesI = true;
+					
+					if (iTeam == TEAM_TERRORIST)
+						Godfather_Assign(iCromwell);
+					else if (iTeam == TEAM_CT)
+						Commander_Assign(iCromwell);
+					
+					if (bCharlesI)
+					{
+						set_pev(iCharlesI, pev_health, 1.0);
+						ExecuteHamB(Ham_TakeDamage, iCharlesI, 0, iCharlesI, 10.0, DMG_FALL | DMG_NEVERGIB);
+					}
+					
+					g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
+					UTIL_ColorfulPrintChat(0, "/t不信任動議/y已經通過: /g%s/y已經被推舉為新的/g%s/y!", REDCHAT, g_szLeaderNetname[iTeam - 1], iTeam == TEAM_CT ? COMMANDER_TEXT : GODFATHER_TEXT);
+					client_cmd(0, "spk %s", SFX_VONC_PASSED);
+				}
+				
+				g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
+				UTIL_ColorfulPrintChat(0, "/y由於/t人數不足/y, 針對%s/g%s/y的/t不信任動議/y沒有通過: /g%s/y將留任。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_szLeaderNetname[iTeam - 1]);
+				client_cmd(0, "spk %s", SFX_VONC_REJECTED);
 			}
 		}
 	}
+	
+	// custom global think
+	Assassin_SkillThink();
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -1221,6 +1297,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		case Role_Commander:
 		{
 			Commander_ExecuteSkill(iPlayer);
+		}
+		case Role_Assassin:
+		{
+			Assassin_ExecuteSkill(iPlayer);
 		}
 		case Role_Berserker:
 		{
@@ -1446,6 +1526,29 @@ public Message_Health(msg_id, msg_dest, msg_entity)
 	return PLUGIN_CONTINUE;
 }
 
+public Message_ScreenFade(msg_id, msg_dest, msg_entity)
+{
+	/**
+	Name:		ScreenFade
+	Structure:	
+				short	Duration
+				short	HoldTime
+				short	Flags
+				byte	ColorR
+				byte	ColorG
+				byte	ColorB
+				byte	Alpha
+	**/
+	
+	if (get_msg_arg_int(4) != 255 || get_msg_arg_int(5) != 255 || get_msg_arg_int(6) != 255 || get_msg_arg_int(7) < 200)
+		return PLUGIN_CONTINUE;
+	
+	if (is_user_connected(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Assassin && g_rgbUsingSkill[msg_entity])	// assassin is immue to flashbang when he is using his skill.
+		return PLUGIN_HANDLED;
+	
+	return PLUGIN_CONTINUE;
+}
+
 public Command_VoteTS(pPlayer)
 {
 	if (!is_user_connected(pPlayer))
@@ -1543,6 +1646,11 @@ public Command_VoteONC(pPlayer)
 	}
 	
 	return PLUGIN_HANDLED;
+}
+
+public Command_Test(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Assassin;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
@@ -1825,6 +1933,31 @@ stock bool:IsObserver(pPlayer)
 {
 	return !!pev(pPlayer, pev_iuser1);
 }
+
+stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieriot.sma
+{
+	message_begin(MSG_ONE, get_user_msgid("ScreenFade"), {0, 0, 0}, iPlayer);
+	
+	if(R || B || G || density)
+	{
+		write_short(~0);
+		write_short(~0);
+		write_short(0x0004);
+	}
+	else
+	{
+		write_short(0);
+		write_short(0);
+		write_short(0);
+	}
+	
+	write_byte(R);
+	write_byte(B);
+	write_byte(G);
+	write_byte(density);
+	message_end();
+}
+
 
 
 
