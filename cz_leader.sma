@@ -1026,7 +1026,6 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		{
 			if (g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] >= g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE])
 			{
-				g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
 				UTIL_ColorfulPrintChat(0, "/y針對%s/g%s/y的/t不信任動議/y沒有通過: /g%s/y將留任。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_szLeaderNetname[iTeam - 1]);
 				client_cmd(0, "spk %s", SFX_VONC_REJECTED);
 			}
@@ -1086,15 +1085,19 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 						ExecuteHamB(Ham_TakeDamage, iCharlesI, 0, iCharlesI, 10.0, DMG_FALL | DMG_NEVERGIB);
 					}
 					
-					g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
 					UTIL_ColorfulPrintChat(0, "/t不信任動議/y已經通過: /g%s/y已經被推舉為新的/g%s/y!", REDCHAT, g_szLeaderNetname[iTeam - 1], iTeam == TEAM_CT ? COMMANDER_TEXT : GODFATHER_TEXT);
 					client_cmd(0, "spk %s", SFX_VONC_PASSED);
 				}
-				
-				g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
-				UTIL_ColorfulPrintChat(0, "/y由於/t人數不足/y, 針對%s/g%s/y的/t不信任動議/y沒有通過: /g%s/y將留任。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_szLeaderNetname[iTeam - 1]);
-				client_cmd(0, "spk %s", SFX_VONC_REJECTED);
+				else
+				{
+					UTIL_ColorfulPrintChat(0, "/y由於/t人數不足/y, 針對%s/g%s/y的/t不信任動議/y沒有通過: /g%s/y將留任。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_szLeaderNetname[iTeam - 1]);
+					client_cmd(0, "spk %s", SFX_VONC_REJECTED);
+				}
 			}
+			
+			g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
+			for (new i = 0; i < 33; i++)
+				g_rgiConfidenceMotionVotes[i] = DISCARD;
 		}
 	}
 	
@@ -1686,7 +1689,7 @@ public MenuHandler_VoteONC(pPlayer, hMenu, iItem)
 		g_rgiTeamCnfdnceMtnBallotBox[iTeam][iLastVote]--;
 	}
 	
-	UTIL_ColorfulPrintChat(0, "/y針對%s/g%s/y的/t不信任動議/y: %s/g%d/y票, %s/t%d/y票。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgszCnfdnceMtnText[DEPRIVE], g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE], g_rgszCnfdnceMtnText[TRUST], g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST]);
+	UTIL_ColorfulPrintChat(0, "/y針對%s/g%s/y的/t不信任動議/y: %s/t%d/y票, %s/g%d/y票。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgszCnfdnceMtnText[DEPRIVE], g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE], g_rgszCnfdnceMtnText[TRUST], g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST]);
 	UTIL_ColorfulPrintChat(0, "/t%s/y至少要比/g%s/y多一票, 不信任動議方可通過。", REDCHAT, g_rgszCnfdnceMtnText[DEPRIVE], g_rgszCnfdnceMtnText[TRUST]);
 	
 	menu_destroy(hMenu);
