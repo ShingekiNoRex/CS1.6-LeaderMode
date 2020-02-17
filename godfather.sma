@@ -11,7 +11,7 @@
 
 new g_iGodchildrenCount = 0, g_rgiGodchildren[33];
 new Float:g_flGodfatherSavedHP = 1000.0, Float:g_rgflGodchildrenSavedHP[33];
-new Float:g_flGodfatherHealingThink;
+new Float:g_rgflGodfatherHealingThink[33];
 new cvar_godfatherRadius, cvar_godfatherDuration, cvar_godfatherCooldown, cvar_godfatherHealingInterval, cvar_godfatherHealingAmount;
 
 public Godfather_Initialize()
@@ -164,7 +164,7 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 
 	static Float:fCurTime;
 	global_get(glb_time, fCurTime);
-	if (g_flGodfatherHealingThink > fCurTime)
+	if (g_rgflGodfatherHealingThink[iPlayer] > fCurTime)
 		return;
 
 	static Float:vecGFOrigin[3], Float:vecPlayerOrigin[3];
@@ -173,14 +173,17 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 	if (get_distance_f(vecGFOrigin, vecPlayerOrigin) > get_pcvar_float(cvar_godfatherRadius))
 		return;
 
-	g_flGodfatherHealingThink = fCurTime + get_pcvar_float(cvar_godfatherHealingInterval);
+	g_rgflGodfatherHealingThink[iPlayer] = fCurTime + get_pcvar_float(cvar_godfatherHealingInterval);
 
 	new Float:flCurHealth;
 	pev(iPlayer, pev_health, flCurHealth);
-	flCurHealth += get_pcvar_float(cvar_godfatherHealingAmount);
 
-	if (flCurHealth > 100.0)
-		flCurHealth = 100.0
+	if (flCurHealth < 100.0)
+	{
+		flCurHealth += get_pcvar_float(cvar_godfatherHealingAmount);
+		if (flCurHealth > 100.0)
+			flCurHealth = 100.0
 
-	set_pev(iPlayer, pev_health, flCurHealth);
+		set_pev(iPlayer, pev_health, flCurHealth);
+	}
 }
