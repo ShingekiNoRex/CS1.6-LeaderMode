@@ -716,10 +716,10 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
 	if (!is_user_connected(iHost))
-		return
+		return;
 	
 	if (is_user_bot(iHost))
-		return
+		return;
 	
 	if (bIsPlayer && is_user_alive(iHost))
 	{
@@ -736,10 +736,6 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 			set_es(ES_Handle, ES_RenderColor, {0, 0, 255})
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
-		}
-		else if (g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity])
-		{
-			set_es(ES_Handle, ES_Effects, EF_NODRAW);
 		}
 	}
 }

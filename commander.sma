@@ -10,6 +10,7 @@
 #define COMMANDER_REVOKE_SFX	"leadermode/assign_leader_02.wav"
 
 new cvar_commanderMarkingDur, cvar_commanderCooldown;
+new gmsgHostagePos, gmsgHostageK;
 
 public Commander_Initialize()
 {
@@ -18,6 +19,9 @@ public Commander_Initialize()
 
 	g_rgSkillDuration[Role_Commander] = cvar_commanderMarkingDur;
 	g_rgSkillCooldown[Role_Commander] = cvar_commanderCooldown;
+	
+	gmsgHostagePos	= get_user_msgid("HostagePos");
+	gmsgHostageK	= get_user_msgid("HostageK");
 }
 
 public Commander_Assign(pPlayer)
@@ -77,7 +81,7 @@ public Commander_ExecuteSkill(pPlayer)
 		if (get_pdata_int(i, m_iTeam) != TEAM_CT)
 			continue;
 		
-		message_begin(MSG_ONE, get_user_msgid("HostagePos"), _, i);
+		message_begin(MSG_ONE, gmsgHostagePos, _, i);
 		write_byte(1);	// flags
 		write_byte(1);	// hostage index
 		engfunc(EngFunc_WriteCoord, vecOrigin[0]);
@@ -108,10 +112,6 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	static Float:vecOrigin[3];
 	pev(THE_GODFATHER, pev_origin, vecOrigin);
 	
-	static gmsgHostagePos;
-	if (!gmsgHostagePos)
-		gmsgHostagePos = get_user_msgid("HostagePos");
-	
 	message_begin(MSG_ONE, gmsgHostagePos, _, pPlayer);
 	write_byte(0);	// flags
 	write_byte(1);	// hostage index
@@ -131,29 +131,24 @@ public Commander_RevokeSkill(iTaskId)
 		if (get_pdata_int(i, m_iTeam) != TEAM_CT)
 			continue;
 		
-		message_begin(MSG_ONE, get_user_msgid("HostageK"), _, i);
+		message_begin(MSG_ONE, gmsgHostageK, _, i);
 		write_byte(1);	// hostage index
 		message_end();
 		
 		client_cmd(i, "spk %s", COMMANDER_REVOKE_SFX);
 	}
 	
-	print_chat_color(THE_COMMANDER, REDCHAT, "技能已结束！");
+	if (is_user_connected(THE_COMMANDER))
+	{
+		print_chat_color(THE_COMMANDER, REDCHAT, "技能已结束！");
 	
-	remove_task(COMMANDER_TASK);
-	g_rgbUsingSkill[THE_COMMANDER] = false;
-	g_rgflSkillCooldown[THE_COMMANDER] = get_gametime() + get_pcvar_float(cvar_commanderCooldown);
+		g_rgbUsingSkill[THE_COMMANDER] = false;
+		g_rgflSkillCooldown[THE_COMMANDER] = get_gametime() + get_pcvar_float(cvar_commanderCooldown);
+	}
 }
 
 public Commander_TerminateSkill()
 {
 	remove_task(COMMANDER_TASK);
-	
-	if (is_user_connected(THE_COMMANDER))
-	{
-		print_chat_color(THE_COMMANDER, REDCHAT, "技能已结束！");
-		
-		g_rgbUsingSkill[THE_COMMANDER] = false;
-		g_rgflSkillCooldown[THE_COMMANDER] = get_gametime() + get_pcvar_float(cvar_commanderCooldown);
-	}
+	Commander_RevokeSkill(COMMANDER_TASK);
 }
