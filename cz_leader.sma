@@ -820,7 +820,7 @@ public fw_SetModel_Post(iEntity, szModel[])
 	if (g_rgPlayerRole[iPlayer] != Role_Blaster || !g_rgbUsingSkill[iPlayer])
 		return;
 
-	fm_give_item(iPlayer, "weapon_hegrenade");
+	set_pdata_int(iPlayer, m_rgAmmo[get_pdata_int(get_pdata_cbase(iPlayer, m_pActiveItem), m_iPrimaryAmmoType, 4)], 1);
 	
 	return;
 }
@@ -2052,7 +2052,7 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 	message_end();
 }
 	
-stock RemoveFromArray(const rgArray[], iElement)
+stock RemoveFromArray(rgArray[], iElement)
 {
 	new rgNewArray[sizeof(rgArray)];
 	for (new i = 0, j = 0; i < sizeof(rgArray); i ++)
