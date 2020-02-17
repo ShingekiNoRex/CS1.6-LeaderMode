@@ -86,6 +86,10 @@ public Assassin_SkillThink()	// place at StartFrame()
 		engfunc(EngFunc_WriteCoord, vecOrigin[1]);
 		engfunc(EngFunc_WriteCoord, vecOrigin[2]);
 		message_end();
+
+		message_begin(MSG_ONE, gmsgHostageK, _, i);
+		write_byte(2);	// hostage index
+		message_end();
 	}
 }
 

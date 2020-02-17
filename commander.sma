@@ -118,6 +118,10 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	engfunc(EngFunc_WriteCoord, vecOrigin[1]);
 	engfunc(EngFunc_WriteCoord, vecOrigin[2]);
 	message_end();
+
+	message_begin(MSG_ONE, gmsgHostageK, _, pPlayer);
+	write_byte(1);	// hostage index
+	message_end();
 }
 
 public Commander_RevokeSkill(iTaskId)
