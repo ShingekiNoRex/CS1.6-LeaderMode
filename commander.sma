@@ -34,6 +34,7 @@ public Commander_Assign(pPlayer)
 		
 		g_rgPlayerRole[iAbdicator] = Role_UNASSIGNED;
 		pev(iAbdicator, pev_health, flSucceedHealth);	// this health will be assign to new leader. prevents the confidence motion mechanism abused by players.
+
 		set_pev(iAbdicator, pev_health, 100.0);
 		set_pev(iAbdicator, pev_max_health, 100.0);
 	}
@@ -46,7 +47,7 @@ public Commander_Assign(pPlayer)
 	pev(THE_COMMANDER, pev_netname, g_szLeaderNetname[TEAM_CT - 1], charsmax(g_szLeaderNetname[]));
 	set_pev(THE_COMMANDER, pev_health, flSucceedHealth);
 	set_pev(THE_COMMANDER, pev_max_health, 1000.0);
-	
+
 	new rgColor[3] = { 255, 100, 255 };
 	new Float:flCoordinate[2] = { -1.0, 0.30 };
 	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };

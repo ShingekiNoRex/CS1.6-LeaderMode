@@ -40,6 +40,7 @@ public Godfather_Assign(pPlayer)
 		
 		g_rgPlayerRole[iAbdicator] = Role_UNASSIGNED;
 		pev(iAbdicator, pev_health, flSucceedHealth);	// this health will be assign to new leader. prevents the confidence motion mechanism abused by players.
+
 		set_pev(iAbdicator, pev_health, 100.0);
 		set_pev(iAbdicator, pev_max_health, 100.0);
 	}
@@ -52,7 +53,7 @@ public Godfather_Assign(pPlayer)
 	pev(THE_GODFATHER, pev_netname, g_szLeaderNetname[TEAM_TERRORIST - 1], charsmax(g_szLeaderNetname[]));
 	set_pev(THE_GODFATHER, pev_health, flSucceedHealth);
 	set_pev(THE_GODFATHER, pev_max_health, 1000.0);
-	
+
 	new rgColor[3] = { 255, 100, 255 };
 	new Float:flCoordinate[2] = { -1.0, 0.30 };
 	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
@@ -158,7 +159,7 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 {
 	// please do the team check before calling this!
 
-	if (!is_user_alive(THE_GODFATHER))
+	if (!is_user_alive(THE_GODFATHER) || iPlayer == THE_GODFATHER)
 		return;
 
 	static Float:fCurTime;
