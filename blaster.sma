@@ -27,7 +27,13 @@ public Blaster_Precache()
 
 public Blaster_ExecuteSkill(pPlayer)
 {
-	fm_give_item(pPlayer, "weapon_hegrenade");
+	fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_HEGRENADE]);
+	fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_FLASHBANG]);
+	fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_FLASHBANG]);
+	fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_SMOKEGRENADE]);
+	
+	engclient_cmd(pPlayer, g_rgszWeaponEntity[CSW_HEGRENADE]);	// switch to grenade.
+	
 	set_task(get_pcvar_float(cvar_blasterDuration), "Blaster_RevokeSkill", BLASTER_TASK + pPlayer);
 }
 
@@ -43,7 +49,6 @@ public Blaster_RevokeSkill(iTaskId)
 	g_rgbUsingSkill[iPlayer] = false;
 	g_rgflSkillCooldown[iPlayer] = get_gametime() + get_pcvar_float(cvar_blasterCooldown);
 	print_chat_color(iPlayer, REDCHAT, "技能已结束！");
-	set_pdata_int(iPlayer, m_rgAmmo[12], 1);
 }
 
 public Blaster_Explosion(iPlayer)

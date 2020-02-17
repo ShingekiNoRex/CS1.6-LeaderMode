@@ -25,7 +25,7 @@ CT:
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
 (被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
 S.W.A.T.
-(立即填充所有手榴彈，10秒内轉移90%傷害至護甲)
+(立即填充所有手榴彈、彈藥和護甲，10秒内轉移90%傷害至護甲)
 (被動：AP 200)
 爆破手
 (10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
@@ -63,7 +63,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.9"
+#define VERSION	"1.9.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -361,19 +361,22 @@ public plugin_init()
 	
 	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
-		if(!g_rgszWeaponEntity[i][0])
+		if (!g_rgszWeaponEntity[i][0])
 			continue;
-		
-		if(i == CSW_XM1014 || i == CSW_M3 || i == CSW_C4 || i == CSW_HEGRENADE || i == CSW_KNIFE || i == CSW_SMOKEGRENADE || i == CSW_FLASHBANG)
+
+		if (i == CSW_C4 || i == CSW_HEGRENADE || i == CSW_KNIFE || i == CSW_SMOKEGRENADE || i == CSW_FLASHBANG)
 			continue;
 
 		RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[i], "HamF_Weapon_PrimaryAttack_Post", 1);
 	}
+	
+	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_HEGRENADE], "HamF_Weapon_WeaponIdle");
+	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_FLASHBANG], "HamF_Weapon_WeaponIdle");
+	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_SMOKEGRENADE], "HamF_Weapon_WeaponIdle");
 
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
 	register_forward(FM_SetModel, "fw_SetModel");
-	register_forward(FM_SetModel, "fw_SetModel_Post", 1);
 	register_forward(FM_StartFrame, "fw_StartFrame_Post", 1);
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
 	register_forward(FM_CmdStart, "fw_CmdStart");
@@ -680,8 +683,40 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
 	// Firerate for CT leader
-	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1] && g_rgbUsingSkill[iPlayer])
-		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack), 4);
+	if (is_user_alive(iPlayer) && iPlayer == THE_COMMANDER && g_rgbUsingSkill[iPlayer])
+		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack) * 0.5, 4);
+}
+
+public HamF_Weapon_WeaponIdle(iEntity)
+{
+	new pPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
+	
+	if (!is_user_connected(pPlayer))
+		return HAM_IGNORED;
+	
+	if (g_rgPlayerRole[pPlayer] != Role_Blaster || !g_rgbUsingSkill[pPlayer])
+		return HAM_IGNORED;
+	
+	// this is the condition of substracting BP ammo.
+	if (get_pdata_float(iEntity, m_flTimeWeaponIdle, 4) <= 0.0 || get_pdata_float(iEntity, m_flStartThrow, 4) != 0.0)
+		return HAM_IGNORED;
+	
+	switch (get_pdata_int(iEntity, m_iId, 4))
+	{
+		case CSW_HEGRENADE:
+			set_pdata_int(pPlayer, m_rgAmmo[12], 1);
+		
+		case CSW_SMOKEGRENADE:
+			set_pdata_int(pPlayer, m_rgAmmo[13], 1);
+		
+		case CSW_FLASHBANG:
+			set_pdata_int(pPlayer, m_rgAmmo[11], 2);
+		
+		default:
+			return HAM_IGNORED;
+	}
+	
+	return HAM_IGNORED;
 }
 
 public HamF_CS_RoundRespawn_Post(pPlayer)
@@ -805,29 +840,6 @@ public fw_SetModel(iEntity, szModel[])
 	set_pev(iEntity, pev_nextthink, get_gametime() + get_pcvar_float(cvar_WMDLkilltime));
 	
 	return FMRES_IGNORED
-}
-
-public fw_SetModel_Post(iEntity, szModel[])
-{
-	if (strlen(szModel) < 8)
-		return;
-	
-	if (szModel[7] != 'w' || szModel[8] != '_')
-		return;
-	
-	static szClassName[33];
-	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
-	if(strcmp(szClassName, "grenade"))
-		return;
-	
-	new iPlayer = pev(iEntity, pev_owner);
-
-	if (g_rgPlayerRole[iPlayer] != Role_Blaster || !g_rgbUsingSkill[iPlayer])
-		return;
-
-	set_pdata_int(iPlayer, m_rgAmmo[12], 99);
-	
-	return;
 }
 
 public fw_StartFrame_Post()
@@ -1075,7 +1087,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			}
 			else
 			{
-				new iCandidateCount = 0, iCandidates[33];
+				new iCandidateCount = 0, rgiCandidates[33];
 				for (new i = 1; i <= global_get(glb_maxClients); i++)
 				{
 					if (!is_user_connected(i))
@@ -1091,7 +1103,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 						continue;
 					
 					iCandidateCount++;
-					iCandidates[iCandidateCount] = i;
+					rgiCandidates[iCandidateCount] = i;
 				}
 				
 				if (!iCandidateCount)	// only one player?
@@ -1108,13 +1120,13 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 							continue;
 						
 						iCandidateCount++;
-						iCandidates[iCandidateCount] = i;
+						rgiCandidates[iCandidateCount] = i;
 					}
 				}
 				
 				if (iCandidateCount > 0)
 				{
-					new iCromwell = iCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
+					new iCromwell = rgiCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
 					if (!is_user_alive(iCromwell))
 						bCharlesI = true;
 					
@@ -1416,98 +1428,13 @@ public Task_PlayerResurrection(iPlayer)
 
 public Event_FreezePhaseEnd()
 {
-	g_iLeader[0] = -1;
-	g_iLeader[1] = -1;
+	new bool:bHumanPriority = !!get_pcvar_num(cvar_humanleader);
 	
-	new szPlayer[2][33], iAmount[2], bHumanPriority = get_pcvar_num(cvar_humanleader);
-	for (new i = 1; i < 33; i++)
-	{
-		if (!is_user_alive(i))
-			continue;
-		
-		if (bHumanPriority && is_user_bot(i))	// select human player first.
-			continue;
-		
-		if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)
-		{
-			iAmount[0] ++;
-			szPlayer[0][iAmount[0]] = i;
-		}
-		else if (get_pdata_int(i, m_iTeam) == TEAM_CT)
-		{
-			iAmount[1] ++;
-			szPlayer[1][iAmount[1]] = i;
-		}
-	}
+	Godfather_Assign(UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority));
+	Commander_Assign(UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority));
 	
-	if (!iAmount[0])
-	{
-		for (new i = 1; i < 33; i++)
-		{
-			if (!is_user_alive(i))
-				continue;
-			
-			if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)
-			{
-				iAmount[0] ++;
-				szPlayer[0][iAmount[0]] = i;
-			}
-		}
-	}
-	
-	if (!iAmount[1])
-	{
-		for (new i = 1; i < 33; i++)
-		{
-			if (!is_user_alive(i))
-				continue;
-			
-			if (get_pdata_int(i, m_iTeam) == TEAM_CT)
-			{
-				iAmount[1] ++;
-				szPlayer[1][iAmount[1]] = i;
-			}
-		}
-	}
-	
-	if (!iAmount[0] || !iAmount[1])
-		return;
-	
-	Godfather_Assign(szPlayer[0][random_num(1, iAmount[0])]);
-	Commander_Assign(szPlayer[1][random_num(1, iAmount[1])]);
-
-	iAmount[0] = 0;
-	iAmount[1] = 0;
-	
-	for (new i = 1; i < 33; i++)
-	{
-		if (!is_user_alive(i) || is_user_bot(i) || i == THE_GODFATHER || i == THE_COMMANDER)
-			continue;
-			
-		if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)
-		{
-			iAmount[0] ++;
-			szPlayer[0][iAmount[0]] = i;
-		}
-	}
-
-	for (new i = 1; i < 33; i++)
-	{
-		if (!is_user_alive(i) || is_user_bot(i) || i == THE_GODFATHER || i == THE_COMMANDER)
-			continue;
-			
-		if (get_pdata_int(i, m_iTeam) == TEAM_CT)
-		{
-			iAmount[1] ++;
-			szPlayer[1][iAmount[1]] = i;
-		}
-	}
-
-	new iBerserker = szPlayer[0][random_num(1, iAmount[0])];
-	g_rgPlayerRole[iBerserker] = Role_Berserker;
-
-	new iBlaster = szPlayer[1][random_num(1, iAmount[1])];
-	g_rgPlayerRole[iBlaster] = Role_Blaster;
+	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Berserker;
+	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Blaster;
 
 	g_bRoundStarted = true;
 
@@ -2079,6 +2006,52 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 	write_byte(G);
 	write_byte(density);
 	message_end();
+}
+
+stock UTIL_RandomNonroleCharacter(iTeam, bool:bHumanPriority = true)
+{
+	new iCandidateCount = 0, rgiCandidates[33];
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_alive(i))
+			continue;
+		
+		if (bHumanPriority && is_user_bot(i))
+			continue;
+		
+		if (get_pdata_int(i, m_iTeam) != iTeam)
+			continue;
+		
+		if (g_rgPlayerRole[i] != Role_UNASSIGNED)
+			continue;
+		
+		iCandidateCount++;
+		rgiCandidates[iCandidateCount] = i;
+	}
+	
+	if (!iCandidateCount)	// include bots this time.
+	{
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_alive(i))
+				continue;
+			
+			if (get_pdata_int(i, m_iTeam) != iTeam)
+				continue;
+			
+			if (g_rgPlayerRole[i] != Role_UNASSIGNED)
+				continue;
+			
+			iCandidateCount++;
+			rgiCandidates[iCandidateCount] = i;
+		}
+	}
+	
+	if (iCandidateCount > 0)
+		return rgiCandidates[random_num(1, iCandidateCount)];
+	
+	return 0;	// no found.
 }
 
 

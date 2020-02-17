@@ -2,8 +2,9 @@
 
 **/
 
-#define ASSASSIN_TEXT	g_rgszRoleNames[Role_Assassin]
-#define ASSASSIN_TASK	2568736
+#define ASSASSIN_TEXT		g_rgszRoleNames[Role_Assassin]
+#define ASSASSIN_TASK		2568736
+#define ASSASSIN_HIDEHUD	(HIDEHUD_WEAPONS | HIDEHUD_FLASHLIGHT | HIDEHUD_CROSSHAIR)
 
 #define ASSASSIN_GRAND_SFX		"leadermode/assassins_drug_induced_visions_01.wav"
 #define ASSASSIN_DISCOVERED_SFX	"leadermode/agent_detected_and_expelled.wav"
@@ -27,6 +28,7 @@ public Assassin_ExecuteSkill(pPlayer)
 	
 	g_rgiViewModelBuffer[pPlayer] = pev(pPlayer, pev_viewmodel);
 	set_pev(pPlayer, pev_viewmodel, 0);
+	set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) | ASSASSIN_HIDEHUD);
 	
 	NvgScreen(pPlayer, 10, 10, 255, 60);
 	client_cmd(pPlayer, "spk %s", ASSASSIN_GRAND_SFX);
@@ -80,13 +82,13 @@ public Assassin_SkillThink()	// place at StartFrame()
 		if (get_pdata_int(i, m_iTeam) != TEAM_TERRORIST)
 			continue;
 		
-		message_begin(MSG_ONE_UNRELIABLE, gmsgHostagePos, _, i);
+		/*message_begin(MSG_ONE_UNRELIABLE, gmsgHostagePos, _, i);
 		write_byte(0);	// flags
 		write_byte(2);	// hostage index
 		engfunc(EngFunc_WriteCoord, vecOrigin[0]);
 		engfunc(EngFunc_WriteCoord, vecOrigin[1]);
 		engfunc(EngFunc_WriteCoord, vecOrigin[2]);
-		message_end();
+		message_end();*/
 
 		message_begin(MSG_ONE, gmsgHostageK, _, i);
 		write_byte(2);	// hostage index
@@ -126,6 +128,9 @@ public Assassin_RevokeSkill(iTaskId)
 		set_pev(pPlayer, pev_deadflag, DEAD_NO);
 		set_pev(pPlayer, pev_viewmodel, g_rgiViewModelBuffer[pPlayer]);
 		set_pev(pPlayer, pev_effects, pev(pPlayer, pev_effects) & ~EF_NODRAW);
+		
+		set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) & ~ASSASSIN_HIDEHUD);
+		ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));
 	}
 	
 	print_chat_color(pPlayer, REDCHAT, "技能已结束！");
