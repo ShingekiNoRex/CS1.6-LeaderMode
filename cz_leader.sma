@@ -653,6 +653,11 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 		}
 	}
 	
+	if (is_user_connected(iVictim) && g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))	// blaster is resist to grenade damage.
+	{
+		SetHamParamFloat(4, flDamage * 0.25);
+	}
+	
 	return HAM_IGNORED;
 }
 
@@ -820,7 +825,7 @@ public fw_SetModel_Post(iEntity, szModel[])
 	if (g_rgPlayerRole[iPlayer] != Role_Blaster || !g_rgbUsingSkill[iPlayer])
 		return;
 
-	set_pdata_int(iPlayer, m_rgAmmo[get_pdata_int(get_pdata_cbase(iPlayer, m_pActiveItem), m_iPrimaryAmmoType, 4)], 1);
+	set_pdata_int(iPlayer, m_rgAmmo[12], 99);
 	
 	return;
 }

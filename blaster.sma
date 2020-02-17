@@ -43,6 +43,7 @@ public Blaster_RevokeSkill(iTaskId)
 	g_rgbUsingSkill[iPlayer] = false;
 	g_rgflSkillCooldown[iPlayer] = get_gametime() + get_pcvar_float(cvar_blasterCooldown);
 	print_chat_color(iPlayer, REDCHAT, "技能已结束！");
+	set_pdata_int(iPlayer, m_rgAmmo[12], 1);
 }
 
 public Blaster_Explosion(iPlayer)
