@@ -1044,27 +1044,56 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 					if (i == g_iLeader[iTeam - 1])
 						continue;
 					
+					if (is_user_bot(i) && get_pcvar_num(cvar_humanleader))
+						continue;
+					
 					iCandidateCount++;
 					iCandidates[iCandidateCount] = i;
 				}
 				
-				new iCromwell = iCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
-				if (!is_user_alive(iCromwell))
-					bCharlesI = true;
-				
-				if (iTeam == TEAM_TERRORIST)
-					Godfather_Assign(iCromwell);
-				else if (iTeam == TEAM_CT)
-					Commander_Assign(iCromwell);
-				
-				if (bCharlesI)
+				if (!iCandidateCount)	// only one player?
 				{
-					set_pev(iCharlesI, pev_health, 1.0);
-					ExecuteHamB(Ham_TakeDamage, iCharlesI, 0, iCharlesI, 10.0, DMG_FALL | DMG_NEVERGIB);
+					for (new i = 1; i <= global_get(glb_maxClients); i++)
+					{
+						if (!is_user_connected(i))
+							continue;
+						
+						if (get_pdata_int(i, m_iTeam) != iTeam)
+							continue;
+						
+						if (i == g_iLeader[iTeam - 1])
+							continue;
+						
+						iCandidateCount++;
+						iCandidates[iCandidateCount] = i;
+					}
 				}
 				
-				UTIL_ColorfulPrintChat(0, "/t不信任動議/y已經通過: /g%s/y已經被推舉為新的/g%s/y!", REDCHAT, g_szLeaderNetname[iTeam - 1], iTeam == TEAM_CT ? COMMANDER_TEXT : GODFATHER_TEXT);
-				client_cmd(0, "spk %s", SFX_VONC_PASSED);
+				if (iCandidateCount > 0)
+				{
+					new iCromwell = iCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
+					if (!is_user_alive(iCromwell))
+						bCharlesI = true;
+					
+					if (iTeam == TEAM_TERRORIST)
+						Godfather_Assign(iCromwell);
+					else if (iTeam == TEAM_CT)
+						Commander_Assign(iCromwell);
+					
+					if (bCharlesI)
+					{
+						set_pev(iCharlesI, pev_health, 1.0);
+						ExecuteHamB(Ham_TakeDamage, iCharlesI, 0, iCharlesI, 10.0, DMG_FALL | DMG_NEVERGIB);
+					}
+					
+					g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
+					UTIL_ColorfulPrintChat(0, "/t不信任動議/y已經通過: /g%s/y已經被推舉為新的/g%s/y!", REDCHAT, g_szLeaderNetname[iTeam - 1], iTeam == TEAM_CT ? COMMANDER_TEXT : GODFATHER_TEXT);
+					client_cmd(0, "spk %s", SFX_VONC_PASSED);
+				}
+				
+				g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
+				UTIL_ColorfulPrintChat(0, "/y由於/t人數不足/y, 針對%s/g%s/y的/t不信任動議/y沒有通過: /g%s/y將留任。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_szLeaderNetname[iTeam - 1]);
+				client_cmd(0, "spk %s", SFX_VONC_REJECTED);
 			}
 		}
 	}
