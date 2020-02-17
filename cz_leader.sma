@@ -327,6 +327,7 @@ new cvar_VONCperTeam, cvar_VONCtimeLimit;
 #include "godfather.sma"
 #include "commander.sma"
 #include "berserker.sma"
+#include "assassin.sma"
 
 public plugin_init()
 {
@@ -363,7 +364,8 @@ public plugin_init()
 	//register_event("CurWeapon", "Event_CurWeapon", "be", "1=1")
 	
 	// messages
-	register_message(get_user_msgid("Health"), "Message_Health");
+	register_message(get_user_msgid("Health"),		"Message_Health");
+	register_message(get_user_msgid("ScreenFade"),	"Message_ScreenFade");
 	
 	// CVars
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
@@ -387,10 +389,12 @@ public plugin_init()
 	register_clcmd("vonc",				"Command_VoteONC");
 	register_clcmd("voteofnoconfidence","Command_VoteONC");
 	register_clcmd("say /vonc",			"Command_VoteONC");
+	register_clcmd("test",				"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
 	Commander_Initialize();
+	Assassin_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 }
@@ -412,7 +416,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
 	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_V);
-	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);	
+	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);
 
 	// Schemes
 	engfunc(EngFunc_PrecacheSound, SFX_TSD_GBD);
@@ -432,6 +436,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
+	engfunc(EngFunc_PrecacheSound, ASSASSIN_GRAND_SFX);
 }
 
 public client_putinserver(pPlayer)
@@ -649,7 +654,7 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	}
 }
 
-public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, iSet)
+public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
 	if (!is_user_connected(iHost))
 		return
@@ -657,7 +662,7 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, 
 	if (is_user_bot(iHost))
 		return
 	
-	if (iPlayer && is_user_alive(iHost))
+	if (bIsPlayer && is_user_alive(iHost))
 	{
 		if (iEntity == g_iLeader[0])
 		{
@@ -666,12 +671,16 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, iPlayer, 
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
 		}
-		if (iEntity == g_iLeader[1])
+		else if (iEntity == g_iLeader[1])
 		{
 			set_es(ES_Handle, ES_RenderFx, kRenderFxGlowShell)
 			set_es(ES_Handle, ES_RenderColor, {0, 0, 255})
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
+		}
+		else if (g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity])
+		{
+			set_es(ES_Handle, ES_Effects, EF_NODRAW);
 		}
 	}
 }
@@ -726,10 +735,10 @@ public fw_StartFrame_Post()
 			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 				return;
 		
-			if (!is_user_alive(g_iLeader[0]) && iTeam == TEAM_TERRORIST)
+			if (!is_user_alive(g_iLeader[iTeam - 1]))
 				return;
 			
-			if (!is_user_alive(g_iLeader[1]) && iTeam == TEAM_CT)
+			if (g_rgPlayerRole[i] == Role_Assassin && g_rgbUsingSkill[i])	// assassin will "look" like dead when using his invisible skill.
 				return;
 
 			new iResurrectionTime = max(floatround(flHealth[iTeam] / 1000.0 * 10.0), 1);
@@ -931,7 +940,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			//if (iTimeLeft == floatround(get_pdata_float(cvar_VONCtimeLimit) / 2.0))
 		}
 		
-		if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] <= fCurTime)
+		if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] <= fCurTime && g_rgflTeamCnfdnceMtnTimeLimit[iTeam] > 0.0)
 		{
 			if (g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] >= g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE])
 			{
@@ -977,6 +986,9 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			}
 		}
 	}
+	
+	// custom global think
+	Assassin_SkillThink();
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -1174,6 +1186,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		case Role_Commander:
 		{
 			Commander_ExecuteSkill(iPlayer);
+		}
+		case Role_Assassin:
+		{
+			Assassin_ExecuteSkill(iPlayer);
 		}
 		default:
 			return FMRES_IGNORED;
@@ -1389,6 +1405,29 @@ public Message_Health(msg_id, msg_dest, msg_entity)
 	return PLUGIN_CONTINUE;
 }
 
+public Message_ScreenFade(msg_id, msg_dest, msg_entity)
+{
+	/**
+	Name:		ScreenFade
+	Structure:	
+				short	Duration
+				short	HoldTime
+				short	Flags
+				byte	ColorR
+				byte	ColorG
+				byte	ColorB
+				byte	Alpha
+	**/
+	
+	if (get_msg_arg_int(4) != 255 || get_msg_arg_int(5) != 255 || get_msg_arg_int(6) != 255 || get_msg_arg_int(7) < 200)
+		return PLUGIN_CONTINUE;
+	
+	if (is_user_connected(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Assassin && g_rgbUsingSkill[msg_entity])	// assassin is immue to flashbang when he is using his skill.
+		return PLUGIN_HANDLED;
+	
+	return PLUGIN_CONTINUE;
+}
+
 public Command_VoteTS(pPlayer)
 {
 	if (!is_user_connected(pPlayer))
@@ -1486,6 +1525,11 @@ public Command_VoteONC(pPlayer)
 	}
 	
 	return PLUGIN_HANDLED;
+}
+
+public Command_Test(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Assassin;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
@@ -1768,6 +1812,31 @@ stock bool:IsObserver(pPlayer)
 {
 	return !!pev(pPlayer, pev_iuser1);
 }
+
+stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieriot.sma
+{
+	message_begin(MSG_ONE, get_user_msgid("ScreenFade"), {0, 0, 0}, iPlayer);
+	
+	if(R || B || G || density)
+	{
+		write_short(~0);
+		write_short(~0);
+		write_short(0x0004);
+	}
+	else
+	{
+		write_short(0);
+		write_short(0);
+		write_short(0);
+	}
+	
+	write_byte(R);
+	write_byte(B);
+	write_byte(G);
+	write_byte(density);
+	message_end();
+}
+
 
 
 
