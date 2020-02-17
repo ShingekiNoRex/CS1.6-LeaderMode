@@ -409,16 +409,21 @@ public plugin_init()
 	register_clcmd("vonc",				"Command_VoteONC");
 	register_clcmd("voteofnoconfidence","Command_VoteONC");
 	register_clcmd("say /vonc",			"Command_VoteONC");
-	register_clcmd("test",				"Command_Test");
+	//register_clcmd("test",				"Command_Test");
 	register_clcmd("dr",				"Command_DeclareRole");
 	register_clcmd("say /dr",			"Command_DeclareRole");
 	register_clcmd("mr",				"Command_ManageRoles");
 	register_clcmd("say /dr",			"Command_ManageRoles");
+	register_clcmd("assassin",			"Command_Assassin");
+	register_clcmd("berserker",			"Command_Berserker");
+	register_clcmd("blaster",			"Command_Blaster");
 	
 	// roles custom initiation
 	Godfather_Initialize();
 	Commander_Initialize();
 	Assassin_Initialize();
+	Blaster_Initialize();
+	Berserker_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 }
@@ -1364,6 +1369,7 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 	print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
 	g_rgbUsingSkill[iPlayer] = true;
 	g_rgbAllowSkill[iPlayer] = false;
+	g_rgflSkillExecutedTime[iPlayer] = get_gametime();
 	set_uc(uc_handle, UC_Impulse, 0);
 
 	return FMRES_IGNORED;
@@ -1464,7 +1470,16 @@ public Event_FreezePhaseEnd()
 	
 	Godfather_Assign(szPlayer[0][random_num(1, iAmount[0])]);
 	Commander_Assign(szPlayer[1][random_num(1, iAmount[1])]);
-	
+
+	szPlayer[0] = RemoveFromArray(szPlayer[0], THE_GODFATHER);
+	szPlayer[1] = RemoveFromArray(szPlayer[1], THE_COMMANDER);
+
+	new iBerserker = szPlayer[0][random_num(1, iAmount[0])];
+	g_rgPlayerRole[iBerserker] = Role_Berserker;
+
+	new iBlaster = szPlayer[1][random_num(1, iAmount[1])];
+	g_rgPlayerRole[iBlaster] = Role_Blaster;
+
 	g_bRoundStarted = true;
 
 	new iPlayerAmount = 0, iTeam = TEAM_SPECTATOR;
@@ -1695,7 +1710,7 @@ public Command_VoteONC(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
-public Command_Test(pPlayer)
+public Command_Assassin(pPlayer)
 {
 	g_rgPlayerRole[pPlayer] = Role_Assassin;
 }
@@ -1718,6 +1733,16 @@ public Command_DeclareRole(pPlayer)
 public Command_ManageRoles(pPlayer)
 {
 	return PLUGIN_HANDLED;
+}
+
+public Command_Berserker(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Berserker;
+}
+
+public Command_Blaster(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Blaster;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
@@ -2026,7 +2051,16 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 	write_byte(density);
 	message_end();
 }
+	
+stock RemoveFromArray(const rgArray[], iElement)
+{
+	new rgNewArray[sizeof(rgArray)];
+	for (new i = 0, j = 0; i < sizeof(rgArray); i ++)
+	{
+		if (rgArray[i] != iElement)
+			rgNewArray[j++] = rgArray[i]
+	}
 
-
-
+	return rgNewArray;
+}
 

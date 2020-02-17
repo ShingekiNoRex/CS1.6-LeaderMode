@@ -18,6 +18,7 @@ public Berserker_Initialize()
 
 public Berserker_ExecuteSkill(pPlayer)
 {
+	NvgScreen(pPlayer, 255, 10, 10, 60);
 	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK + pPlayer);
 }
 
@@ -31,6 +32,7 @@ public Berserker_RevokeSkill(iTaskId)
 	if (g_rgPlayerRole[iPlayer] != Role_Berserker)
 		return;
 
+	NvgScreen(iPlayer);
 	g_rgbUsingSkill[iPlayer] = false;
 	g_rgflSkillCooldown[iPlayer] = get_gametime() + get_pcvar_float(cvar_berserkerCooldown);
 	print_chat_color(iPlayer, REDCHAT, "技能已结束！");

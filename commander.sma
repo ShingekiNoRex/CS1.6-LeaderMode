@@ -96,7 +96,6 @@ public Commander_ExecuteSkill(pPlayer)
 	}
 	
 	set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
-	g_rgflSkillExecutedTime[THE_COMMANDER] = get_gametime();
 }
 
 public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
@@ -118,6 +117,10 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	engfunc(EngFunc_WriteCoord, vecOrigin[0]);
 	engfunc(EngFunc_WriteCoord, vecOrigin[1]);
 	engfunc(EngFunc_WriteCoord, vecOrigin[2]);
+	message_end();
+
+	message_begin(MSG_ONE, gmsgHostageK, _, pPlayer);
+	write_byte(1);	// hostage index
 	message_end();
 }
 
