@@ -60,7 +60,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.8.3"
+#define VERSION	"1.8.6"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -122,6 +122,26 @@ enum TacticalScheme_e
 	
 	SCHEMES_COUNT
 };
+
+new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] =
+{
+	"舉棋不定",
+	"火力優勢學說",
+	"數量優勢學說",
+	"質量優勢學說",
+	"機動作戰學說"
+};
+
+new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] =
+{
+	"/y如果多數人/g舉棋不定/y，又或者隊伍內/t存在爭議/y: 則全隊/t不會獲得/y任何加成。",
+	"/g火力優勢學說/y: /t每秒/y都會填充當前武器/t最大/y彈容量的/g4%%%%",
+	"/g數量優勢學說/y: 隊伍/t復活速度/y達到/g極限/y，並且擁有/g雙倍/y人力資源。",
+	"/g質量優勢學說/y: 緩慢/g補充金錢/y、增加/t造成傷害/y及/t擊殺/y的/g賞金/y以及為/t增援兵源/y購置/g基礎裝備/y。",
+	"/g機動作戰學說/y: 增援隊員/g部署/y於/t隊長/y附近，並允許在/g任何位置/y購買裝備。"
+};
+
+new const g_rgiTacticalSchemeDescColor[SCHEMES_COUNT] = { GREYCHAT, REDCHAT, BLUECHAT, BLUECHAT, REDCHAT };
 
 enum Role_e
 {
@@ -210,9 +230,6 @@ stock g_rgSkillCooldown[ROLE_COUNT] =
 	-1
 };
 
-new const g_rgszTacticalSchemeNames[SCHEMES_COUNT][] = { "舉棋不定", "火力優勢學說", "數量優勢學說", "質量優勢學說", "機動作戰學說" };
-new const g_rgszTacticalSchemeDesc[SCHEMES_COUNT][] = { "/y如果多數人/g舉棋不定/y，又或者隊伍內/t存在爭議/y：則全隊/t不會獲得/y任何加成。", "/t每秒/y都會填充當前武器/t最大/y彈容量的/g4%%%%", "/y隊伍/t復活速度/y達到/g極限/y，並且擁有/g雙倍/y人力資源。", "/y緩慢/g補充金錢/y並增加/t造成傷害/y及/t擊殺/y的/g賞金/y。", "/y增援隊員/g部署/y於/t隊長/y附近，並允許在/g任何位置/y購買裝備。" };
-new const g_rgiTacticalSchemeDescColor[SCHEMES_COUNT] = { GREYCHAT, REDCHAT, BLUECHAT, BLUECHAT, REDCHAT };
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
@@ -251,8 +268,8 @@ stock const g_rgszWeaponEntity[][] =
 	"weapon_p90"
 };
 
-//														 5				  10				  15				  20				  25				30	// if this isn't lined up, please use Notepad++
-stock const g_rgiDefaultMaxClip[] = { -1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 20, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 };
+//												5			   10			  15			 20				25			   30	// if this isn't lined up, please use Notepad++
+stock const g_rgiClipRegen[] = { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 4, 0, 1, 2, 0, 0, 0, 1, 1, 0, 2 };
 
 new const g_rgszEntityToRemove[][] =
 {
@@ -275,7 +292,18 @@ new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiT
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
-new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDrefillratio, cvar_TSDresurrect, cvar_TSVcooldown;
+new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
+
+// SFX
+#define SFX_GAME_START_1		"leadermode/start_game_01.wav"
+#define SFX_GAME_START_2		"leadermode/start_game_02.wav"
+#define SFX_MENPOWER_DEPLETED	"leadermode/unable_manpower_alert.wav"
+#define SFX_TSD_GBD				"leadermode/money_in.wav"
+#define SFX_TSD_SFD				"leadermode/infantry_rifle_cartridge_0%d.wav"
+#define SFX_GAME_WON			"leadermode/brittania_mission_arrived.wav"
+#define SFX_GAME_LOST			"leadermode/end_turn_brittania_04.wav"
+#define MUSIC_GAME_WON			"sound/leadermode/Tally-ho.mp3"
+#define MUSIC_GAME_LOST			"sound/leadermode/Warrior_s_Tomb.mp3"
 
 // DIVIDE ET IMPERA
 #include "godfather.sma"
@@ -323,8 +351,8 @@ public plugin_init()
 	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
 	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
-	cvar_TSDrefillratio	= register_cvar("lm_TSD_SFD_clip_refill_ratio",			"0.04");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
+	cvar_TSDmenpowermul	= register_cvar("lm_TSD_MAD_menpower_multiplier",		"2.0");
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
 	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"200");
 	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
@@ -349,16 +377,20 @@ public plugin_precache()
 	register_forward(FM_Spawn, "fw_Spawn");
 	
 	// Gamerules
-	engfunc(EngFunc_PrecacheSound, "leadermode/start_game_01.wav");
-	engfunc(EngFunc_PrecacheSound, "leadermode/start_game_02.wav");
-	engfunc(EngFunc_PrecacheSound, "leadermode/unable_manpower_alert.wav");
+	engfunc(EngFunc_PrecacheSound, SFX_GAME_START_1);
+	engfunc(EngFunc_PrecacheSound, SFX_GAME_START_2);
+	engfunc(EngFunc_PrecacheSound, SFX_MENPOWER_DEPLETED);
+	engfunc(EngFunc_PrecacheSound, SFX_GAME_WON);
+	engfunc(EngFunc_PrecacheSound, SFX_GAME_LOST);
+	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
+	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
 	
 	// Schemes
-	engfunc(EngFunc_PrecacheSound, "leadermode/money_in.wav");
+	engfunc(EngFunc_PrecacheSound, SFX_TSD_GBD);
 	
 	for (new i = 1; i <= 7; i++)
 	{
-		formatex(szFile, charsmax(szFile), "leadermode/infantry_rifle_cartridge_0%d.wav", i);
+		formatex(szFile, charsmax(szFile), SFX_TSD_SFD, i);
 		engfunc(EngFunc_PrecacheSound, szFile);
 	}
 	
@@ -402,11 +434,44 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		print_chat_color(0, BLUECHAT, "%s陣亡!", g_rgszRoleNames[Role_Commander]);
 		Commander_TerminateSkill();
 	}
+	
+	new iTeam;
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (victim != THE_GODFATHER && victim != THE_COMMANDER)	// no win/lose sound necessary ... yet.
+			break;
+		
+		if (!is_user_connected(i))
+			continue;
+		
+		if (is_user_bot(i))
+			continue;
+		
+		iTeam = get_pdata_int(i, m_iTeam);
+		if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+		{
+			// play win sound for spectator anyway.
+			client_cmd(i, "spk %s", SFX_GAME_WON);
+			client_cmd(i, "mp3 play %s", MUSIC_GAME_WON);
+			continue;
+		}
+		
+		if (g_iLeader[iTeam - 1] == victim)	// loser
+		{
+			client_cmd(i, "spk %s", SFX_GAME_LOST);
+			client_cmd(i, "mp3 play %s", MUSIC_GAME_LOST);
+		}
+		else	// winner
+		{
+			client_cmd(i, "spk %s", SFX_GAME_WON);
+			client_cmd(i, "mp3 play %s", MUSIC_GAME_WON);
+		}
+	}
 
 	if (!is_user_connected(victim))
 		return;
 
-	new iTeam = get_pdata_int(victim, m_iTeam);
+	iTeam = get_pdata_int(victim, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
@@ -493,7 +558,7 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 			engfunc(EngFunc_TraceHull, vecCandidates[8], vecCandidates[i], DONT_IGNORE_MONSTERS, HULL_HEAD, g_iLeader[iTeam - 1], tr[i]);
 			get_tr2(tr[i], TR_flFraction, flFraction);
 			
-			if (flFraction >= 1.0)
+			if (flFraction >= 1.0 && UTIL_CheckPassibility(vecCandidates[i]))
 			{
 				bFind = true;
 				xs_vec_copy(vecCandidates[i], vecDest);
@@ -520,6 +585,17 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 		
 		for (new i = 0; i < 8; i++)
 			free_tr2(tr[i]);
+	}
+	
+	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_GrandBattleplan)
+	{
+		set_pev(pPlayer, pev_armorvalue, 100.0);
+		set_pdata_int(pPlayer, m_iKevlar, 2);
+		
+		fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_HEGRENADE]);
+		fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_FLASHBANG]);
+		fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_FLASHBANG]);
+		fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_SMOKEGRENADE]);
 	}
 }
 
@@ -705,9 +781,9 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 				
 				// the effect of Doctrine_MassAssault is here instead of below.
 				if (g_rgTeamTacticalScheme[j] == Doctrine_MassAssault)	// switching to Doctrine_MassAssault
-					g_rgiTeamMenPower[j] *= 2;
+					g_rgiTeamMenPower[j] = floatround(float(g_rgiTeamMenPower[j]) * get_pcvar_float(cvar_TSDmenpowermul));
 				else if (iSavedTS == Doctrine_MassAssault)	// switching to others
-					g_rgiTeamMenPower[j] /= 2;
+					g_rgiTeamMenPower[j] = floatround(float(g_rgiTeamMenPower[j]) / get_pcvar_float(cvar_TSDmenpowermul));
 			}
 		}
 	}
@@ -731,7 +807,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 						if (get_pdata_int(i, m_iAccount) < 16000)
 						{
 							UTIL_AddAccount(i, get_pcvar_num(cvar_TSDmoneyaddnum));
-							client_cmd(i, "spk %s", "leadermode/money_in.wav");
+							client_cmd(i, "spk %s", SFX_TSD_GBD);
 						}
 					}
 						
@@ -743,12 +819,12 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 							new iId = get_pdata_int(iEntity, m_iId, 4);
 							if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG && get_pdata_int(iEntity, m_iClip, 4) < 127)	// these weapons are not allowed to have clip.
 							{
-								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + floatround(float(g_rgiDefaultMaxClip[iId]) * get_pcvar_float(cvar_TSDrefillratio)), 4);
+								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + g_rgiClipRegen[iId], 4);
 								
 								if (!random_num(0, 3))	// constant sound makes player annoying.
 								{
 									static szSound[64];
-									formatex(szSound, charsmax(szSound), "leadermode/infantry_rifle_cartridge_0%d.wav", random_num(1, 7));
+									formatex(szSound, charsmax(szSound), SFX_TSD_SFD, random_num(1, 7));
 									client_cmd(i, "spk %s", szSound);
 								}
 							}
@@ -799,39 +875,33 @@ public fw_PlayerPostThink_Post(pPlayer)
 		if (!g_rgbAllowSkill[pPlayer] && !g_rgbUsingSkill[pPlayer])	// Cooling down
 		{
 			new Float:flCooldownTimeLeft = g_rgflSkillCooldown[pPlayer] - get_gametime();
-			if (flCooldownTimeLeft > 0.0)
+			if (flCooldownTimeLeft > 0.0 && g_rgSkillCooldown[g_rgPlayerRole[pPlayer]] > -1)
 			{
-				if (g_rgSkillCooldown[g_rgPlayerRole[pPlayer]] > -1)
-				{
-					new Float:flCooldownLength = get_pcvar_float(g_rgSkillCooldown[g_rgPlayerRole[pPlayer]]);	// Done by Rex
-					new iDotNum = floatround((flCooldownTimeLeft / flCooldownLength) * 20.0);	// keep the 20.0 sync with the 20 below.
-					new iLineNum = max(20 - iDotNum, 0);
+				new Float:flCooldownLength = get_pcvar_float(g_rgSkillCooldown[g_rgPlayerRole[pPlayer]]);	// Done by Rex
+				new iDotNum = floatround((flCooldownTimeLeft / flCooldownLength) * 20.0);	// keep the 20.0 sync with the 20 below.
+				new iLineNum = max(20 - iDotNum, 0);
 				
-					for (new i = 0; i < iLineNum; i++)
-						strcat(szSkillText, "|", charsmax(szSkillText));
+				for (new i = 0; i < iLineNum; i++)
+					strcat(szSkillText, "|", charsmax(szSkillText));
 				
-					for (new i = 0; i < iDotNum; i++)
-						strcat(szSkillText, "•", charsmax(szSkillText));
-				}
+				for (new i = 0; i < iDotNum; i++)
+					strcat(szSkillText, "•", charsmax(szSkillText));
 			}
 		}
 		else if (!g_rgbAllowSkill[pPlayer] && g_rgbUsingSkill[pPlayer])	// still working
 		{
 			new Float:flSkillEffectLeft = get_gametime() - g_rgflSkillExecutedTime[pPlayer];	// YES, these two are reverted. think it through logic.
-			if (flSkillEffectLeft > 0.0)
+			if (flSkillEffectLeft > 0.0 && g_rgSkillDuration[g_rgPlayerRole[pPlayer]] > -1)
 			{
-				if (g_rgSkillDuration[g_rgPlayerRole[pPlayer]] > -1)
-				{
-					new Float:flSkillEffectLength = get_pcvar_float(g_rgSkillDuration[g_rgPlayerRole[pPlayer]]);	// Done by Rex
-					new iDotNum = floatround((flSkillEffectLeft / flSkillEffectLength) * 20.0);
-					new iLineNum = max(20 - iDotNum, 0);
+				new Float:flSkillEffectLength = get_pcvar_float(g_rgSkillDuration[g_rgPlayerRole[pPlayer]]);	// Done by Rex
+				new iDotNum = floatround((flSkillEffectLeft / flSkillEffectLength) * 20.0);
+				new iLineNum = max(20 - iDotNum, 0);
 				
-					for (new i = 0; i < iLineNum; i++)
-						strcat(szSkillText, "|", charsmax(szSkillText));
+				for (new i = 0; i < iLineNum; i++)
+					strcat(szSkillText, "|", charsmax(szSkillText));
 				
-					for (new i = 0; i < iDotNum; i++)
-						strcat(szSkillText, "•", charsmax(szSkillText));
-				}
+				for (new i = 0; i < iDotNum; i++)
+					strcat(szSkillText, "•", charsmax(szSkillText));
 			}
 		}
 		
@@ -844,15 +914,17 @@ public fw_PlayerPostThink_Post(pPlayer)
 			formatex(szText, charsmax(szText), "身份: %s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
 		
 		if (!is_user_alive(g_iLeader[2 - iTeam]) && g_iLeader[2 - iTeam] > 0)
-			formatex(szGoal, charsmax(szGoal), "任务目标：扫荡残敌");
+			formatex(szGoal, charsmax(szGoal), "任務目標: 扫荡残敌");
+		else if (!g_bRoundStarted)	// not started yet.
+			formatex(szGoal, charsmax(szGoal), "任務目標: 投票決定作戰策略");
 		else
-			formatex(szGoal, charsmax(szGoal), "任务目标：击杀敌方%s %s", g_rgszRoleNames[g_rgPlayerRole[g_iLeader[2 - iTeam]]], g_szLeaderNetname[2 - iTeam]);
+			formatex(szGoal, charsmax(szGoal), "任務目標: 击杀敌方%s %s", g_rgszRoleNames[g_rgPlayerRole[g_iLeader[2 - iTeam]]], g_szLeaderNetname[2 - iTeam]);
 		
 		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
 		ShowHudMessage(pPlayer, rgColor, flGoalCoordinate, 0, rgflTime, HUD_SHOWGOAL, szGoal);
 	}
 	
-	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare)
+	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(pPlayer))
 	{
 		/**
 		// copy from player.h
@@ -884,7 +956,21 @@ public fw_PlayerPostThink_Post(pPlayer)
 		
 		// Doctrine_MobileWarfare allows player to buying everywhere.
 		// this signal flag will be cancelled automatically if you have another scheme executed.
-		set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
+		// these is a bug that if you are survived across rounds, you will permanently lose the access of store.
+		// how to fix it? just remove the scheme effect at the end of round.
+		
+		new bool:bEnemyExist = false;
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (is_user_alive(i) && get_pdata_int(i, m_iTeam) == (3 - iTeam))	// this pdata is save, since '&&' operator will prevent the execution of the second parameter if the first one was already FALSE.
+			{
+				bEnemyExist = true;
+				break;
+			}
+		}
+		
+		if (bEnemyExist)
+			set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
 	}
 
 	if (!g_rgbUsingSkill[pPlayer] && !g_rgbAllowSkill[pPlayer])
@@ -996,7 +1082,7 @@ public Task_PlayerResurrection(iPlayer)
 		new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
 		
 		ShowHudMessage(0, rgColor, flCoordinate, 0, rgflTime, -1, "%s可用兵源已經耗盡!", g_rgszTeamName[iTeam]);
-		client_cmd(0, "spk %s", "leadermode/unable_manpower_alert.wav");
+		client_cmd(0, "spk %s", SFX_MENPOWER_DEPLETED);
 	}
 }
 
@@ -1079,7 +1165,7 @@ public Event_FreezePhaseEnd()
 	
 	g_bRoundStarted = true;
 
-	new iPlayerAmount = 0;
+	new iPlayerAmount = 0, iTeam = TEAM_SPECTATOR;
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
 		if (!is_user_alive(i))
@@ -1090,24 +1176,22 @@ public Event_FreezePhaseEnd()
 		if (is_user_bot(i))
 			continue;
 		
-		if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)	// for TRs
-		{
-			print_chat_color(i, REDCHAT, "%s是%s, 殺死他以切斷%s兵源補給!", g_szLeaderNetname[TEAM_CT - 1], g_rgszRoleNames[Role_Commander], g_rgszTeamName[TEAM_CT]);
-		}
-		else if (get_pdata_int(i, m_iTeam) == TEAM_CT)	// for CTs
-		{
-			print_chat_color(i, BLUECHAT, "%s是%s, 殺死他以切斷%s兵源補給!", g_szLeaderNetname[TEAM_TERRORIST - 1], g_rgszRoleNames[Role_Godfather], g_rgszTeamName[TEAM_TERRORIST]);
-		}
+		iTeam = get_pdata_int(i, m_iTeam);
+		if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+			continue;
+		
+		// hint TR who is commander, and hint CT who is godfather.
+		print_chat_color(i, iTeam == TEAM_CT ? BLUECHAT : REDCHAT, "%s是%s, 殺死他以切斷%s兵源補給!", g_szLeaderNetname[2 - iTeam], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Godfather : Role_Commander], g_rgszTeamName[3 - iTeam]);
 		
 		set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) | HIDEHUD_TIMER);
 	}
 	
-	emessage_begin(MSG_BROADCAST, get_user_msgid("ScoreAttrib"));
+	emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
 	ewrite_byte(g_iLeader[0]);	// head of TRs
 	ewrite_byte(SCOREATTRIB_BOMB);
 	emessage_end();
 	
-	emessage_begin(MSG_BROADCAST, get_user_msgid("ScoreAttrib"));
+	emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
 	ewrite_byte(g_iLeader[1]);	// head of CTs
 	ewrite_byte(SCOREATTRIB_VIP);
 	emessage_end();
@@ -1117,9 +1201,9 @@ public Event_FreezePhaseEnd()
 	
 	for (new i = TEAM_TERRORIST; i <= TEAM_CT; i++)
 		if (g_rgTeamTacticalScheme[i] == Doctrine_MassAssault)
-			g_rgiTeamMenPower[i] *= 2;
+			g_rgiTeamMenPower[i] = floatround(float(g_rgiTeamMenPower[i]) * get_pcvar_float(cvar_TSDmenpowermul));
 	
-	client_cmd(0, "spk %s", random_num(0, 1) ? "leadermode/start_game_01.wav" : "leadermode/start_game_02.wav");
+	client_cmd(0, "spk %s", random_num(0, 1) ? SFX_GAME_START_1 : SFX_GAME_START_2);
 }
 
 public Event_HLTV()
@@ -1150,6 +1234,9 @@ public Event_HLTV()
 			set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) & ~HIDEHUD_TIMER);
 		}
 	}
+	
+	client_cmd(0, "stopsound");	// stop music
+	client_cmd(0, "mp3 stop");	// stop music
 }
 
 public Message_Health(msg_id, msg_dest, msg_entity)
@@ -1251,20 +1338,20 @@ stock ShowChat(const iPlayer, const Color, const Message[])
 
 	if (1 <= Color <= 3)
 	{
-		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
+		message_begin(iPlayer ? MSG_ONE : MSG_ALL, get_user_msgid("TeamInfo"), _, Client)
 		write_byte(Client)
 		write_string(g_rgszTeamName[Color])
 		message_end()
 	}
 	
-	message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("SayText"), _, Client)
+	message_begin(iPlayer ? MSG_ONE : MSG_ALL, get_user_msgid("SayText"), _, Client)
 	write_byte(Client)
 	write_string(Message)
 	message_end()
 	
 	if (1 <= Color <= 3)
 	{
-		message_begin(iPlayer ? MSG_ONE : MSG_BROADCAST, get_user_msgid("TeamInfo"), _, Client)
+		message_begin(iPlayer ? MSG_ONE : MSG_ALL, get_user_msgid("TeamInfo"), _, Client)
 		write_byte(Client)
 		write_string(g_rgszTeamName[get_pdata_int(Client, m_iTeam, 5)])
 		message_end()
@@ -1391,7 +1478,7 @@ stock bool:is_user_stucked(iPlayer)
 	return !!(get_tr2(tr, TR_StartSolid) || get_tr2(tr, TR_AllSolid) || !get_tr2(tr, TR_InOpen));
 }
 
-stock bool:UTIL_CheckPassibility(const Float:vecOrigin[3])
+stock bool:UTIL_CheckPassibility(const Float:vecOrigin[3])	// return true is accessable
 {
 	static tr;
 	if (!tr)
@@ -1399,7 +1486,48 @@ stock bool:UTIL_CheckPassibility(const Float:vecOrigin[3])
 	
 	engfunc(EngFunc_TraceHull, vecOrigin, vecOrigin, DONT_IGNORE_MONSTERS, HULL_HEAD, 0, tr);
 	
-	return !!(get_tr2(tr, TR_StartSolid) || get_tr2(tr, TR_AllSolid) || !get_tr2(tr, TR_InOpen));
+	return !(get_tr2(tr, TR_StartSolid) || get_tr2(tr, TR_AllSolid) || !get_tr2(tr, TR_InOpen));
+}
+
+stock DropWeapons(iPlayer, iSlot)
+{
+	new pItem = get_pdata_cbase(iPlayer, m_rgpPlayerItems[iSlot], 4);
+	while (pItem > 0)
+	{
+		static szClassname[24];
+		pev(pItem, pev_classname, szClassname, charsmax(szClassname));
+		
+		engclient_cmd(iPlayer, "drop", szClassname);
+		
+		pItem = get_pdata_cbase(pItem, m_pNext, 5);
+	}
+	
+	set_pdata_cbase(iPlayer, m_rgpPlayerItems[0], -1, 4);
+}
+
+stock fm_give_item(iPlayer, const szName[])
+{
+	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, szName));
+	
+	if (!pev_valid(iEntity))	// NullEnt is created!
+		return -1;
+	
+	new Float:vecOrigin[3];
+	pev(iPlayer, pev_origin, vecOrigin);
+	
+	set_pev(iEntity, pev_origin, vecOrigin);
+	set_pev(iEntity, pev_spawnflags, pev(iEntity, pev_spawnflags) | SF_NORESPAWN);
+	
+	dllfunc(DLLFunc_Spawn, iEntity);
+	
+	new save = pev(iEntity, pev_solid);
+	dllfunc(DLLFunc_Touch, iEntity, iPlayer);
+	
+	if (pev(iEntity, pev_solid) != save)
+		return iEntity;
+	
+	engfunc(EngFunc_RemoveEntity, iEntity);
+	return -1;
 }
 
 

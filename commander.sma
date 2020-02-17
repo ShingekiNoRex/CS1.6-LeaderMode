@@ -45,7 +45,7 @@ public Commander_ExecuteSkill(pPlayer)
 		message_end();
 
 		if (i != THE_COMMANDER)
-			print_chat_color(i, GREENCHAT, "指挥官发动了技能，%s的位置已在雷达上标出！", GODFATHER_TEXT);
+			UTIL_ColorfulPrintChat(i, "/g指揮官執行了無人機低空掃描, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, GODFATHER_TEXT, g_szLeaderNetname[TEAM_TERRORIST - 1]);
 		
 		client_cmd(i, "spk %s", COMMANDER_GRAND_SFX);
 	}

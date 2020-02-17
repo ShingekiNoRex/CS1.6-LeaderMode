@@ -65,7 +65,7 @@ public Godfather_ExecuteSkill(pPlayer)
 	
 	flDividedHealth = flGodfatherHealth / (g_iGodchildrenCount + 1);	// the godfather should be included when partitioning occurs.
 	
-	g_flGodfatherSavedHP = flGodfatherHealth;
+	g_flGodfatherSavedHP = flGodfatherHealth - flDividedHealth;	// at the end of skill, the godfather will only receive this delta-health.
 	set_pev(pPlayer, pev_health, flDividedHealth);
 	
 	new Float:flGodchildHealth;
@@ -98,7 +98,9 @@ public Godfather_RevokeSkill(iTaskId)
 	// the only way to stop it is the death of the Godfather
 	if (is_user_alive(THE_GODFATHER))
 	{
-		set_pev(THE_GODFATHER, pev_health, g_flGodfatherSavedHP);
+		new Float:flCurHealth;
+		pev(THE_GODFATHER, pev_health, flCurHealth);
+		set_pev(THE_GODFATHER, pev_health, flCurHealth + g_flGodfatherSavedHP);	// unlike his godchildren, the godfather will not have his original health back.
 		
 		client_cmd(THE_GODFATHER, "spk %s", GODFATHER_REVOKE_SFX);
 		print_chat_color(THE_GODFATHER, REDCHAT, "技能已结束！");
