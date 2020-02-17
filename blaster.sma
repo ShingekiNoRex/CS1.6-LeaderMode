@@ -27,29 +27,29 @@ public Blaster_Precache()
 
 public Blaster_TerminateSkill()
 {
-	remove_task(BLASTER_TASK);
+	for (new i = 1; i <= global_get(glb_maxClients); i ++)
+		if (is_user_connected(i))
+			remove_task(BLASTER_TASK + i);
 }
 
 public Blaster_ExecuteSkill(pPlayer)
 {
 	fm_give_item(pPlayer, "weapon_hegrenade");
-	set_task(get_pcvar_float(cvar_blasterDuration), "Blaster_RevokeSkill", BLASTER_TASK);
+	set_task(get_pcvar_float(cvar_blasterDuration), "Blaster_RevokeSkill", BLASTER_TASK + pPlayer);
 }
 
 public Blaster_RevokeSkill(iTaskId)
 {
-	for (new i = 1; i <= global_get(glb_maxClients); i++)
-	{
-		if (!is_user_connected(i))
-			continue;
-		
-		if (g_rgPlayerRole[i] != Role_Blaster)
-			continue;
-		
-		g_rgbUsingSkill[i] = false;
-		g_rgflSkillCooldown[i] = get_gametime() + get_pcvar_float(cvar_blasterCooldown);
-		print_chat_color(i, REDCHAT, "技能已结束！");
-	}
+	new iPlayer = iTaskId - BLASTER_TASK;
+	if (!is_user_connected(iPlayer))
+		return;
+
+	if (g_rgPlayerRole[iPlayer] != Role_Blaster)
+		return;
+
+	g_rgbUsingSkill[iPlayer] = false;
+	g_rgflSkillCooldown[iPlayer] = get_gametime() + get_pcvar_float(cvar_blasterCooldown);
+	print_chat_color(iPlayer, REDCHAT, "技能已结束！");
 }
 
 public Blaster_Explosion(iPlayer)
