@@ -354,6 +354,7 @@ public plugin_init()
 	// Ham hooks
 	RegisterHam(Ham_Killed, "player", "HamF_Killed");
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1);
+	RegisterHam(Ham_TraceAttack, "player", "HamF_TraceAttack_Post", 1);
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage");
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
@@ -596,6 +597,15 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	set_task(float(iResurrectionTime), "Task_PlayerResurrection", victim);
 	UTIL_BarTime(victim, iResurrectionTime);
 	g_rgbResurrecting[victim] = true;
+}
+
+public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3], tr, bitsDamageTypes)
+{
+	if (!is_user_connected(iVictim))
+		return;
+	
+	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// catcha!!!
+		Assassin_TerminateSkill(iVictim);
 }
 
 public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
@@ -1741,6 +1751,8 @@ public fw_BotForwardRegister_Post(iPlayer)
 		
 		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed");
 		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed_Post", 1);
+		RegisterHamFromEntity(Ham_TraceAttack, iPlayer, "HamF_TraceAttack_Post", 1);
+		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage");
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage_Post", 1);
 		RegisterHamFromEntity(Ham_CS_RoundRespawn, iPlayer, "HamF_CS_RoundRespawn_Post", 1);
 	}
