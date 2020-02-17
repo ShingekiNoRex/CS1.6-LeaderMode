@@ -6,7 +6,7 @@
 #define ASSASSIN_TASK	2568736
 
 #define ASSASSIN_GRAND_SFX		"leadermode/assassins_drug_induced_visions_01.wav"
-#define ASSASSIN_DISCOVERED_SFX	"leadermode/attack_out_of_range_01.wav"
+#define ASSASSIN_DISCOVERED_SFX	"leadermode/agent_detected_and_expelled.wav"
 
 new cvar_assassinInvisibleDur, cvar_assassinCooldown;
 new g_rgiViewModelBuffer[33];
