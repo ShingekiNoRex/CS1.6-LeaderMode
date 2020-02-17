@@ -1474,7 +1474,7 @@ public Event_FreezePhaseEnd()
 		if (!is_user_alive(i) || i == THE_GODFATHER || i == THE_COMMANDER)
 			continue;
 			
-		if (get_pdata_int(i, m_iTeam) == TEAM_T)
+		if (get_pdata_int(i, m_iTeam) == TEAM_TERRORIST)
 		{
 			iAmount[0] ++;
 			szPlayer[0][iAmount[0]] = i;
