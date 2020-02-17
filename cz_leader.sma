@@ -199,7 +199,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
 	"[T]血量越低伤害越高，承受致命伤不会立刻死亡",
 	"",
-	"",
+	"[T]標記指揮官位置並隱身",
 	""
 };
 
@@ -455,7 +455,7 @@ public client_putinserver(pPlayer)
 public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
 {
 	// terminating skill
-	switch (g_rgPlayerRole[victim])
+	switch (g_rgPlayerRole[pPlayer])
 	{
 		case Role_Commander:
 		{
@@ -1570,7 +1570,7 @@ public Command_VoteONC(pPlayer)
 		// clear the vote data from last vote.
 	
 	new szBuffer[192];
-	formatex(szBuffer, charsmax(szBuffer), "\r發起對%s\y%s\r的不信任動議:^n\w(尚餘\y%d\w次)", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1]);
+	formatex(szBuffer, charsmax(szBuffer), "\r發起對%s\y%s\r的不信任動議:^n\w(尚餘\y%d\w次)", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamCnfdnceMtnLeft[iTeam]);
 	
 	if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] > 0.0)	// open voting found!
 	{
