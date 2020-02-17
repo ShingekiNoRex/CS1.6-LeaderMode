@@ -410,6 +410,10 @@ public plugin_init()
 	register_clcmd("voteofnoconfidence","Command_VoteONC");
 	register_clcmd("say /vonc",			"Command_VoteONC");
 	register_clcmd("test",				"Command_Test");
+	register_clcmd("dr",				"Command_DeclareRole");
+	register_clcmd("say /dr",			"Command_DeclareRole");
+	register_clcmd("mr",				"Command_ManageRoles");
+	register_clcmd("say /dr",			"Command_ManageRoles");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -1694,6 +1698,26 @@ public Command_VoteONC(pPlayer)
 public Command_Test(pPlayer)
 {
 	g_rgPlayerRole[pPlayer] = Role_Assassin;
+}
+
+public Command_DeclareRole(pPlayer)
+{
+	if (!is_user_connected(pPlayer))
+		return PLUGIN_HANDLED;
+	
+	new iTeam = get_pdata_int(pPlayer, m_iTeam);
+	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+		return PLUGIN_HANDLED;
+	
+	new szBuffer[192];
+	formatex(szBuffer, charsmax(szBuffer), "\r當前職業: \y%s\w^n選擇可用的職業以更換", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamCnfdnceMtnLeft[iTeam]);
+	
+	return PLUGIN_HANDLED;
+}
+
+public Command_ManageRoles(pPlayer)
+{
+	return PLUGIN_HANDLED;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
