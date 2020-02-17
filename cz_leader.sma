@@ -335,6 +335,7 @@ new cvar_VONCperTeam, cvar_VONCtimeLimit;
 #define MUSIC_GAME_LOST			"sound/leadermode/Warrior_s_Tomb.mp3"
 #define SFX_VONC_PASSED			"leadermode/complete_focus_01.wav"
 #define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
+#define SFX_RADAR_BEEP			"weapons/c4_beep1.wav"
 
 // Models
 #define MDL_RADIO_V				"models/v_radio.mdl"
@@ -443,6 +444,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, SFX_MENPOWER_DEPLETED);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_WON);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_LOST);
+	engfunc(EngFunc_PrecacheSound, SFX_RADAR_BEEP);
 	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);(UNDONE: 空袭)
 	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_USE);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
@@ -468,8 +470,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
-	engfunc(EngFunc_PrecacheSound, ASSASSIN_GRAND_SFX);
-	engfunc(EngFunc_PrecacheSound, ASSASSIN_DISCOVERED_SFX);
+	Assassin_Precache();
 	Blaster_Precache();
 }
 

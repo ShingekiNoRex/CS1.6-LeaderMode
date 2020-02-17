@@ -11,6 +11,7 @@
 
 new cvar_commanderMarkingDur, cvar_commanderCooldown;
 new gmsgHostagePos, gmsgHostageK;
+new Float:g_rgflCommanderRadarThink;
 
 public Commander_Initialize()
 {
@@ -101,6 +102,8 @@ public Commander_ExecuteSkill(pPlayer)
 public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 {
 	// please do the team check before calling this!
+	if (g_rgflCommanderRadarThink > get_gametime())
+		return;
 	
 	if (!is_user_alive(THE_COMMANDER) || !g_rgbUsingSkill[THE_COMMANDER])
 		return;
@@ -108,6 +111,8 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	if (is_user_bot(pPlayer))
 		return;
 	
+	g_rgflCommanderRadarThink = 2.0 + get_gametime();
+
 	static Float:vecOrigin[3];
 	pev(THE_GODFATHER, pev_origin, vecOrigin);
 	
@@ -122,6 +127,8 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	message_begin(MSG_ONE, gmsgHostageK, _, pPlayer);
 	write_byte(1);	// hostage index
 	message_end();
+
+	client_cmd(pPlayer, "spk %s", SFX_RADAR_BEEP);
 }
 
 public Commander_RevokeSkill(iTaskId)
