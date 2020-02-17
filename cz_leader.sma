@@ -1459,17 +1459,14 @@ public Event_FreezePhaseEnd()
 	Godfather_Assign(szPlayer[0][random_num(1, iAmount[0])]);
 	Commander_Assign(szPlayer[1][random_num(1, iAmount[1])]);
 
-	/*
+	szPlayer[0] = RemoveFromArray(szPlayer[0], THE_GODFATHER);
+	szPlayer[1] = RemoveFromArray(szPlayer[1], THE_COMMANDER);
+
 	new iBerserker = szPlayer[0][random_num(1, iAmount[0])];
-	while(iBerserker == THE_GODFATHER)
-		iBerserker = szPlayer[0][random_num(1, iAmount[0])];
 	g_rgPlayerRole[iBerserker] = Role_Berserker;
 
 	new iBlaster = szPlayer[1][random_num(1, iAmount[1])];
-	while(iBlaster == THE_COMMANDER)
-		iBlaster = szPlayer[1][random_num(1, iAmount[1])];
 	g_rgPlayerRole[iBlaster] = Role_Blaster;
-	*/
 
 	g_bRoundStarted = true;
 
@@ -2023,7 +2020,7 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 	message_end();
 }
 	
-stock RemoveFromArray(rgArray[], iElement)
+stock RemoveFromArray(const rgArray[], iElement)
 {
 	new rgNewArray[sizeof(rgArray)];
 	for (new i = 0, j = 0; i < sizeof(rgArray); i ++)
