@@ -408,12 +408,16 @@ public plugin_init()
 	register_clcmd("vonc",				"Command_VoteONC");
 	register_clcmd("voteofnoconfidence","Command_VoteONC");
 	register_clcmd("say /vonc",			"Command_VoteONC");
-	register_clcmd("test",				"Command_Test");
+	register_clcmd("assassin",			"Command_Assassin");
+	register_clcmd("berserker",			"Command_Berserker");
+	register_clcmd("blaster",			"Command_Blaster");
 	
 	// roles custom initiation
 	Godfather_Initialize();
 	Commander_Initialize();
 	Assassin_Initialize();
+	Blaster_Initialize();
+	Berserker_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 }
@@ -1674,9 +1678,19 @@ public Command_VoteONC(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
-public Command_Test(pPlayer)
+public Command_Assassin(pPlayer)
 {
 	g_rgPlayerRole[pPlayer] = Role_Assassin;
+}
+
+public Command_Berserker(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Berserker;
+}
+
+public Command_Blaster(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Blaster;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
