@@ -20,6 +20,46 @@ public Commander_Initialize()
 	g_rgSkillCooldown[Role_Commander] = cvar_commanderCooldown;
 }
 
+public Commander_Assign(pPlayer)
+{
+	new Float:flSucceedHealth = 1000.0;
+	if (is_user_connected(THE_COMMANDER))
+	{
+		new iAbdicator = THE_COMMANDER;
+		
+		emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
+		ewrite_byte(iAbdicator);
+		ewrite_byte(0);
+		emessage_end();
+		
+		g_rgPlayerRole[iAbdicator] = Role_UNASSIGNED;
+		pev(iAbdicator, pev_health, flSucceedHealth);	// this health will be assign to new leader. prevents the confidence motion mechanism abused by players.
+		set_pev(iAbdicator, pev_health, 100.0);
+		set_pev(iAbdicator, pev_max_health, 100.0);
+	}
+	
+	if (!is_user_alive(pPlayer))	// what if this guy was dead?
+		ExecuteHamB(Ham_CS_RoundRespawn, pPlayer);
+	
+	// LONG LIVE THE KING!
+	THE_COMMANDER = pPlayer;
+	pev(THE_COMMANDER, pev_netname, g_szLeaderNetname[TEAM_CT - 1], charsmax(g_szLeaderNetname[]));
+	set_pev(THE_COMMANDER, pev_health, flSucceedHealth);
+	set_pev(THE_COMMANDER, pev_max_health, 1000.0);
+	
+	new rgColor[3] = { 255, 100, 255 };
+	new Float:flCoordinate[2] = { -1.0, 0.30 };
+	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
+	
+	g_rgPlayerRole[THE_COMMANDER] = Role_Commander;
+	ShowHudMessage(THE_COMMANDER, rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", COMMANDER_TEXT);
+	
+	emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
+	ewrite_byte(THE_COMMANDER);	// head of CTs
+	ewrite_byte(SCOREATTRIB_VIP);
+	emessage_end();
+}
+
 public Commander_ExecuteSkill(pPlayer)
 {
 	if (!is_user_alive(THE_GODFATHER) || g_rgbUsingSkill[THE_COMMANDER])

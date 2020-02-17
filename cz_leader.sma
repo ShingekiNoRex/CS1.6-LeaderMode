@@ -63,7 +63,7 @@ TR:
 #include <xs>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.8.6"
+#define VERSION	"1.9"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -98,6 +98,10 @@ TR:
 #define HIDEHUD_TIMER		(1<<4)
 #define HIDEHUD_MONEY		(1<<5)
 #define HIDEHUD_CROSSHAIR	(1<<6)
+
+#define DISCARD	2
+#define TRUST	1
+#define DEPRIVE	0
 
 // weapons redefine
 #define CSW_ACR			CSW_AUG
@@ -233,7 +237,6 @@ stock g_rgSkillCooldown[ROLE_COUNT] =
 	-1
 };
 
-
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
 stock const g_rgszWeaponEntity[][] =
@@ -290,12 +293,16 @@ new const g_rgszEntityToRemove[][] =
 	"game_player_team"
 }
 
+stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
+
 new g_fwBotForwardRegister
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
-new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
+new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
+new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTeamCnfdnceMtnBallotBox[4][2], g_rgiConfidenceMotionVotes[33];
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
+new cvar_VONCperTeam, cvar_VONCtimeLimit;
 
 // SFX
 #define SFX_GAME_START_1		"leadermode/start_game_01.wav"
@@ -307,6 +314,8 @@ new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefilli
 #define SFX_GAME_LOST			"leadermode/end_turn_brittania_04.wav"
 #define MUSIC_GAME_WON			"sound/leadermode/Tally-ho.mp3"
 #define MUSIC_GAME_LOST			"sound/leadermode/Warrior_s_Tomb.mp3"
+#define SFX_VONC_PASSED			"leadermode/complete_focus_01.wav"
+#define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
 
 // DIVIDE ET IMPERA
 #include "godfather.sma"
@@ -359,12 +368,17 @@ public plugin_init()
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
 	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"200");
 	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
+	cvar_VONCperTeam	= register_cvar("lm_VONC_per_team_per_round",			"2");
+	cvar_VONCtimeLimit	= register_cvar("lm_VONC_voting_time_limit",			"60.0");
 	
 	// client commands
-	register_clcmd("vs", "Command_VoteTS");
-	register_clcmd("votescheme", "Command_VoteTS");
-	register_clcmd("say /votescheme", "Command_VoteTS");
-	register_clcmd("say /vs", "Command_VoteTS");
+	register_clcmd("vs",				"Command_VoteTS");
+	register_clcmd("votescheme",		"Command_VoteTS");
+	register_clcmd("say /votescheme",	"Command_VoteTS");
+	register_clcmd("say /vs",			"Command_VoteTS");
+	register_clcmd("vonc",				"Command_VoteONC");
+	register_clcmd("voteofnoconfidence","Command_VoteONC");
+	register_clcmd("say /vonc",			"Command_VoteONC");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -397,6 +411,10 @@ public plugin_precache()
 		engfunc(EngFunc_PrecacheSound, szFile);
 	}
 	
+	// Vote of Non Confidence
+	engfunc(EngFunc_PrecacheSound, SFX_VONC_PASSED);
+	engfunc(EngFunc_PrecacheSound, SFX_VONC_REJECTED);
+	
 	// Roles
 	engfunc(EngFunc_PrecacheSound, GODFATHER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
@@ -407,6 +425,11 @@ public plugin_precache()
 public client_putinserver(pPlayer)
 {
 	g_rgbResurrecting[pPlayer] = false;
+	g_rgPlayerRole[pPlayer] = Role_UNASSIGNED;
+	g_rgbUsingSkill[pPlayer] = false;
+	g_rgflSkillCooldown[pPlayer] = 0.0;
+	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
+	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
 }
 
 public HamF_Killed(iVictim, iAttacker, bShouldGib)
@@ -716,7 +739,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 				continue;
 			
-			if (!is_user_alive(g_iLeader[iTeam - 1]) || g_rgiTeamMenPower[iTeam] <= 0)
+			if (!is_user_alive(g_iLeader[iTeam - 1]) || g_rgiTeamMenPower[iTeam] <= 0 || is_user_alive(i))
 			{
 				UTIL_BarTime(i, 0);	// hide the bartime.
 				g_rgbResurrecting[i] = false;
@@ -732,7 +755,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		
 		for (new i = 0; i < 4; i++)
 			for (new TacticalScheme_e:j = Scheme_UNASSIGNED; j < SCHEMES_COUNT; j++)
-				g_rgiBallotBox[i][j] = 0;	// re-zero before each vote.
+				g_rgiTeamSchemeBallotBox[i][j] = 0;	// re-zero before each vote.
 		
 		for (new i = 1; i <= global_get(glb_maxClients); i++)
 		{
@@ -746,7 +769,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 				continue;
 			
-			g_rgiBallotBox[iTeam][g_rgTacticalSchemeVote[i]]++;
+			g_rgiTeamSchemeBallotBox[iTeam][g_rgTacticalSchemeVote[i]]++;
 		}
 	}
 	
@@ -760,9 +783,9 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 			
 			for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
 			{
-				if (g_rgiBallotBox[j][i] > g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])
+				if (g_rgiTeamSchemeBallotBox[j][i] > g_rgiTeamSchemeBallotBox[j][g_rgTeamTacticalScheme[j]])
 					g_rgTeamTacticalScheme[j] = i;
-				else if (g_rgTeamTacticalScheme[j] != i && g_rgiBallotBox[j][i] > 0 && g_rgiBallotBox[j][i] == g_rgiBallotBox[j][g_rgTeamTacticalScheme[j]])	// disputation
+				else if (g_rgTeamTacticalScheme[j] != i && g_rgiTeamSchemeBallotBox[j][i] > 0 && g_rgiTeamSchemeBallotBox[j][i] == g_rgiTeamSchemeBallotBox[j][g_rgTeamTacticalScheme[j]])	// disputation
 					g_rgTeamTacticalScheme[j] = Scheme_UNASSIGNED;
 			}
 			
@@ -793,19 +816,19 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 		}
 	}
 	
-	for (new j = TEAM_TERRORIST; j <= TEAM_CT; j++)	// Team Tactical Scheme Effect Think
+	for (new iTeam = TEAM_TERRORIST; iTeam <= TEAM_CT; iTeam++)	// Team Tactical Scheme Effect Think; Team Confidence Motion Think
 	{
-		if (g_rgflTeamTSEffectThink[j] <= fCurTime && g_rgTeamTacticalScheme[j] != Scheme_UNASSIGNED)
+		if (g_rgflTeamTSEffectThink[iTeam] <= fCurTime && g_rgTeamTacticalScheme[iTeam] != Scheme_UNASSIGNED)
 		{
 			for (new i = 1; i <= global_get(glb_maxClients); i++)
 			{
 				if (!is_user_connected(i))
 					continue;
 				
-				if (get_pdata_int(i, m_iTeam) != j)
+				if (get_pdata_int(i, m_iTeam) != iTeam)
 					continue;
 				
-				switch (g_rgTeamTacticalScheme[j])
+				switch (g_rgTeamTacticalScheme[iTeam])
 				{
 					case Doctrine_GrandBattleplan:
 					{
@@ -841,16 +864,94 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 				}
 			}
 			
-			switch (g_rgTeamTacticalScheme[j])
+			switch (g_rgTeamTacticalScheme[iTeam])
 			{
 				case Doctrine_GrandBattleplan:
-					g_rgflTeamTSEffectThink[j] = fCurTime + get_pcvar_float(cvar_TSDmoneyaddinv);
+					g_rgflTeamTSEffectThink[iTeam] = fCurTime + get_pcvar_float(cvar_TSDmoneyaddinv);
 				
 				case Doctrine_SuperiorFirepower:
-					g_rgflTeamTSEffectThink[j] = fCurTime + get_pcvar_float(cvar_TSDrefillinv);
+					g_rgflTeamTSEffectThink[iTeam] = fCurTime + get_pcvar_float(cvar_TSDrefillinv);
 				
 				default:
-					g_rgflTeamTSEffectThink[j] = fCurTime + 5.0;
+					g_rgflTeamTSEffectThink[iTeam] = fCurTime + 5.0;
+			}
+		}
+		
+		if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] > 0.0)	// there is a voting ongoing.
+		{
+			g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] = 0;
+			g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE] = 0;
+			
+			new iTeamPlayerCount = 0;
+			for (new i = 1; i <= global_get(glb_maxClients); i++)
+			{
+				if (!is_user_connected(i))
+					continue;
+				
+				if (get_pdata_int(i, m_iTeam) != iTeam)
+					continue;
+				
+				if (g_rgiConfidenceMotionVotes[i] == TRUST || g_rgiConfidenceMotionVotes[i] == DEPRIVE)
+				{
+					g_rgiTeamCnfdnceMtnBallotBox[iTeam][g_rgiConfidenceMotionVotes[i]]++;
+					iTeamPlayerCount++;
+				}
+			}
+			
+			if (g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] > (iTeamPlayerCount / 2) ||	// one of the two opinions wins plurality.
+				g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE] > (iTeamPlayerCount / 2) )
+			{
+				g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = fCurTime - 1.0;	// ends voting right fucking now.
+			}
+			
+			// UNDONE: time left hint. how to prevent it trigger it multiple frames?
+			//new iTimeLeft = floatround(g_rgflTeamCnfdnceMtnTimeLimit[iTeam] - fCurTime);
+			//if (iTimeLeft == floatround(get_pdata_float(cvar_VONCtimeLimit) / 2.0))
+		}
+		
+		if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] <= fCurTime)
+		{
+			if (g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] >= g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE])
+			{
+				g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = -1.0;
+				UTIL_ColorfulPrintChat(0, "/y針對%s/g%s/y的/t不信任動議/y沒有通過: /g%s/y將留任。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_szLeaderNetname[iTeam - 1]);
+				client_cmd(0, "spk %s", SFX_VONC_REJECTED);
+			}
+			else
+			{
+				new iCandidateCount = 0, iCandidates[33];
+				for (new i = 1; i <= global_get(glb_maxClients); i++)
+				{
+					if (!is_user_connected(i))
+						continue;
+					
+					if (get_pdata_int(i, m_iTeam) != iTeam)
+						continue;
+					
+					if (i == g_iLeader[iTeam - 1])
+						continue;
+					
+					iCandidateCount++;
+					iCandidates[iCandidateCount] = i;
+				}
+				
+				new iCromwell = iCandidates[random_num(1, iCandidateCount)], bool:bCharlesI = false, iCharlesI = g_iLeader[iTeam - 1];	// check your history textbook.
+				if (!is_user_alive(iCromwell))
+					bCharlesI = true;
+				
+				if (iTeam == TEAM_TERRORIST)
+					Godfather_Assign(iCromwell);
+				else if (iTeam == TEAM_CT)
+					Commander_Assign(iCromwell);
+				
+				if (bCharlesI)
+				{
+					set_pev(iCharlesI, pev_health, 1.0);
+					ExecuteHamB(Ham_TakeDamage, iCharlesI, 0, iCharlesI, 10.0, DMG_FALL | DMG_NEVERGIB);
+				}
+				
+				UTIL_ColorfulPrintChat(0, "/t不信任動議/y已經通過: /g%s/y已經被推舉為新的/g%s/y!", REDCHAT, g_szLeaderNetname[iTeam - 1], iTeam == TEAM_CT ? COMMANDER_TEXT : GODFATHER_TEXT);
+				client_cmd(0, "spk %s", SFX_VONC_PASSED);
 			}
 		}
 	}
@@ -1153,23 +1254,8 @@ public Event_FreezePhaseEnd()
 	if (!iAmount[0] || !iAmount[1])
 		return;
 	
-	g_iLeader[0] = szPlayer[0][random_num(1, iAmount[0])];
-	g_iLeader[1] = szPlayer[1][random_num(1, iAmount[1])];
-	pev(g_iLeader[0], pev_netname, g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]));
-	pev(g_iLeader[1], pev_netname, g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]));
-	set_pev(g_iLeader[0], pev_health, 1000.0);
-	set_pev(g_iLeader[0], pev_max_health, 1000.0);
-	set_pev(g_iLeader[1], pev_health, 1000.0);
-	set_pev(g_iLeader[1], pev_max_health, 1000.0);
-	
-	new rgColor[3] = { 255, 100, 255 };
-	new Float:flCoordinate[2] = { -1.0, 0.30 };
-	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
-	
-	g_rgPlayerRole[g_iLeader[0]] = Role_Godfather;
-	ShowHudMessage(g_iLeader[0], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", g_rgszRoleNames[Role_Godfather]);
-	g_rgPlayerRole[g_iLeader[1]] = Role_Commander;
-	ShowHudMessage(g_iLeader[1], rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", g_rgszRoleNames[Role_Commander]);
+	Godfather_Assign(szPlayer[0][random_num(1, iAmount[0])]);
+	Commander_Assign(szPlayer[1][random_num(1, iAmount[1])]);
 	
 	g_bRoundStarted = true;
 
@@ -1194,16 +1280,7 @@ public Event_FreezePhaseEnd()
 		set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) | HIDEHUD_TIMER);
 	}
 	
-	emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
-	ewrite_byte(g_iLeader[0]);	// head of TRs
-	ewrite_byte(SCOREATTRIB_BOMB);
-	emessage_end();
-	
-	emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
-	ewrite_byte(g_iLeader[1]);	// head of CTs
-	ewrite_byte(SCOREATTRIB_VIP);
-	emessage_end();
-	
+	// menpower initiation
 	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
 	
@@ -1223,9 +1300,20 @@ public Event_HLTV()
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
 	
 	for (new i = 0; i < 33; i++)
+	{
 		g_rgbResurrecting[i] = false;
+		g_rgiConfidenceMotionVotes[i] = DISCARD;
+	}
 	
 	g_bRoundStarted = false;
+	
+	for (new i = TEAM_TERRORIST; i <= TEAM_CT; i++)
+	{
+		g_rgflTeamCnfdnceMtnTimeLimit[i] = -1.0;
+		g_rgiTeamCnfdnceMtnLeft[i] = get_pcvar_num(cvar_VONCperTeam);
+		g_rgiTeamCnfdnceMtnBallotBox[i][TRUST] = 0;
+		g_rgiTeamCnfdnceMtnBallotBox[i][DEPRIVE] = 0;
+	}
 	
 	// custom role HLTV events
 	Godfather_TerminateSkill();
@@ -1240,6 +1328,7 @@ public Event_HLTV()
 			g_rgflSkillCooldown[i] = 0.0;
 			
 			set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) & ~HIDEHUD_TIMER);
+			set_pev(i, pev_max_health, 100.0);
 		}
 	}
 	
@@ -1278,7 +1367,7 @@ public Command_VoteTS(pPlayer)
 	
 	new szItem[SCHEMES_COUNT][64];
 	for (new TacticalScheme_e:i = Scheme_UNASSIGNED; i < SCHEMES_COUNT; i++)
-		formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgiBallotBox[iTeam][i]);
+		formatex(szItem[i], charsmax(szItem[]), "\w%s (\y%d\w人支持)", g_rgszTacticalSchemeNames[i], g_rgiTeamSchemeBallotBox[iTeam][i]);
 	
 	strcat(szItem[g_rgTacticalSchemeVote[pPlayer]], " - 已投票", charsmax(szItem[]))
 	
@@ -1290,6 +1379,77 @@ public Command_VoteTS(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
+public Command_VoteONC(pPlayer)
+{
+	if (!is_user_connected(pPlayer))
+		return PLUGIN_HANDLED;
+	
+	new iTeam = get_pdata_int(pPlayer, m_iTeam);
+	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
+		return PLUGIN_HANDLED;
+	
+	if (g_rgiTeamCnfdnceMtnLeft[iTeam] <= 0 && g_rgflTeamCnfdnceMtnTimeLimit[iTeam] <= 0.0)	// no voting left, and there is no ongoing voting.
+	{
+		UTIL_ColorfulPrintChat(pPlayer, "/t本回合的/g不信任動議/t次數已經用盡。請服從現任%s。", GREYCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather]);
+		return PLUGIN_HANDLED;
+	}
+	
+	// if in the voting phase
+		// open menu for him
+	// else
+		// start a new vote.
+		// clear the vote data from last vote.
+	
+	new szBuffer[192];
+	formatex(szBuffer, charsmax(szBuffer), "\r發起對%s\y%s\r的不信任動議:^n\w(尚餘\y%d\w次)", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1]);
+	
+	if (g_rgflTeamCnfdnceMtnTimeLimit[iTeam] > 0.0)	// open voting found!
+	{
+		new hMenu = menu_create(szBuffer, "MenuHandler_VoteONC");	// create a new menu id for each player. this could avoid the chaos.
+		
+		menu_additem(hMenu, g_rgszCnfdnceMtnText[DEPRIVE]);
+		menu_additem(hMenu, g_rgszCnfdnceMtnText[TRUST]);
+		
+		menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
+		menu_setprop(hMenu, MPROP_EXITNAME, g_rgszCnfdnceMtnText[DISCARD]);
+		menu_display(pPlayer, hMenu, 0);
+		
+		return PLUGIN_HANDLED;
+	}
+	
+	// starting a new vote.
+	// don't clear g_rgiConfidenceMotionVotes, since this will sabortage the voting of the other team.
+	g_rgflTeamCnfdnceMtnTimeLimit[iTeam] = get_gametime() + get_pcvar_float(cvar_VONCtimeLimit);
+	g_rgiTeamCnfdnceMtnLeft[iTeam]--;
+	g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST] = 0;
+	g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE] = 0;
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_connected(i))
+			continue;
+		
+		if (get_pdata_int(i, m_iTeam) != iTeam)
+			continue;
+		
+		if (i == g_iLeader[iTeam - 1])
+			continue;
+
+		g_rgiConfidenceMotionVotes[i] = DISCARD;	// default vote.
+		
+		new hMenu = menu_create(szBuffer, "MenuHandler_VoteONC");	// create a new menu id for each player. this could avoid the chaos.
+		
+		menu_additem(hMenu, g_rgszCnfdnceMtnText[DEPRIVE]);
+		menu_additem(hMenu, g_rgszCnfdnceMtnText[TRUST]);
+		
+		menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
+		menu_setprop(hMenu, MPROP_EXITNAME, g_rgszCnfdnceMtnText[DISCARD]);
+		menu_display(i, hMenu, 0);
+	}
+	
+	return PLUGIN_HANDLED;
+}
+
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
 {
 	if (iItem >= 0)	// for example, MENU_EXIT is -3... you can see the pattern.
@@ -1297,6 +1457,34 @@ public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
 		g_rgTacticalSchemeVote[pPlayer] = TacticalScheme_e:iItem;
 		UTIL_ColorfulPrintChat(pPlayer, g_rgszTacticalSchemeDesc[TacticalScheme_e:iItem], g_rgiTacticalSchemeDescColor[TacticalScheme_e:iItem]);
 	}
+	
+	menu_destroy(hMenu);
+	return PLUGIN_HANDLED;
+}
+
+public MenuHandler_VoteONC(pPlayer, hMenu, iItem)
+{
+	new iLastVote = g_rgiConfidenceMotionVotes[pPlayer];
+	new iTeam = get_pdata_int(pPlayer, m_iTeam);
+	
+	if (iItem == TRUST || iItem == DEPRIVE)
+	{
+		g_rgiConfidenceMotionVotes[pPlayer] = iItem;
+		g_rgiTeamCnfdnceMtnBallotBox[iTeam][iItem]++;
+	}
+	else
+	{
+		g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
+	}
+	
+	if (iLastVote != g_rgiConfidenceMotionVotes[pPlayer] &&
+		(iLastVote == TRUST || iLastVote == DEPRIVE) )
+	{
+		g_rgiTeamCnfdnceMtnBallotBox[iTeam][iLastVote]--;
+	}
+	
+	UTIL_ColorfulPrintChat(0, "/y針對%s/g%s/y的/t不信任動議/y: %s/g%d/y票, %s/t%d/y票。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgszCnfdnceMtnText[DEPRIVE], g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE], g_rgszCnfdnceMtnText[TRUST], g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST]);
+	UTIL_ColorfulPrintChat(0, "/t%s/y至少要比/g%s/y多一票, 不信任動議方可通過。", REDCHAT, g_rgszCnfdnceMtnText[DEPRIVE], g_rgszCnfdnceMtnText[TRUST]);
 	
 	menu_destroy(hMenu);
 	return PLUGIN_HANDLED;
