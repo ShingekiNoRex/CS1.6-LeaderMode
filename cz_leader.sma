@@ -520,7 +520,7 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
 	// Firerate for CT leader
-	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1])
+	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1] && g_rgbUsingSkill[iPlayer])
 		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack), 4);
 }
 
@@ -987,6 +987,10 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (iTeam == TEAM_CT)	// Commander's skill
 	{
 		Commander_SkillThink(pPlayer);
+	}
+	else if (iTeam == TEAM_TERRORIST)	// Godfather's skill
+	{
+		Godfather_HealingThink(pPlayer);
 	}
 }
 

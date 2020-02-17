@@ -11,13 +11,16 @@
 
 new g_iGodchildrenCount = 0, g_rgiGodchildren[33];
 new Float:g_flGodfatherSavedHP = 1000.0, Float:g_rgflGodchildrenSavedHP[33];
-new cvar_godfatherRadius, cvar_godfatherDuration, cvar_godfatherCooldown;
+new Float:g_flGodfatherHealingThink;
+new cvar_godfatherRadius, cvar_godfatherDuration, cvar_godfatherCooldown, cvar_godfatherHealingInterval, cvar_godfatherHealingAmount;
 
 public Godfather_Initialize()
 {
 	cvar_godfatherRadius	= register_cvar("lm_godfather_radius",		"250.0");
 	cvar_godfatherDuration	= register_cvar("lm_godfather_duration",	"20.0");
 	cvar_godfatherCooldown	= register_cvar("lm_godfather_cooldown",	"60.0");
+	cvar_godfatherHealingInterval = register_cvar("lm_godfather_healing_interval", "5.0");
+	cvar_godfatherHealingAmount = register_cvar("lm_godfather_healing_amount", "10.0");
 
 	g_rgSkillDuration[Role_Godfather] = cvar_godfatherDuration;
 	g_rgSkillCooldown[Role_Godfather] = cvar_godfatherCooldown;
@@ -109,4 +112,34 @@ public Godfather_RevokeSkill(iTaskId)
 	// g_iGodchildrenCount == 0 could be an indicator of the skill usage status ???
 	// what if skill was fail due to nobody near Godfather?
 	g_iGodchildrenCount = 0;
+}
+
+public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
+{
+	// please do the team check before calling this!
+
+	if (!is_user_alive(THE_GODFATHER))
+		return;
+
+	static Float:fCurTime;
+	global_get(glb_time, fCurTime);
+	if (g_flGodfatherHealingThink > fCurTime)
+		return;
+
+	static Float:vecGFOrigin[3], Float:vecPlayerOrigin[3];
+	pev(THE_GODFATHER, pev_origin, vecGFOrigin);
+	pev(iPlayer, pev_origin, vecPlayerOrigin);
+	if (get_distance_f(vecGFOrigin, vecPlayerOrigin) > get_pcvar_float(cvar_godfatherRadius))
+		return;
+
+	g_flGodfatherHealingThink = fCurTime + get_pcvar_float(cvar_godfatherHealingInterval);
+
+	new Float:flCurHealth;
+	pev(iPlayer, pev_health, flCurHealth);
+	flCurHealth += get_pcvar_float(cvar_godfatherHealingAmount);
+
+	if (flCurHealth > 100.0)
+		flCurHealth = 100.0
+
+	set_pev(iPlayer, pev_health, flCurHealth);
 }
