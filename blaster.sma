@@ -25,13 +25,6 @@ public Blaster_Precache()
 	g_smodelindexfireball[1] = engfunc(EngFunc_PrecacheModel, "sprites/fexplo.spr");
 }
 
-public Blaster_TerminateSkill()
-{
-	for (new i = 1; i <= global_get(glb_maxClients); i ++)
-		if (is_user_connected(i))
-			remove_task(BLASTER_TASK + i);
-}
-
 public Blaster_ExecuteSkill(pPlayer)
 {
 	fm_give_item(pPlayer, "weapon_hegrenade");

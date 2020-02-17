@@ -1399,13 +1399,14 @@ public Event_HLTV()
 	// custom role HLTV events
 	Godfather_TerminateSkill();
 	Commander_TerminateSkill();
-	Berserker_TerminateSkill();
-	Blaster_TerminateSkill();
 
 	for (new i = 1; i <= global_get(glb_maxClients); i ++)
 	{
 		if (is_user_connected(i))
 		{
+			remove_task(BERSERKER_TASK + i);
+			remove_task(BLASTER_TASK + i);
+
 			g_rgPlayerRole[i] = Role_UNASSIGNED;
 			g_rgbUsingSkill[i] = false;
 			g_rgflSkillCooldown[i] = 0.0;

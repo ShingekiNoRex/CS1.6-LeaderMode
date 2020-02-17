@@ -16,13 +16,6 @@ public Berserker_Initialize()
 	g_rgSkillCooldown[Role_Berserker] = cvar_berserkerCooldown;
 }
 
-public Berserker_TerminateSkill()
-{
-	for (new i = 1; i <= global_get(glb_maxClients); i++)
-		if (is_user_connected(i))
-			remove_task(BERSERKER_TASK + i);
-}
-
 public Berserker_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK + pPlayer);
