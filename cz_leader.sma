@@ -203,6 +203,23 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	""
 };
 
+stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
+{
+	"",
+	
+	"",
+	"",
+	"[被动]死后爆炸",
+	"",
+	"",
+	
+	"[被动]周围友军缓慢恢复生命",
+	"",
+	"",
+	"",
+	""
+};
+
 stock g_rgSkillDuration[ROLE_COUNT] =
 {
 	-1,
@@ -1162,10 +1179,20 @@ public fw_PlayerPostThink_Post(pPlayer)
 			copy(szSkillText, charsmax(szSkillText), g_rgszRoleSkills[g_rgPlayerRole[pPlayer]]);
 		
 		if (!is_user_alive(g_iLeader[iTeam - 1]) && g_iLeader[iTeam - 1] > 0)	// prevent this text appears in freezing phase.
-			formatex(szText, charsmax(szText), "身份: %s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+		{
+			if (strlen(g_rgszRolePassiveSkills[g_rgPlayerRole[pPlayer]]))
+				formatex(szText, charsmax(szText), "身份: %s^n%s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRolePassiveSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			else
+				formatex(szText, charsmax(szText), "身份: %s^n%s^n%s已陣亡|兵源補給中斷|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+		}
 		else
-			formatex(szText, charsmax(szText), "身份: %s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
-		
+		{
+			if (strlen(g_rgszRolePassiveSkills[g_rgPlayerRole[pPlayer]]))
+				formatex(szText, charsmax(szText), "身份: %s^n%s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRolePassiveSkills[g_rgPlayerRole[pPlayer]], g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+			else
+				formatex(szText, charsmax(szText), "身份: %s^n%s^n%s: %s|兵源剩餘: %d|%s", g_rgszRoleNames[g_rgPlayerRole[pPlayer]], szSkillText, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamMenPower[iTeam], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[iTeam]]);
+		}
+
 		if (!is_user_alive(g_iLeader[2 - iTeam]) && g_iLeader[2 - iTeam] > 0)
 			formatex(szGoal, charsmax(szGoal), "任務目標: 扫荡残敌");
 		else if (!g_bRoundStarted)	// not started yet.
