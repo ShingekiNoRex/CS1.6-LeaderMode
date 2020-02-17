@@ -42,7 +42,7 @@ TR:
 (將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
-(血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)
+(血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)	(REX)
 (被動：擊殺賞金均全額賦予)
 疯狂科学家
 (電擊彈藥，將瞄準目標吸往自己的方向)
@@ -312,14 +312,21 @@ new cvar_VONCperTeam, cvar_VONCtimeLimit;
 #define SFX_TSD_SFD				"leadermode/infantry_rifle_cartridge_0%d.wav"
 #define SFX_GAME_WON			"leadermode/brittania_mission_arrived.wav"
 #define SFX_GAME_LOST			"leadermode/end_turn_brittania_04.wav"
+#define SFX_RADIO_DRAW			"weapons/radio_draw.wav"
+#define SFX_RADIO_USE			"weapons/radio_use.wav"
 #define MUSIC_GAME_WON			"sound/leadermode/Tally-ho.mp3"
 #define MUSIC_GAME_LOST			"sound/leadermode/Warrior_s_Tomb.mp3"
 #define SFX_VONC_PASSED			"leadermode/complete_focus_01.wav"
 #define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
 
+// Models
+#define MDL_RADIO_V				"models/v_radio.mdl"
+#define MDL_RADIO_P				"models/p_radio.mdl"
+
 // DIVIDE ET IMPERA
 #include "godfather.sma"
 #include "commander.sma"
+#include "berserker.sma"
 
 public plugin_init()
 {
@@ -353,6 +360,7 @@ public plugin_init()
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
 	register_event("HLTV", "Event_HLTV", "a", "1=0", "2=0");
+	//register_event("CurWeapon", "Event_CurWeapon", "be", "1=1")
 	
 	// messages
 	register_message(get_user_msgid("Health"), "Message_Health");
@@ -399,9 +407,13 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, SFX_MENPOWER_DEPLETED);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_WON);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_LOST);
+	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);
+	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_USE);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
-	
+	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_V);
+	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);	
+
 	// Schemes
 	engfunc(EngFunc_PrecacheSound, SFX_TSD_GBD);
 	
@@ -522,6 +534,16 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 	{
 		if (g_rgPlayerRole[iVictim] == Role_Godfather || g_rgPlayerRole[iVictim] == Role_Commander)
 			SetHamParamFloat(4, flDamage * 0.5);
+		else if (g_rgPlayerRole[iVictim] == Role_Berserker)
+		{
+			new Float:flCurHealth;
+			pev(iVictim, pev_health, flCurHealth);
+			if (flCurHealth - flDamage < 1.0)
+			{
+				set_pev(iVictim, pev_health, 1.0);
+				return FMRES_SUPERCEDE;
+			}
+		}
 	}
 	
 	return HAM_IGNORED;
@@ -546,7 +568,7 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
 	// Firerate for CT leader
-	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1])
+	if (is_user_alive(iPlayer) && iPlayer == g_iLeader[TEAM_CT-1] && g_rgbUsingSkill[iPlayer])
 		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack), 4);
 }
 
@@ -1097,6 +1119,10 @@ public fw_PlayerPostThink_Post(pPlayer)
 	{
 		Commander_SkillThink(pPlayer);
 	}
+	else if (iTeam == TEAM_TERRORIST)	// Godfather's skill
+	{
+		Godfather_HealingThink(pPlayer);
+	}
 }
 
 public fw_Spawn(iEntity)	// 移除任务实体
@@ -1318,6 +1344,7 @@ public Event_HLTV()
 	// custom role HLTV events
 	Godfather_TerminateSkill();
 	Commander_TerminateSkill();
+	Berserker_TerminateSkill();
 
 	for (new i = 1; i <= global_get(glb_maxClients); i ++)
 	{
@@ -1335,7 +1362,18 @@ public Event_HLTV()
 	client_cmd(0, "stopsound");	// stop music
 	client_cmd(0, "mp3 stop");	// stop music
 }
-
+/*
+public Event_CurWeapon(iPlayer)
+{
+	if(g_rgPlayerRole[iPlayer] != Role_Commander)
+		return PLUGIN_CONTINUE
+	
+	set_pev(iPlayer, pev_viewmodel2, MDL_RADIO_V)
+	set_pev(iPlayer, pev_weaponmodel2, MDL_RADIO_W)
+	
+	return PLUGIN_CONTINUE
+}
+*/
 public Message_Health(msg_id, msg_dest, msg_entity)
 {
 	if (!is_user_alive(msg_entity))
