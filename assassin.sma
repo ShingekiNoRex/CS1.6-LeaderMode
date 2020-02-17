@@ -43,7 +43,8 @@ public Assassin_ExecuteSkill(pPlayer)
 	
 	NvgScreen(pPlayer, 10, 10, 255, 60);
 	client_cmd(pPlayer, "spk %s", ASSASSIN_GRAND_SFX);
-	
+	UTIL_ColorfulPrintChat(0, "/g%s已窃取敌方情报, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
+
 	set_task(get_pcvar_float(cvar_assassinInvisibleDur), "Assassin_RevokeSkill", ASSASSIN_TASK + pPlayer);
 }
 
