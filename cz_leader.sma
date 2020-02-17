@@ -457,6 +457,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
 	engfunc(EngFunc_PrecacheSound, ASSASSIN_GRAND_SFX);
+	engfunc(EngFunc_PrecacheSound, ASSASSIN_DISCOVERED_SFX);
 	Blaster_Precache();
 }
 
@@ -601,7 +602,13 @@ public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirect
 		return;
 	
 	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// catcha!!!
+	{
 		Assassin_TerminateSkill(iVictim);
+		client_cmd(iVictim, "spk %s", ASSASSIN_DISCOVERED_SFX);
+		
+		if (is_user_connected(iAttacker))
+			client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
+	}
 }
 
 public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
