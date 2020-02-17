@@ -16,38 +16,32 @@ public Berserker_Initialize()
 	g_rgSkillCooldown[Role_Berserker] = cvar_berserkerCooldown;
 }
 
-public Berserker_TerminateSkill()
-{
-	remove_task(BERSERKER_TASK);
-}
-
 public Berserker_ExecuteSkill(pPlayer)
 {
-	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK);
+	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK + pPlayer);
 }
 
 public Berserker_RevokeSkill(iTaskId)
 {
-	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	new iPlayer = iTaskId - BERSERKER_TASK;
+
+	if (!is_user_connected(iPlayer))
+		return;
+
+	if (g_rgPlayerRole[iPlayer] != Role_Berserker)
+		return;
+
+	g_rgbUsingSkill[iPlayer] = false;
+	g_rgflSkillCooldown[iPlayer] = get_gametime() + get_pcvar_float(cvar_berserkerCooldown);
+	print_chat_color(iPlayer, REDCHAT, "技能已结束！");
+
+	if (is_user_alive(iPlayer))
 	{
-		if (!is_user_connected(i))
-			continue;
-		
-		if (g_rgPlayerRole[i] != Role_Berserker)
-			continue;
-		
-		g_rgbUsingSkill[i] = false;
-		g_rgflSkillCooldown[i] = get_gametime() + get_pcvar_float(cvar_berserkerCooldown);
-		print_chat_color(i, REDCHAT, "技能已结束！");
-		
-		if (is_user_alive(i))
+		new Float:flCurHealth;
+		pev(iPlayer, pev_health, flCurHealth);
+		if (flCurHealth <= 1.0)
 		{
-			new Float:flCurHealth;
-			pev(i, pev_health, flCurHealth);
-			if (flCurHealth <= 1.0)
-			{
-				ExecuteHamB(Ham_TakeDamage, i, 0, 0, 100.0, DMG_GENERIC);
-			}
+			ExecuteHamB(Ham_TakeDamage, iPlayer, 0, 0, 100.0, DMG_GENERIC);
 		}
 	}
 }
