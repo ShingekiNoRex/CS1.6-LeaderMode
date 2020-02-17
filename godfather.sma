@@ -121,7 +121,6 @@ public Godfather_ExecuteSkill(pPlayer)
 	}
 	
 	set_task(get_pcvar_float(cvar_godfatherDuration), "Godfather_RevokeSkill", GODFATHER_TASK);
-	g_rgflSkillExecutedTime[pPlayer] = get_gametime();
 }
 
 public Godfather_RevokeSkill(iTaskId)

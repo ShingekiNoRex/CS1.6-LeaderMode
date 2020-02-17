@@ -51,7 +51,6 @@ public Assassin_ExecuteSkill(pPlayer)
 	}
 	
 	set_task(get_pcvar_float(cvar_assassinInvisibleDur), "Assassin_RevokeSkill", ASSASSIN_TASK + pPlayer);
-	g_rgflSkillExecutedTime[pPlayer] = get_gametime();
 }
 
 public Assassin_SkillThink()	// place at StartFrame()

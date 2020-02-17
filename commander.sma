@@ -96,7 +96,6 @@ public Commander_ExecuteSkill(pPlayer)
 	}
 	
 	set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
-	g_rgflSkillExecutedTime[THE_COMMANDER] = get_gametime();
 }
 
 public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
