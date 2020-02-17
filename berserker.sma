@@ -23,12 +23,11 @@ public Berserker_TerminateSkill()
 
 public Berserker_ExecuteSkill(pPlayer)
 {
-	set_task(get_pcvar_float(cvar_berserkerDuration), "Godfather_RevokeSkill", BERSERKER_TASK);
+	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK);
 }
 
 public Berserker_RevokeSkill(iTaskId)
 {
-	// the death of godchildren will NOT stop the HP payback. this is the rule. intended.
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
 		if (!is_user_connected(i))
