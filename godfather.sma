@@ -26,6 +26,46 @@ public Godfather_Initialize()
 	g_rgSkillCooldown[Role_Godfather] = cvar_godfatherCooldown;
 }
 
+public Godfather_Assign(pPlayer)
+{
+	new Float:flSucceedHealth = 1000.0;
+	if (is_user_connected(THE_GODFATHER))	// deal with the old godfather...
+	{
+		new iAbdicator = THE_GODFATHER;
+		
+		emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
+		ewrite_byte(iAbdicator);
+		ewrite_byte(0);
+		emessage_end();
+		
+		g_rgPlayerRole[iAbdicator] = Role_UNASSIGNED;
+		pev(iAbdicator, pev_health, flSucceedHealth);	// this health will be assign to new leader. prevents the confidence motion mechanism abused by players.
+		set_pev(iAbdicator, pev_health, 100.0);
+		set_pev(iAbdicator, pev_max_health, 100.0);
+	}
+	
+	if (!is_user_alive(pPlayer))	// what if this guy was dead?
+		ExecuteHamB(Ham_CS_RoundRespawn, pPlayer);
+	
+	// LONG LIVE THE KING!
+	THE_GODFATHER = pPlayer;
+	pev(THE_GODFATHER, pev_netname, g_szLeaderNetname[TEAM_TERRORIST - 1], charsmax(g_szLeaderNetname[]));
+	set_pev(THE_GODFATHER, pev_health, flSucceedHealth);
+	set_pev(THE_GODFATHER, pev_max_health, 1000.0);
+	
+	new rgColor[3] = { 255, 100, 255 };
+	new Float:flCoordinate[2] = { -1.0, 0.30 };
+	new Float:rgflTime[4] = { 6.0, 6.0, 0.1, 0.2 };
+	
+	g_rgPlayerRole[THE_GODFATHER] = Role_Godfather;
+	ShowHudMessage(THE_GODFATHER, rgColor, flCoordinate, 0, rgflTime, -1, "你已被選定為%s!", GODFATHER_TEXT);
+	
+	emessage_begin(MSG_ALL, get_user_msgid("ScoreAttrib"));
+	ewrite_byte(THE_GODFATHER);	// head of TRs
+	ewrite_byte(SCOREATTRIB_BOMB);
+	emessage_end();
+}
+
 public Godfather_TerminateSkill()
 {
 	g_iGodchildrenCount = 0;
