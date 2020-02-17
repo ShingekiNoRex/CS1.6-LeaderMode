@@ -1357,7 +1357,7 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 	print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
 	g_rgbUsingSkill[iPlayer] = true;
 	g_rgbAllowSkill[iPlayer] = false;
-	g_rgflSkillExecutedTime[pPlayer] = get_gametime();
+	g_rgflSkillExecutedTime[iPlayer] = get_gametime();
 	set_uc(uc_handle, UC_Impulse, 0);
 
 	return FMRES_IGNORED;
