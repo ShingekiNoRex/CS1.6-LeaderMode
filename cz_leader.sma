@@ -1466,8 +1466,32 @@ public Event_FreezePhaseEnd()
 	Godfather_Assign(szPlayer[0][random_num(1, iAmount[0])]);
 	Commander_Assign(szPlayer[1][random_num(1, iAmount[1])]);
 
-	szPlayer[0] = RemoveFromArray(szPlayer[0], THE_GODFATHER);
-	szPlayer[1] = RemoveFromArray(szPlayer[1], THE_COMMANDER);
+	iAmount[0] = 0;
+	iAmount[1] = 0;
+	
+	for (new i = 1; i < 33; i++)
+	{
+		if (!is_user_alive(i) || i == THE_GODFATHER || i == THE_COMMANDER)
+			continue;
+			
+		if (get_pdata_int(i, m_iTeam) == TEAM_T)
+		{
+			iAmount[0] ++;
+			szPlayer[0][iAmount[0]] = i;
+		}
+	}
+
+	for (new i = 1; i < 33; i++)
+	{
+		if (!is_user_alive(i) || i == THE_GODFATHER || i == THE_COMMANDER)
+			continue;
+			
+		if (get_pdata_int(i, m_iTeam) == TEAM_CT)
+		{
+			iAmount[1] ++;
+			szPlayer[1][iAmount[1]] = i;
+		}
+	}
 
 	new iBerserker = szPlayer[0][random_num(1, iAmount[0])];
 	g_rgPlayerRole[iBerserker] = Role_Berserker;
@@ -2026,16 +2050,3 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 	write_byte(density);
 	message_end();
 }
-	
-stock RemoveFromArray(const rgArray[], iElement)
-{
-	new rgNewArray[sizeof(rgArray)];
-	for (new i = 0, j = 0; i < sizeof(rgArray); i ++)
-	{
-		if (rgArray[i] != iElement)
-			rgNewArray[j++] = rgArray[i]
-	}
-
-	return rgNewArray;
-}
-
