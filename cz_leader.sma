@@ -48,7 +48,7 @@ TR:
 (電擊彈藥，將瞄準目標吸往自己的方向)
 (被動：遭受的AP傷害以電擊雙倍返還)
 暗杀者
-(消音武器，標記敌方指挥官位置，隱身10秒) (LUNA預定)
+(消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
 (被動：移动速度加快，重力降低)
 纵火犯
 (火焰弹药，燃烧伤害附带减速效果)
@@ -61,9 +61,10 @@ TR:
 #include <hamsandwich>
 #include <offset>
 #include <xs>
+#include <orpheu>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.9.1"
+#define VERSION	"1.10"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -192,8 +193,8 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"",
-	"[T]无限高爆手雷，爆炸伤害+50%%%%",
-	"",
+	"[T]无限手榴彈，爆炸伤害+50%%%%",
+	"[T]狙擊槍強制命中頭部，並造成目標失明",
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
@@ -320,6 +321,7 @@ new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTea
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
+new OrpheuFunction:g_pfn_RadiusFlash;
 
 // SFX
 #define SFX_GAME_START_1		"leadermode/start_game_01.wav"
@@ -347,6 +349,7 @@ new cvar_VONCperTeam, cvar_VONCtimeLimit;
 #include "berserker.sma"
 #include "assassin.sma"
 #include "blaster.sma"
+#include "sharpshooter.sma"
 
 public plugin_init()
 {
@@ -355,6 +358,7 @@ public plugin_init()
 	// Ham hooks
 	RegisterHam(Ham_Killed, "player", "HamF_Killed");
 	RegisterHam(Ham_Killed, "player", "HamF_Killed_Post", 1);
+	RegisterHam(Ham_TraceAttack, "player", "HamF_TraceAttack");
 	RegisterHam(Ham_TraceAttack, "player", "HamF_TraceAttack_Post", 1);
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage");
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
@@ -421,6 +425,7 @@ public plugin_init()
 	register_clcmd("assassin",			"Command_Assassin");
 	register_clcmd("berserker",			"Command_Berserker");
 	register_clcmd("blaster",			"Command_Blaster");
+	register_clcmd("sharpshooter",		"Command_Sharpshooter");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -428,8 +433,12 @@ public plugin_init()
 	Assassin_Initialize();
 	Blaster_Initialize();
 	Berserker_Initialize();
+	Sharpshooter_Initialize();
 	
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
+	
+	// orpheu
+	g_pfn_RadiusFlash = OrpheuGetFunction("RadiusFlash");
 }
 
 public plugin_precache()
@@ -472,6 +481,8 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
 	Assassin_Precache();
 	Blaster_Precache();
+	engfunc(EngFunc_PrecacheSound, BERSERKER_GRAND_SFX);
+	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_GRAND_SFX);
 }
 
 public client_putinserver(pPlayer)
@@ -501,6 +512,10 @@ public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
 		case Role_Assassin:
 		{
 			Assassin_TerminateSkill(pPlayer);
+		}
+		case Role_Sharpshooter:
+		{
+			Sharpshooter_TerminateSkill(pPlayer);
 		}
 		default:
 		{
@@ -589,6 +604,10 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		{
 			Assassin_TerminateSkill(victim);
 		}
+		case Role_Sharpshooter:
+		{
+			Sharpshooter_TerminateSkill(victim);
+		}
 		default:
 		{
 		}
@@ -607,6 +626,27 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	set_task(float(iResurrectionTime), "Task_PlayerResurrection", victim);
 	UTIL_BarTime(victim, iResurrectionTime);
 	g_rgbResurrecting[victim] = true;
+}
+
+public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3], tr, bitsDamageTypes)	// sharpshooter deathmark skill
+{
+	if (!is_user_alive(iAttacker))
+		return HAM_IGNORED;
+	
+	if (g_rgPlayerRole[iAttacker] != Role_Sharpshooter || !g_rgbUsingSkill[iAttacker])
+		return HAM_IGNORED;
+	
+	new iId = get_pdata_int(get_pdata_cbase(iAttacker, m_pActiveItem), m_iId, 4);
+	if (iId != CSW_AWP && iId != CSW_M200 && iId != CSW_M14EBR && iId != CSW_SVD)	// skill only avaliable when using a sniper rifle.
+		return HAM_IGNORED;
+	
+	new Float:vecOrigin[3];
+	get_tr2(tr, TR_vecEndPos, vecOrigin);
+	RadiusFlash(vecOrigin, get_pdata_cbase(iAttacker, m_pActiveItem), iAttacker, 1.0);
+	
+	set_tr2(tr, TR_iHitgroup, HIT_HEAD);	// mp.dll::monsters.h is using "HITGROUP_HEAD" with same number.
+	
+	return HAM_HANDLED;
 }
 
 public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3], tr, bitsDamageTypes)
@@ -820,6 +860,20 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 			set_es(ES_Handle, ES_RenderColor, {0, 0, 255})
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
+		}
+		
+		if (g_rgPlayerRole[iHost] == Role_Sharpshooter && g_rgbUsingSkill[iHost] && get_pdata_int(iEntity, m_iTeam) != TEAM_CT)
+		{
+			set_es(ES_Handle, ES_RenderMode, kRenderTransAdd);
+			set_es(ES_Handle, ES_RenderAmt, 255);
+			set_es(ES_Handle, ES_RenderFx, kRenderFxFadeSlow);
+			set_es(ES_Handle, ES_RenderColor, {0, 0, 0});
+			
+			if (iEntity == THE_GODFATHER)
+			{
+				set_es(ES_Handle, ES_RenderColor, {255, 0, 0});
+				set_es(ES_Handle, ES_Effects, (get_es(ES_Handle, ES_Effects) | EF_DIMLIGHT));
+			}
 		}
 	}
 }
@@ -1380,6 +1434,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		{
 			Blaster_ExecuteSkill(iPlayer);
 		}
+		case Role_Sharpshooter:
+		{
+			Sharpshooter_ExecuteSkill(iPlayer);
+		}
 		default:
 			return FMRES_IGNORED;
 	}
@@ -1434,9 +1492,10 @@ public Event_FreezePhaseEnd()
 	Godfather_Assign(UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority));
 	Commander_Assign(UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority));
 	
+	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Assassin;
+	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Sharpshooter;
 	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Berserker;
 	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Blaster;
-	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Assassin;
 
 	g_bRoundStarted = true;
 
@@ -1703,6 +1762,12 @@ public Command_Blaster(pPlayer)
 	g_rgPlayerRole[pPlayer] = Role_Blaster;
 }
 
+public Command_Sharpshooter(pPlayer)
+{
+	g_rgPlayerRole[pPlayer] = Role_Sharpshooter;
+	return PLUGIN_HANDLED;
+}
+
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
 {
 	if (iItem >= 0)	// for example, MENU_EXIT is -3... you can see the pattern.
@@ -1751,6 +1816,7 @@ public fw_BotForwardRegister_Post(iPlayer)
 		
 		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed");
 		RegisterHamFromEntity(Ham_Killed, iPlayer, "HamF_Killed_Post", 1);
+		RegisterHamFromEntity(Ham_TraceAttack, iPlayer, "HamF_TraceAttack");
 		RegisterHamFromEntity(Ham_TraceAttack, iPlayer, "HamF_TraceAttack_Post", 1);
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage");
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage_Post", 1);
@@ -2054,6 +2120,11 @@ stock UTIL_RandomNonroleCharacter(iTeam, bool:bHumanPriority = true)
 		return rgiCandidates[random_num(1, iCandidateCount)];
 	
 	return 0;	// no found.
+}
+
+stock RadiusFlash(const Float:vecSrc[3], pevInflictor, pevAttacker, Float:flDamage)
+{
+	OrpheuCallSuper(g_pfn_RadiusFlash, vecSrc[0], vecSrc[1], vecSrc[2], pevInflictor, pevAttacker, flDamage);
 }
 
 

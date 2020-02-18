@@ -5,6 +5,8 @@
 #define BERSERKER_TEXT	g_rgszRoleNames[Role_Berserker]
 #define BERSERKER_TASK	8561735	// just some random number.
 
+#define BERSERKER_GRAND_SFX	"leadermode/war_declared.wav"
+
 new cvar_berserkerDuration, cvar_berserkerCooldown;
 
 public Berserker_Initialize()
@@ -18,8 +20,10 @@ public Berserker_Initialize()
 
 public Berserker_ExecuteSkill(pPlayer)
 {
-	NvgScreen(pPlayer, 255, 10, 10, 60);
 	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK + pPlayer);
+	
+	NvgScreen(pPlayer, 255, 10, 10, 60);
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_BODY, BERSERKER_GRAND_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 }
 
 public Berserker_RevokeSkill(iTaskId)
@@ -43,7 +47,7 @@ public Berserker_RevokeSkill(iTaskId)
 		pev(iPlayer, pev_health, flCurHealth);
 		if (flCurHealth <= 1.0)
 		{
-			ExecuteHamB(Ham_TakeDamage, iPlayer, 0, 0, 100.0, DMG_GENERIC);
+			ExecuteHamB(Ham_TakeDamage, iPlayer, 0, 0, 100.0, DMG_GENERIC | DMG_NEVERGIB);
 		}
 	}
 }
