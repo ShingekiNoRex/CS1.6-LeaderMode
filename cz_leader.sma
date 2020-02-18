@@ -399,6 +399,7 @@ public plugin_init()
 	// messages
 	register_message(get_user_msgid("Health"),		"Message_Health");
 	register_message(get_user_msgid("ScreenFade"),	"Message_ScreenFade");
+	register_message(get_user_msgid("StatusValue"),	"Message_StatusValue");
 	
 	// CVars
 	cvar_DebugMode 		= register_cvar("lm_debug", 							"0");
@@ -1709,6 +1710,45 @@ public Message_ScreenFade(msg_id, msg_dest, msg_entity)
 		return PLUGIN_HANDLED;
 	
 	return PLUGIN_CONTINUE;
+}
+
+public Message_StatusValue(msg_id, msg_dest, msg_entity)
+{
+	/**
+	Name:		StatusValue
+	Structure:	
+				byte	Flag
+				short	Value
+	**/
+	if(get_msg_arg_int(2) == 0)
+	{
+		if (get_msg_arg_int(1) == 1)
+		{
+			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("StatusText"), _, msg_entity);
+			write_byte(0);
+			write_string("");
+			message_end();
+		}
+		return PLUGIN_HANDLED;
+	}
+
+	if (get_msg_arg_int(1) == 2)
+	{
+		new iTarget = get_msg_arg_int(2);
+		if (is_user_alive(iTarget))
+		{
+			static szMsg[64], Float:fHealth;
+			pev(iTarget, pev_health, fHealth);
+			formatex(szMsg, charsmax(szMsg), "%s: %%p2 生命值：%d%%%%", g_rgszRoleNames[g_rgPlayerRole[iTarget]], floatround(fHealth));
+			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("StatusText"), _, msg_entity);
+			write_byte(0);
+			write_string(szMsg);
+			message_end();
+		}
+		return PLUGIN_CONTINUE;
+	}
+
+	return PLUGIN_HANDLED;
 }
 
 public Command_VoteTS(pPlayer)
