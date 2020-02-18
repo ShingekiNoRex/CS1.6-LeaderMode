@@ -32,7 +32,7 @@ S.W.A.T.
 (被動：死后爆炸) ✔ (REX)
 神射手
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
-(被動：冰冻手雷，狙擊槍散射和後座力減半)
+(被動：冰凍手榴彈)
 医疗兵
 (犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半，10秒内手榴彈及煙霧彈改為治療效果)
 (被動：移動速度+25%)
@@ -64,7 +64,7 @@ TR:
 #include <orpheu>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.10.1"
+#define VERSION	"1.10.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -119,6 +119,12 @@ TR:
 #define CSW_M14EBR		CSW_SG550
 #define CSW_P99			CSW_ELITE
 #define CSW_M200		CSW_SCOUT
+#define CSW_RADIO		2
+
+#define ANIM_RADIO_DRAW		1
+#define ANIM_RADIO_USE		3
+#define ANIMTIME_RADIO_DRAW	1.033
+#define ANIMTIME_RADIO_USE	2.756
 
 enum TacticalScheme_e
 {
@@ -324,7 +330,7 @@ new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefilli
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
 new cvar_DebugMode;
 new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed;
-new g_ptrBeamSprite;
+new g_ptrBeamSprite, g_strRadioViewModel, g_strRadioPersonalModel;
 
 // SFX
 #define SFX_GAME_START_1		"leadermode/start_game_01.wav"
@@ -382,6 +388,11 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_HEGRENADE], "HamF_Weapon_WeaponIdle");
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_FLASHBANG], "HamF_Weapon_WeaponIdle");
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_SMOKEGRENADE], "HamF_Weapon_WeaponIdle");
+	
+	RegisterHam(Ham_Item_Deploy, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Deploy_Post", 1);
+	RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Knife_Slash");
+	RegisterHam(Ham_Weapon_SecondaryAttack, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Knife_Stab");
+	RegisterHam(Ham_Item_Holster, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Holster_Post", 1);
 
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
@@ -395,7 +406,6 @@ public plugin_init()
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
 	register_event("HLTV", "Event_HLTV", "a", "1=0", "2=0");
-	//register_event("CurWeapon", "Event_CurWeapon", "be", "1=1")(UNDONE: 空袭)
 	
 	// messages
 	register_message(get_user_msgid("Health"),		"Message_Health");
@@ -418,6 +428,9 @@ public plugin_init()
 	cvar_VONCtimeLimit	= register_cvar("lm_VONC_voting_time_limit",			"60.0");
 	
 	// client commands
+	register_clcmd("weapon_radio",		"Command_SelectRadio");
+	register_clcmd("weapon_knife",		"Command_SelectKnife");
+	//register_clcmd("lastinv",			"Command_LastWeapon");	// I am not sure whether this is needed.
 	register_clcmd("vs",				"Command_VoteTS");
 	register_clcmd("votescheme",		"Command_VoteTS");
 	register_clcmd("say /votescheme",	"Command_VoteTS");
@@ -429,11 +442,13 @@ public plugin_init()
 	register_clcmd("say /dr",			"Command_DeclareRole");
 	register_clcmd("mr",				"Command_ManageRoles");
 	register_clcmd("say /dr",			"Command_ManageRoles");
+	
 	// debug commands
 	register_clcmd("assassin",			"Command_Assassin");
 	register_clcmd("berserker",			"Command_Berserker");
 	register_clcmd("blaster",			"Command_Blaster");
 	register_clcmd("sharpshooter",		"Command_Sharpshooter");
+	register_clcmd("test",				"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -463,12 +478,20 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_WON);
 	engfunc(EngFunc_PrecacheSound, SFX_GAME_LOST);
 	engfunc(EngFunc_PrecacheSound, SFX_RADAR_BEEP);
-	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);(UNDONE: 空袭)
-	//engfunc(EngFunc_PrecacheSound, SFX_RADIO_USE);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
-	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_V);
-	//engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);
+	
+	// Radio
+	engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);
+	engfunc(EngFunc_PrecacheSound, SFX_RADIO_USE);
+	engfunc(EngFunc_PrecacheModel, MDL_RADIO_V);
+	engfunc(EngFunc_PrecacheModel, MDL_RADIO_P);
+	engfunc(EngFunc_PrecacheModel, "sprites/640hud20.spr");
+	engfunc(EngFunc_PrecacheModel, "sprites/640hud21.spr");
+	engfunc(EngFunc_PrecacheGeneric, "sprites/weapon_radio.txt");
+	
+	g_strRadioPersonalModel	= engfunc(EngFunc_AllocString, MDL_RADIO_P);
+	g_strRadioViewModel		= engfunc(EngFunc_AllocString, MDL_RADIO_V);
 
 	// Schemes
 	engfunc(EngFunc_PrecacheSound, SFX_TSD_GBD);
@@ -752,6 +775,23 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 		UTIL_AddAccount(iAttacker, -floatround(flDamage * 3.0));
 }
 
+public HamF_Item_Deploy_Post(iEntity)
+{
+	if (pev(iEntity, pev_weapons) != CSW_RADIO)
+		return;
+	
+	new pPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
+	
+	set_pev(pPlayer, pev_viewmodel, g_strRadioViewModel);
+	set_pev(pPlayer, pev_weaponmodel, g_strRadioPersonalModel);
+	
+	UTIL_WeaponAnim(pPlayer, ANIM_RADIO_DRAW);
+	set_pdata_float(pPlayer, m_flNextAttack, ANIMTIME_RADIO_DRAW);
+	set_pdata_float(iEntity, m_flNextPrimaryAttack, ANIMTIME_RADIO_DRAW, 4);
+	set_pdata_float(iEntity, m_flNextSecondaryAttack, ANIMTIME_RADIO_DRAW, 4);
+	set_pdata_float(iEntity, m_flTimeWeaponIdle, ANIMTIME_RADIO_DRAW, 4);
+}
+
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
 {
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
@@ -759,6 +799,31 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	// Firerate for CT leader
 	if (is_user_alive(iPlayer) && iPlayer == THE_COMMANDER && g_rgbUsingSkill[iPlayer])
 		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack) * 0.5, 4);
+}
+
+public HamF_Knife_Slash(iEntity)
+{
+	if (pev(iEntity, pev_weapons) != CSW_RADIO)
+		return HAM_IGNORED;
+	
+	new pPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
+	
+	UTIL_WeaponAnim(pPlayer, ANIM_RADIO_USE);
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, SFX_RADIO_USE, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	
+	set_pdata_float(pPlayer, m_flNextAttack, ANIMTIME_RADIO_USE);
+	set_pdata_float(iEntity, m_flNextPrimaryAttack, ANIMTIME_RADIO_USE, 4);
+	set_pdata_float(iEntity, m_flNextSecondaryAttack, ANIMTIME_RADIO_USE, 4);
+	set_pdata_float(iEntity, m_flTimeWeaponIdle, ANIMTIME_RADIO_USE, 4);
+	return HAM_SUPERCEDE;
+}
+
+public HamF_Knife_Stab(iEntity)
+{
+	if (pev(iEntity, pev_weapons) != CSW_RADIO)
+		return HAM_IGNORED;
+	
+	return HAM_SUPERCEDE;
 }
 
 public HamF_Weapon_WeaponIdle(iEntity)
@@ -791,6 +856,11 @@ public HamF_Weapon_WeaponIdle(iEntity)
 	}
 	
 	return HAM_IGNORED;
+}
+
+public HamF_Item_Holster_Post(iEntity)
+{
+	set_pev(iEntity, pev_weapons, 0);
 }
 
 public HamF_CS_RoundRespawn_Post(pPlayer)
@@ -1669,18 +1739,7 @@ public Event_HLTV()
 	client_cmd(0, "stopsound");	// stop music
 	client_cmd(0, "mp3 stop");	// stop music
 }
-/*(UNDONE: 空袭)
-public Event_CurWeapon(iPlayer)
-{
-	if(g_rgPlayerRole[iPlayer] != Role_Commander)
-		return PLUGIN_CONTINUE
-	
-	set_pev(iPlayer, pev_viewmodel2, MDL_RADIO_V)
-	set_pev(iPlayer, pev_weaponmodel2, MDL_RADIO_W)
-	
-	return PLUGIN_CONTINUE
-}
-*/
+
 public Message_Health(msg_id, msg_dest, msg_entity)
 {
 	if (!is_user_alive(msg_entity))
@@ -1918,6 +1977,59 @@ public Command_Assassin(pPlayer)
 		return PLUGIN_HANDLED;
 	}
 	return PLUGIN_CONTINUE;
+}
+
+public Command_Test(pPlayer)
+{
+	if (pev(pPlayer, pev_weapons) & (1<<CSW_RADIO))
+		set_pev(pPlayer, pev_weapons, pev(pPlayer, pev_weapons) & ~(1<<CSW_RADIO));
+	else
+		set_pev(pPlayer, pev_weapons, pev(pPlayer, pev_weapons) | (1<<CSW_RADIO));
+	
+	message_begin(MSG_ONE, get_user_msgid("WeaponList"), {0,0,0}, pPlayer)
+	write_string("weapon_radio")	// HUD
+	write_byte(-1)	// BP ammo type
+	write_byte(-1)	// BP ammo max
+	write_byte(-1)	// 2nd ammo type
+	write_byte(-1)	// 2nd ammo max
+	write_byte(5 - 1)	// slot - 1
+	write_byte(2)	// position in slot list
+	write_byte(CSW_RADIO)	// weapon iId
+	write_byte(0)	// weapon flags
+	message_end()
+}
+
+public Command_SelectRadio(pPlayer)
+{
+	if (!(pev(pPlayer, pev_weapons) & (1<<CSW_RADIO)))
+		return PLUGIN_HANDLED;
+	
+	new iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+	if (get_pdata_int(iEntity, m_iId, 4) == CSW_KNIFE && pev(iEntity, pev_weapons) != CSW_RADIO)	// switch to radio from knife
+	{
+		set_pev(iEntity, pev_weapons, CSW_RADIO);
+		ExecuteHamB(Ham_Item_Deploy, iEntity);
+	}
+	else
+	{
+		set_pev(get_pdata_cbase(pPlayer, m_rgpPlayerItems[3]), pev_weapons, CSW_RADIO);
+		engclient_cmd(pPlayer, "weapon_knife");
+	}
+	
+	return PLUGIN_HANDLED;
+}
+
+public Command_SelectKnife(pPlayer)
+{
+	new iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+	
+	if (get_pdata_int(iEntity, m_iId, 4) != CSW_KNIFE || pev(iEntity, pev_weapons) != CSW_RADIO)	// switch from other weapons
+		return PLUGIN_CONTINUE;
+	
+	// from radio to knife
+	HamF_Item_Holster_Post(iEntity);
+	ExecuteHamB(Ham_Item_Deploy, iEntity);
+	return PLUGIN_HANDLED;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
@@ -2310,6 +2422,16 @@ stock UTIL_BeamEntPoint(id, const Float:point[3], SpriteId, StartFrame, FrameRat
 	message_end()
 }
 
+stock UTIL_WeaponAnim(id, iAnim)
+{
+	set_pev(id, pev_weaponanim, iAnim);
+
+	message_begin(MSG_ONE, SVC_WEAPONANIM, _, id);
+	write_byte(iAnim);
+	write_byte(pev(id, pev_body));
+	message_end();
+}
+
 stock GetVelocityFromOrigin(Float:origin1[3], Float:origin2[3], Float:speed, Float:velocity[3])
 {
 	xs_vec_sub(origin1, origin2, velocity)
@@ -2320,3 +2442,8 @@ stock GetVelocityFromOrigin(Float:origin1[3], Float:origin2[3], Float:speed, Flo
 	
 	xs_vec_div_scalar(velocity, valve, velocity)
 }
+
+
+
+
+
