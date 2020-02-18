@@ -7,7 +7,7 @@
 
 #define SHARPSHOOTER_GRAND_SFX		"leadermode/agent_recruited.wav"
 #define SHARPSHOOTER_REVOKE_SFX		"leadermode/attack_out_of_range_01.wav"
-#define SHARPSHOOTER_ICEGRE_SFX		"leadermode/iceexplode.wav"
+#define SHARPSHOOTER_ICEGRE_SFX		"weapons/frostnova.wav"
 
 #define ICE_GRENADE_KEY		317465
 
@@ -23,7 +23,7 @@ public Sharpshooter_Initialize()
 	cvar_sharpshooterCooldown		= register_cvar("lm_sharpshooter_cooldown",				"30.0");
 
 	cvar_icegrenade_time 			= register_cvar("lm_sharpshooter_frozen_time", "8.0")				//冰冻时间
-	cvar_icegrenade_damage 			= register_cvar("lm_sharpshooter_frozen_damage", "200.0")			//冰冻伤害
+	cvar_icegrenade_damage 			= register_cvar("lm_sharpshooter_frozen_damage", "20.0")			//冰冻伤害
 	cvar_icegrenade_range 			= register_cvar("lm_sharpshooter_frozen_range", "180.0")			//冰冻范围
 	
 	g_rgSkillDuration[Role_Sharpshooter] = cvar_sharpshooterDeathMarkDur;
@@ -107,7 +107,6 @@ public Sharpshooter_IceExplode(iEntity)
 			pev(i, pev_angles, g_rgvecFrozenAngles[i])
 		}
 		
-		Sharpshooter_GetFrozen(i);
 		ExecuteHamB(Ham_TakeDamage, i, iEntity, pev(iEntity, pev_owner), get_pcvar_float(cvar_icegrenade_damage), DMG_FREEZE)
 	}
 	

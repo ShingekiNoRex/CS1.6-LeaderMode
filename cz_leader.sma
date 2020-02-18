@@ -734,6 +734,12 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 {
 	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
 		return;
+
+	if (is_user_alive(iVictim) && bitsDamageTypes & DMG_FREEZE)
+	{
+		if (iInflictor && pev(iInflictor, pev_iuser1) == ICE_GRENADE_KEY)
+			Sharpshooter_GetFrozen(iVictim);
+	}
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
@@ -953,9 +959,13 @@ public fw_SetModel(iEntity, szModel[])
 	}
 	else if (!strcmp(classname, "grenade") && !strcmp(szModel,"models/w_smokegrenade.mdl"))
 	{
-		set_pev(iEntity, pev_dmgtime, 99999.0)
-		set_pev(iEntity, pev_nextthink, get_gametime()+1.0)
-		set_pev(iEntity, pev_iuser1, ICE_GRENADE_KEY)
+		new iPlayer = pev(iEntity, pev_owner);
+		if (g_rgPlayerRole[iPlayer] == Role_Sharpshooter)
+		{
+			set_pev(iEntity, pev_dmgtime, 99999.0)
+			set_pev(iEntity, pev_nextthink, get_gametime()+1.0)
+			set_pev(iEntity, pev_iuser1, ICE_GRENADE_KEY)
+		}
 	}
 	
 	return FMRES_IGNORED
