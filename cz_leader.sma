@@ -335,7 +335,7 @@ new cvar_VONCperTeam, cvar_VONCtimeLimit;
 #define MUSIC_GAME_LOST			"sound/leadermode/Warrior_s_Tomb.mp3"
 #define SFX_VONC_PASSED			"leadermode/complete_focus_01.wav"
 #define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
-#define SFX_RADAR_BEEP			"weapons/c4_beep1.wav"
+#define SFX_RADAR_BEEP			"leadermode/nes_8bit_alien3_radar_beep1.wav"
 
 // Models
 #define MDL_RADIO_V				"models/v_radio.mdl"

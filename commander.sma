@@ -11,7 +11,7 @@
 
 new cvar_commanderMarkingDur, cvar_commanderCooldown;
 new gmsgHostagePos, gmsgHostageK;
-new Float:g_rgflCommanderRadarThink;
+new Float:g_flCommanderRadarThink;
 
 public Commander_Initialize()
 {
@@ -99,7 +99,7 @@ public Commander_ExecuteSkill(pPlayer)
 public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 {
 	// please do the team check before calling this!
-	if (g_rgflCommanderRadarThink > get_gametime())
+	if (g_flCommanderRadarThink > get_gametime())
 		return;
 	
 	if (!is_user_alive(THE_COMMANDER) || !g_rgbUsingSkill[THE_COMMANDER])
@@ -108,7 +108,7 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	if (is_user_bot(pPlayer))
 		return;
 	
-	g_rgflCommanderRadarThink = 2.0 + get_gametime();
+	g_flCommanderRadarThink = 2.0 + get_gametime();
 
 	static Float:vecOrigin[3];
 	pev(THE_GODFATHER, pev_origin, vecOrigin);

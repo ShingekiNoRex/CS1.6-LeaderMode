@@ -9,15 +9,17 @@
 #define ASSASSIN_GRAND_SFX		"leadermode/assassins_drug_induced_visions_01.wav"
 #define ASSASSIN_DISCOVERED_SFX	"leadermode/agent_detected_and_expelled.wav"
 
-new cvar_assassinInvisibleDur, cvar_assassinCooldown;
+new cvar_assassinInvisibleDur, cvar_assassinCooldown, cvar_assassinUgDist, cvar_assassinUgInv;
 new gmsgBombDrop, gmsgBombPickup;
-new Float:g_rgflAssassinRadarThink;
+new Float:g_flAssassinRadarThink, Float:g_vecCommanderLastOrigin[3];
 new g_rgiViewModelBuffer[33];
 
 public Assassin_Initialize()
 {
-	cvar_assassinInvisibleDur	= register_cvar("lm_assassin_marking_duration",	"10.0");
-	cvar_assassinCooldown		= register_cvar("lm_assassin_cooldown",			"60.0");
+	cvar_assassinInvisibleDur	= register_cvar("lm_assassin_marking_duration",		"10.0");
+	cvar_assassinCooldown		= register_cvar("lm_assassin_cooldown",				"60.0");
+	cvar_assassinUgDist			= register_cvar("lm_assassin_radar_refresh_dist",	"150.0");
+	cvar_assassinUgInv			= register_cvar("lm_assassin_radar_refresh_inv",	"2.0");
 	
 	g_rgSkillDuration[Role_Assassin] = cvar_assassinInvisibleDur;
 	g_rgSkillCooldown[Role_Assassin] = cvar_assassinCooldown;
@@ -43,16 +45,27 @@ public Assassin_ExecuteSkill(pPlayer)
 	
 	NvgScreen(pPlayer, 10, 10, 255, 60);
 	client_cmd(pPlayer, "spk %s", ASSASSIN_GRAND_SFX);
-	UTIL_ColorfulPrintChat(0, "/g%s已窃取敌方情报, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_connected(i) || is_user_bot(i))
+			continue;
+		
+		if (get_pdata_int(i, m_iTeam) != TEAM_TERRORIST)
+			continue;
+		
+		UTIL_ColorfulPrintChat(i, "/y%s/g已竊取敵方作戰計畫, 並將/t%s%s/g的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
+		UTIL_ColorfulPrintChat(i, "/t%s/y的作戰計畫是: /g%s/y", BLUECHAT, g_rgszTeamName[TEAM_CT], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[TEAM_CT]]);
+	}
 
 	set_task(get_pcvar_float(cvar_assassinInvisibleDur), "Assassin_RevokeSkill", ASSASSIN_TASK + pPlayer);
 }
 
 public Assassin_SkillThink()	// place at StartFrame()
 {
-	if (g_rgflAssassinRadarThink > get_gametime())
+	if (!is_user_alive(THE_COMMANDER))
 		return;
-
+	
 	new bShouldThink = false;
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
@@ -66,10 +79,17 @@ public Assassin_SkillThink()	// place at StartFrame()
 	if (!bShouldThink)
 		return;
 	
-	g_rgflAssassinRadarThink = 2.0 + get_gametime();
-
 	static Float:vecOrigin[3];
 	pev(THE_COMMANDER, pev_origin, vecOrigin);
+	
+	if (get_distance_f(vecOrigin, g_vecCommanderLastOrigin) < get_pcvar_float(cvar_assassinUgDist)
+		&& g_flAssassinRadarThink > get_gametime() )
+	{
+		return;
+	}
+	
+	g_flAssassinRadarThink = get_gametime() + get_pcvar_float(cvar_assassinUgInv);
+	xs_vec_copy(vecOrigin, g_vecCommanderLastOrigin);
 	
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
