@@ -1386,7 +1386,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		new rgColor[3] = { 255, 255, 0 };
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
 		new Float:flGoalCoordinate[2] = { -1.0, 0.05 };
-		new Float:rgflTime[4] = { 6.0, 12.0, 0.0, 0.0 };
+		new Float:rgflTime[4] = { 6.0, 4000.0, 0.0, 0.0 };
 		
 		static szText[192], szSkillText[192], szGoal[192];
 		formatex(szSkillText, charsmax(szSkillText), "");	// have to clear it each frame, or the strcpy() will fuck everything up.
