@@ -1,0 +1,16 @@
+{
+    "name" : "ResetMaxSpeed",
+    "class" : "CBasePlayer",
+    "library" : "mod",
+    "arguments" : 
+    [
+    ],
+    "indexes" : 
+    [
+        {
+            "os" : "windows",
+            "mod" : "cstrike",
+            "value" : 69
+        }
+    ]
+}

@@ -9,7 +9,7 @@
 #define ASSASSIN_GRAND_SFX		"leadermode/assassins_drug_induced_visions_01.wav"
 #define ASSASSIN_DISCOVERED_SFX	"leadermode/agent_detected_and_expelled.wav"
 
-new cvar_assassinInvisibleDur, cvar_assassinCooldown, cvar_assassinUgDist, cvar_assassinUgInv;
+new cvar_assassinInvisibleDur, cvar_assassinCooldown, cvar_assassinUgDist, cvar_assassinUgInv, cvar_assassinSpeed, cvar_assassinGravity;
 new gmsgBombDrop, gmsgBombPickup;
 new Float:g_flAssassinRadarThink, Float:g_vecCommanderLastOrigin[3];
 new g_rgiViewModelBuffer[33];
@@ -20,6 +20,8 @@ public Assassin_Initialize()
 	cvar_assassinCooldown		= register_cvar("lm_assassin_cooldown",				"60.0");
 	cvar_assassinUgDist			= register_cvar("lm_assassin_radar_refresh_dist",	"150.0");
 	cvar_assassinUgInv			= register_cvar("lm_assassin_radar_refresh_inv",	"2.0");
+	cvar_assassinSpeed			= register_cvar("lm_assassin_shadowing_speed",		"350.0");
+	cvar_assassinGravity		= register_cvar("lm_assassin_shadowing_gravity",	"0.65");
 	
 	g_rgSkillDuration[Role_Assassin] = cvar_assassinInvisibleDur;
 	g_rgSkillCooldown[Role_Assassin] = cvar_assassinCooldown;
@@ -39,6 +41,10 @@ public Assassin_ExecuteSkill(pPlayer)
 	set_pev(pPlayer, pev_deadflag, DEAD_RESPAWNABLE);	// avoid BOT chasing.
 	set_pev(pPlayer, pev_effects, pev(pPlayer, pev_effects) | EF_NODRAW);
 	
+	set_pev(pPlayer, pev_gravity, get_pcvar_float(cvar_assassinGravity));
+	engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_assassinSpeed));
+	set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_assassinSpeed));
+	
 	g_rgiViewModelBuffer[pPlayer] = pev(pPlayer, pev_viewmodel);
 	set_pev(pPlayer, pev_viewmodel, 0);
 	set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) | ASSASSIN_HIDEHUD);
@@ -55,7 +61,7 @@ public Assassin_ExecuteSkill(pPlayer)
 			continue;
 		
 		UTIL_ColorfulPrintChat(i, "/y%s/g已竊取敵方作戰計畫, 並將/t%s%s/g的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
-		UTIL_ColorfulPrintChat(i, "/t%s/y的作戰計畫是: /g%s/y", BLUECHAT, g_rgszTeamName[TEAM_CT], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[TEAM_CT]]);
+		UTIL_ColorfulPrintChat(i, "/t%s/y的作戰計畫是: /g%s/y, 人力資源剩餘: %d", BLUECHAT, g_rgszTeamName[TEAM_CT], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[TEAM_CT]], g_rgiTeamMenPower[TEAM_CT]);
 	}
 
 	set_task(get_pcvar_float(cvar_assassinInvisibleDur), "Assassin_RevokeSkill", ASSASSIN_TASK + pPlayer);
@@ -142,9 +148,11 @@ public Assassin_RevokeSkill(iTaskId)
 		set_pev(pPlayer, pev_deadflag, DEAD_NO);
 		set_pev(pPlayer, pev_viewmodel, g_rgiViewModelBuffer[pPlayer]);
 		set_pev(pPlayer, pev_effects, pev(pPlayer, pev_effects) & ~EF_NODRAW);
+		set_pev(pPlayer, pev_gravity, 1.0);
 		
 		set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) & ~ASSASSIN_HIDEHUD);
 		ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));
+		ResetMaxSpeed(pPlayer);
 	}
 	
 	print_chat_color(pPlayer, REDCHAT, "技能已结束！");

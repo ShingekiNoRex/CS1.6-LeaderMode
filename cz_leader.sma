@@ -321,7 +321,7 @@ new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTea
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
-new OrpheuFunction:g_pfn_RadiusFlash;
+new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed;
 
 // SFX
 #define SFX_GAME_START_1		"leadermode/start_game_01.wav"
@@ -439,6 +439,7 @@ public plugin_init()
 	
 	// orpheu
 	g_pfn_RadiusFlash = OrpheuGetFunction("RadiusFlash");
+	g_pfn_CBasePlayer_ResetMaxSpeed = OrpheuGetFunctionFromClass("player", "ResetMaxSpeed", "CBasePlayer");
 }
 
 public plugin_precache()
@@ -2127,6 +2128,10 @@ stock RadiusFlash(const Float:vecSrc[3], pevInflictor, pevAttacker, Float:flDama
 	OrpheuCallSuper(g_pfn_RadiusFlash, vecSrc[0], vecSrc[1], vecSrc[2], pevInflictor, pevAttacker, flDamage);
 }
 
+stock ResetMaxSpeed(pPlayer)
+{
+	OrpheuCallSuper(g_pfn_CBasePlayer_ResetMaxSpeed, pPlayer);
+}
 
 
 
