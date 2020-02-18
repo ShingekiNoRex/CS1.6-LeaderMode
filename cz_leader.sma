@@ -762,7 +762,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 
 	if (is_user_alive(iVictim) && bitsDamageTypes & DMG_FREEZE)
 	{
-		if (iInflictor && pev(iInflictor, pev_iuser1) == ICE_GRENADE_KEY)
+		if (iInflictor && pev(iInflictor, pev_weapons) == ICE_GRENADE_KEY)
 			Sharpshooter_GetFrozen(iVictim);
 	}
 	
@@ -942,12 +942,11 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 
 public HamF_BloodColor(iPlayer)
 {
-	if(g_rgflFrozenNextthink[iPlayer] <= get_gametime())
-		return HAM_IGNORED
+	if (g_rgflFrozenNextthink[iPlayer] <= get_gametime())
+		return HAM_IGNORED;
 	
-	SetHamReturnInteger(15)
-	
-	return HAM_SUPERCEDE
+	SetHamReturnInteger(15);
+	return HAM_SUPERCEDE;
 }
 
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
@@ -960,7 +959,7 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 	
 	if (bIsPlayer && is_user_alive(iHost))
 	{
-		if(g_rgflFrozenNextthink[iEntity] > get_gametime())
+		if (g_rgflFrozenNextthink[iEntity] > get_gametime())
 		{
 			set_es(ES_Handle, ES_RenderFx, kRenderFxGlowShell)
 			set_es(ES_Handle, ES_RenderColor, { 80, 80, 100 })
@@ -1003,14 +1002,13 @@ public fw_Think(iEntity)
 	static szClassName[33];
 	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
 	
-	if(strcmp(szClassName, "grenade"))
+	if (strcmp(szClassName, "grenade"))
 		return FMRES_IGNORED;
 	
-	if(pev(iEntity, pev_iuser1) != ICE_GRENADE_KEY)
+	if (pev(iEntity, pev_weapons) != ICE_GRENADE_KEY)
 		return FMRES_IGNORED;
 	
 	Sharpshooter_IceExplode(iEntity);
-	
 	return FMRES_SUPERCEDE;
 }
 
@@ -1036,7 +1034,7 @@ public fw_SetModel(iEntity, szModel[])
 		{
 			set_pev(iEntity, pev_dmgtime, 99999.0)
 			set_pev(iEntity, pev_nextthink, get_gametime()+1.0)
-			set_pev(iEntity, pev_iuser1, ICE_GRENADE_KEY)
+			set_pev(iEntity, pev_weapons, ICE_GRENADE_KEY)
 		}
 	}
 	
@@ -1554,19 +1552,19 @@ public fw_Spawn(iEntity)	// 移除任务实体
 
 public fw_CmdStart(iPlayer, uc_handle, seed)
 {
-	if(!is_user_alive(iPlayer))
+	if (!is_user_alive(iPlayer))
 		return FMRES_IGNORED;
 
-	if(get_uc(uc_handle, UC_Impulse) != 201)
+	if (get_uc(uc_handle, UC_Impulse) != 201)
 		return FMRES_IGNORED;
 
-	if(g_rgbUsingSkill[iPlayer])
+	if (g_rgbUsingSkill[iPlayer])
 	{
 		print_chat_color(iPlayer, GREYCHAT, "技能正在使用中！");
 		return FMRES_IGNORED;
 	}
 
-	if(!g_rgbAllowSkill[iPlayer])
+	if (!g_rgbAllowSkill[iPlayer])
 	{
 		print_chat_color(iPlayer, GREYCHAT, "技能正在冷卻中！");
 		return FMRES_IGNORED;
@@ -2324,7 +2322,7 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 {
 	message_begin(MSG_ONE, get_user_msgid("ScreenFade"), {0, 0, 0}, iPlayer);
 	
-	if(R || B || G || density)
+	if (R || B || G || density)
 	{
 		write_short(~0);
 		write_short(~0);
@@ -2437,7 +2435,7 @@ stock GetVelocityFromOrigin(Float:origin1[3], Float:origin2[3], Float:speed, Flo
 	xs_vec_sub(origin1, origin2, velocity)
 	new Float:valve = get_distance_f(origin1, origin2)/speed
 	
-	if(valve <= 0.0)
+	if (valve <= 0.0)
 	return
 	
 	xs_vec_div_scalar(velocity, valve, velocity)
