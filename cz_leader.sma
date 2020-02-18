@@ -420,11 +420,11 @@ public plugin_init()
 	register_clcmd("vonc",				"Command_VoteONC");
 	register_clcmd("voteofnoconfidence","Command_VoteONC");
 	register_clcmd("say /vonc",			"Command_VoteONC");
-	//register_clcmd("test",				"Command_Test");
 	register_clcmd("dr",				"Command_DeclareRole");
 	register_clcmd("say /dr",			"Command_DeclareRole");
 	register_clcmd("mr",				"Command_ManageRoles");
 	register_clcmd("say /dr",			"Command_ManageRoles");
+	// debug commands
 	register_clcmd("assassin",			"Command_Assassin");
 	register_clcmd("berserker",			"Command_Berserker");
 	register_clcmd("blaster",			"Command_Blaster");
