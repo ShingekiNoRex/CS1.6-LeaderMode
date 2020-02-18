@@ -211,7 +211,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"",
 	"",
 	"[被动]减少受到的爆炸伤害，死后爆炸",
-	"",
+	"[被动]烟雾弹变冰冻手雷",
 	"",
 	
 	"[被动]周围友军缓慢恢复生命",
@@ -365,6 +365,7 @@ public plugin_init()
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage");
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
+	RegisterHam(Ham_BloodColor, "player", "HamF_BloodColor");
 	
 	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
@@ -383,8 +384,10 @@ public plugin_init()
 
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
+	register_forward(FM_Think, "fw_Think");
 	register_forward(FM_SetModel, "fw_SetModel");
 	register_forward(FM_StartFrame, "fw_StartFrame_Post", 1);
+	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink_Post", 1)
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
 	register_forward(FM_CmdStart, "fw_CmdStart");
 	
@@ -485,8 +488,8 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
 	Assassin_Precache();
 	Blaster_Precache();
-	engfunc(EngFunc_PrecacheSound, BERSERKER_GRAND_SFX);
-	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_GRAND_SFX);
+	Sharpshooter_Precache();
+	Berserker_Precache();
 	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
 }
 
@@ -550,11 +553,13 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		print_chat_color(0, REDCHAT, "%s已被擊斃!", g_rgszRoleNames[Role_Godfather]);
 		Godfather_TerminateSkill();
 		Commander_RevokeSkill(COMMANDER_TASK);
+		g_rgPlayerRole[victim] = Role_UNASSIGNED;
 	}
 	else if (victim == g_iLeader[1])
 	{
 		print_chat_color(0, BLUECHAT, "%s陣亡!", g_rgszRoleNames[Role_Commander]);
 		Commander_TerminateSkill();
+		g_rgPlayerRole[victim] = Role_UNASSIGNED;
 	}
 
 	g_rgbUsingSkill[victim] = false;
@@ -857,6 +862,16 @@ public HamF_CS_RoundRespawn_Post(pPlayer)
 	}
 }
 
+public HamF_BloodColor(iPlayer)
+{
+	if(g_rgflFrozenNextthink[iPlayer] <= get_gametime())
+		return HAM_IGNORED
+	
+	SetHamReturnInteger(15)
+	
+	return HAM_SUPERCEDE
+}
+
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
 	if (!is_user_connected(iHost))
@@ -867,7 +882,14 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 	
 	if (bIsPlayer && is_user_alive(iHost))
 	{
-		if (iEntity == g_iLeader[0])
+		if(g_rgflFrozenNextthink[iEntity] > get_gametime())
+		{
+			set_es(ES_Handle, ES_RenderFx, kRenderFxGlowShell)
+			set_es(ES_Handle, ES_RenderColor, { 80, 80, 100 })
+			set_es(ES_Handle, ES_RenderAmt, 50)
+			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
+		}
+		else if (iEntity == g_iLeader[0])
 		{
 			set_es(ES_Handle, ES_RenderFx, kRenderFxGlowShell)
 			set_es(ES_Handle, ES_RenderColor, {255, 0, 0})
@@ -898,6 +920,22 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 	}
 }
 
+public fw_Think(iEntity)
+{
+	static szClassName[33];
+	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
+	
+	if(strcmp(szClassName, "grenade"))
+		return FMRES_IGNORED;
+	
+	if(pev(iEntity, pev_iuser1) != ICE_GRENADE_KEY)
+		return FMRES_IGNORED;
+	
+	Sharpshooter_IceExplode(iEntity);
+	
+	return FMRES_SUPERCEDE;
+}
+
 public fw_SetModel(iEntity, szModel[])
 {
 	if (strlen(szModel) < 8)
@@ -909,10 +947,16 @@ public fw_SetModel(iEntity, szModel[])
 	static classname[32]
 	pev(iEntity, pev_classname, classname, charsmax(classname))
 	
-	if (strcmp(classname, "weaponbox"))
-		return FMRES_IGNORED
-	
-	set_pev(iEntity, pev_nextthink, get_gametime() + get_pcvar_float(cvar_WMDLkilltime));
+	if (!strcmp(classname, "weaponbox"))
+	{
+		set_pev(iEntity, pev_nextthink, get_gametime() + get_pcvar_float(cvar_WMDLkilltime));
+	}
+	else if (!strcmp(classname, "grenade") && !strcmp(szModel,"models/w_smokegrenade.mdl"))
+	{
+		set_pev(iEntity, pev_dmgtime, 99999.0)
+		set_pev(iEntity, pev_nextthink, get_gametime()+1.0)
+		set_pev(iEntity, pev_iuser1, ICE_GRENADE_KEY)
+	}
 	
 	return FMRES_IGNORED
 }
@@ -1234,6 +1278,11 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 	
 	// custom global think
 	Assassin_SkillThink();
+}
+
+public fw_PlayerPreThink_Post(pPlayer)
+{
+	Sharpshooter_IceThink(pPlayer);
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -1563,6 +1612,7 @@ public Event_HLTV()
 	{
 		g_rgbResurrecting[i] = false;
 		g_rgiConfidenceMotionVotes[i] = DISCARD;
+		g_rgflFrozenNextthink[i] = 0.0
 	}
 	
 	g_bRoundStarted = false;
@@ -1616,6 +1666,9 @@ public Message_Health(msg_id, msg_dest, msg_entity)
 		return PLUGIN_CONTINUE;
 	
 	if (msg_entity != g_iLeader[0] && msg_entity != g_iLeader[1])
+		return PLUGIN_CONTINUE;
+
+	if (g_rgPlayerRole[msg_entity] != Role_Godfather && g_rgPlayerRole[msg_entity] != Role_Commander)
 		return PLUGIN_CONTINUE;
 
 	new Float:flHealth;
@@ -1860,6 +1913,7 @@ public fw_BotForwardRegister_Post(iPlayer)
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage");
 		RegisterHamFromEntity(Ham_TakeDamage, iPlayer, "HamF_TakeDamage_Post", 1);
 		RegisterHamFromEntity(Ham_CS_RoundRespawn, iPlayer, "HamF_CS_RoundRespawn_Post", 1);
+		RegisterHamFromEntity(Ham_BloodColor, iPlayer, "HamF_BloodColor")
 	}
 }
 
@@ -1998,6 +2052,9 @@ stock ShowHudMessage(iPlayer, const Color[3], const Float:Coordinate[2], const E
 
 stock DEBUG_LOG_TXT(const szText[], any:...)
 {
+	if (!get_pcvar_num(cvar_DebugMode))
+		return;
+
 	static bool:bInitiated;
 	static hFile;
 	
@@ -2193,7 +2250,13 @@ stock UTIL_BeamEntPoint(id, const Float:point[3], SpriteId, StartFrame, FrameRat
 	message_end()
 }
 
-
-
-
-
+stock GetVelocityFromOrigin(Float:origin1[3], Float:origin2[3], Float:speed, Float:velocity[3])
+{
+	xs_vec_sub(origin1, origin2, velocity)
+	new Float:valve = get_distance_f(origin1, origin2)/speed
+	
+	if(valve <= 0.0)
+	return
+	
+	xs_vec_div_scalar(velocity, valve, velocity)
+}
