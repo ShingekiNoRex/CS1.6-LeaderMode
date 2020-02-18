@@ -31,7 +31,7 @@ S.W.A.T.
 (10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
 (被動：死后爆炸) ✔ (REX)
 神射手
-(10秒内强制爆头，命中的目標致盲3秒)	(LUNA預定)
+(10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：狙擊槍散射和後座力減半)
 医疗兵
 (犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半，10秒内手榴彈及煙霧彈改為治療效果)
@@ -49,7 +49,7 @@ TR:
 (被動：遭受的AP傷害以電擊雙倍返還)
 暗杀者
 (消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
-(被動：移动速度加快，重力降低)
+(被動：消音武器有1%的概率暴擊) ✔ (LUNA)
 纵火犯
 (火焰弹药，燃烧伤害附带减速效果)
 (被動：高爆手雷改为燃烧瓶)
@@ -64,7 +64,7 @@ TR:
 #include <orpheu>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.10"
+#define VERSION	"1.10.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -217,7 +217,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[被动]周围友军缓慢恢复生命",
 	"",
 	"",
-	"[被动]移动速度加快，重力降低",
+	"[被动]消音武器有1%%%%的概率暴擊",
 	""
 };
 
@@ -313,7 +313,7 @@ new const g_rgszEntityToRemove[][] =
 
 stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 
-new g_fwBotForwardRegister
+new g_fwBotForwardRegister;
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
@@ -322,6 +322,7 @@ new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
 new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed;
+new g_ptrBeamSprite;
 
 // SFX
 #define SFX_GAME_START_1		"leadermode/start_game_01.wav"
@@ -484,6 +485,7 @@ public plugin_precache()
 	Blaster_Precache();
 	engfunc(EngFunc_PrecacheSound, BERSERKER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_GRAND_SFX);
+	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
 }
 
 public client_putinserver(pPlayer)
@@ -629,25 +631,40 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	g_rgbResurrecting[victim] = true;
 }
 
-public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3], tr, bitsDamageTypes)	// sharpshooter deathmark skill
+public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3], tr, bitsDamageTypes)	// sharpshooter deathmark skill & assassin passive skill
 {
 	if (!is_user_alive(iAttacker))
 		return HAM_IGNORED;
 	
-	if (g_rgPlayerRole[iAttacker] != Role_Sharpshooter || !g_rgbUsingSkill[iAttacker])
-		return HAM_IGNORED;
-	
 	new iId = get_pdata_int(get_pdata_cbase(iAttacker, m_pActiveItem), m_iId, 4);
-	if (iId != CSW_AWP && iId != CSW_M200 && iId != CSW_M14EBR && iId != CSW_SVD)	// skill only avaliable when using a sniper rifle.
-		return HAM_IGNORED;
 	
-	new Float:vecOrigin[3];
-	get_tr2(tr, TR_vecEndPos, vecOrigin);
-	RadiusFlash(vecOrigin, get_pdata_cbase(iAttacker, m_pActiveItem), iAttacker, 1.0);
+	if (g_rgPlayerRole[iAttacker] == Role_Assassin &&
+		(iId == CSW_USP || iId == CSW_M14EBR || iId == CSW_MP7A1 || iId == CSW_M200) &&	// silenced weapons
+		!random_num(0, 99) )	// 1% chance
+	{
+		new Float:vecOrigin[3];
+		get_tr2(tr, TR_vecEndPos, vecOrigin);
+		
+		client_cmd(iAttacker, "spk %s", ASSASSIN_CRITICAL_SFX);
+		client_cmd(iVictim, "spk %s", ASSASSIN_CRITICAL_SFX);
+		UTIL_BeamEntPoint(iAttacker|0x1000, vecOrigin, g_ptrBeamSprite, 0, 100, 1, 47, 5, 75, 75, 75, 255, 5);
+		
+		SetHamParamFloat(3, flDamage * 10.0);	// critical hit
+		return HAM_HANDLED;
+	}
 	
-	set_tr2(tr, TR_iHitgroup, HIT_HEAD);	// mp.dll::monsters.h is using "HITGROUP_HEAD" with same number.
+	if (g_rgPlayerRole[iAttacker] == Role_Sharpshooter && g_rgbUsingSkill[iAttacker] &&
+		(iId == CSW_AWP || iId == CSW_M200 || iId == CSW_M14EBR || iId == CSW_SVD) )	// skill only avaliable when using a sniper rifle.
+	{
+		new Float:vecOrigin[3];
+		get_tr2(tr, TR_vecEndPos, vecOrigin);
+		RadiusFlash(vecOrigin, get_pdata_cbase(iAttacker, m_pActiveItem), iAttacker, 1.0);
+		
+		set_tr2(tr, TR_iHitgroup, HIT_HEAD);	// mp.dll::monsters.h is using "HITGROUP_HEAD" with same number.
+		return HAM_HANDLED;
+	}
 	
-	return HAM_HANDLED;
+	return HAM_IGNORED;
 }
 
 public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3], tr, bitsDamageTypes)
@@ -2131,6 +2148,28 @@ stock RadiusFlash(const Float:vecSrc[3], pevInflictor, pevAttacker, Float:flDama
 stock ResetMaxSpeed(pPlayer)
 {
 	OrpheuCallSuper(g_pfn_CBasePlayer_ResetMaxSpeed, pPlayer);
+}
+
+stock UTIL_BeamEntPoint(id, const Float:point[3], SpriteId, StartFrame, FrameRate, life, width, noise, red, green, bule, brightness, ScrollSpeed)
+{
+	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, point, 0)
+	write_byte(TE_BEAMENTPOINT)
+	write_short(id)
+	engfunc(EngFunc_WriteCoord, point[0])
+	engfunc(EngFunc_WriteCoord, point[1])
+	engfunc(EngFunc_WriteCoord, point[2])
+	write_short(SpriteId)
+	write_byte(StartFrame)			// starting frame
+	write_byte(FrameRate)			// frame rate in 0.1's
+	write_byte(life)			// life in 0.1's
+	write_byte(width)			// line width in 0.1's
+	write_byte(noise)			// noise amplitude in 0.01's
+	write_byte(red)				// r
+	write_byte(green)			// g
+	write_byte(bule)			// b
+	write_byte(brightness)			// brightness
+	write_byte(ScrollSpeed)			// scroll speed in 0.1's
+	message_end()
 }
 
 
