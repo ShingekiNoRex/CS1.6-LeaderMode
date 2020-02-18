@@ -217,7 +217,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"",
 	"",
 	"[被动]减少受到的爆炸伤害，死后爆炸",
-	"[被动]烟雾弹变冰冻手雷",
+	"[被动]冰冻手雷",
 	"",
 	
 	"[被动]周围友军缓慢恢复生命",
@@ -321,6 +321,7 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 
 new g_fwBotForwardRegister;
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
+new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
 new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTeamCnfdnceMtnBallotBox[4][2], g_rgiConfidenceMotionVotes[33];
@@ -409,6 +410,7 @@ public plugin_init()
 	// messages
 	register_message(get_user_msgid("Health"),		"Message_Health");
 	register_message(get_user_msgid("ScreenFade"),	"Message_ScreenFade");
+	register_message(get_user_msgid("StatusValue"),	"Message_StatusValue");
 	
 	// CVars
 	cvar_DebugMode 		= register_cvar("lm_debug", 							"0");
@@ -1025,7 +1027,7 @@ public fw_SetModel(iEntity, szModel[])
 	{
 		set_pev(iEntity, pev_nextthink, get_gametime() + get_pcvar_float(cvar_WMDLkilltime));
 	}
-	else if (!strcmp(classname, "grenade") && !strcmp(szModel, "models/w_smokegrenade.mdl"))
+	else if (!strcmp(classname, "grenade") && !strcmp(szModel,"models/w_hegrenade.mdl"))
 	{
 		new iPlayer = pev(iEntity, pev_owner);
 		if (g_rgPlayerRole[iPlayer] == Role_Sharpshooter)
@@ -1377,12 +1379,12 @@ public fw_PlayerPostThink_Post(pPlayer)
 		return;
 	
 	// HUD
-	if (!is_user_bot(pPlayer))
+	if (!is_user_bot(pPlayer) && g_rgflHUDThink[pPlayer] < get_gametime())
 	{
 		new rgColor[3] = { 255, 255, 0 };
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
 		new Float:flGoalCoordinate[2] = { -1.0, 0.05 };
-		new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
+		new Float:rgflTime[4] = { 6.0, 4000.0, 0.0, 0.0 };
 		
 		static szText[192], szSkillText[192], szGoal[192];
 		formatex(szSkillText, charsmax(szSkillText), "");	// have to clear it each frame, or the strcpy() will fuck everything up.
@@ -1445,8 +1447,17 @@ public fw_PlayerPostThink_Post(pPlayer)
 		else
 			formatex(szGoal, charsmax(szGoal), "任務目標: 击杀敌方%s %s", g_rgszRoleNames[g_rgPlayerRole[g_iLeader[2 - iTeam]]], g_szLeaderNetname[2 - iTeam]);
 		
-		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
-		ShowHudMessage(pPlayer, rgColor, flGoalCoordinate, 0, rgflTime, HUD_SHOWGOAL, szGoal);
+		if (strcmp(g_rgszLastHUDText[pPlayer][0], szText))
+		{
+			g_rgszLastHUDText[pPlayer][0] = szText;
+			ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
+		}
+		if (strcmp(g_rgszLastHUDText[pPlayer][1], szText))
+		{
+			g_rgszLastHUDText[pPlayer][1] = szText;
+			ShowHudMessage(pPlayer, rgColor, flGoalCoordinate, 0, rgflTime, HUD_SHOWGOAL, szGoal);
+		}
+		g_rgflHUDThink[pPlayer] = 0.5 + get_gametime();
 	}
 	
 	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(pPlayer))
@@ -1766,6 +1777,45 @@ public Message_ScreenFade(msg_id, msg_dest, msg_entity)
 		return PLUGIN_HANDLED;
 	
 	return PLUGIN_CONTINUE;
+}
+
+public Message_StatusValue(msg_id, msg_dest, msg_entity)
+{
+	/**
+	Name:		StatusValue
+	Structure:	
+				byte	Flag
+				short	Value
+	**/
+	if(get_msg_arg_int(2) == 0)
+	{
+		if (get_msg_arg_int(1) == 1)
+		{
+			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("StatusText"), _, msg_entity);
+			write_byte(0);
+			write_string("");
+			message_end();
+		}
+		return PLUGIN_HANDLED;
+	}
+
+	if (get_msg_arg_int(1) == 2)
+	{
+		new iTarget = get_msg_arg_int(2);
+		if (is_user_alive(iTarget))
+		{
+			static szMsg[64], Float:fHealth;
+			pev(iTarget, pev_health, fHealth);
+			formatex(szMsg, charsmax(szMsg), "%s: %%p2 生命值：%d%%%%", g_rgszRoleNames[g_rgPlayerRole[iTarget]], floatround(fHealth));
+			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("StatusText"), _, msg_entity);
+			write_byte(0);
+			write_string(szMsg);
+			message_end();
+		}
+		return PLUGIN_CONTINUE;
+	}
+
+	return PLUGIN_HANDLED;
 }
 
 public Command_VoteTS(pPlayer)

@@ -22,7 +22,7 @@ public Sharpshooter_Initialize()
 	cvar_sharpshooterDeathMarkDur	= register_cvar("lm_sharpshooter_deathmark_duration",	"5.0");
 	cvar_sharpshooterCooldown		= register_cvar("lm_sharpshooter_cooldown",				"30.0");
 
-	cvar_icegrenade_time 			= register_cvar("lm_sharpshooter_frozen_time", "8.0")				//冰冻时间
+	cvar_icegrenade_time 			= register_cvar("lm_sharpshooter_frozen_time", "4.0")				//冰冻时间
 	cvar_icegrenade_damage 			= register_cvar("lm_sharpshooter_frozen_damage", "20.0")			//冰冻伤害
 	cvar_icegrenade_range 			= register_cvar("lm_sharpshooter_frozen_range", "180.0")			//冰冻范围
 	

@@ -10,7 +10,7 @@ new cvar_blasterDuration, cvar_blasterCooldown, cvar_explosionDamage, cvar_explo
 
 public Blaster_Initialize()
 {
-	cvar_blasterDuration	= register_cvar("lm_blaster_duration",	"20.0");
+	cvar_blasterDuration	= register_cvar("lm_blaster_duration",	"10.0");
 	cvar_blasterCooldown	= register_cvar("lm_blaster_cooldown",	"30.0");
 	cvar_explosionDamage	= register_cvar("lm_blaster_explosion_damage", "150.0");
 	cvar_explosionRange		= register_cvar("lm_blaster_explosion_range", "120.0");
