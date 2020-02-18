@@ -19,6 +19,11 @@ public Berserker_Initialize()
 	g_rgSkillCooldown[Role_Berserker] = cvar_berserkerCooldown;
 }
 
+public Berserker_Precache()
+{
+	engfunc(EngFunc_PrecacheSound, BERSERKER_GRAND_SFX);
+}
+
 public Berserker_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK + pPlayer);
