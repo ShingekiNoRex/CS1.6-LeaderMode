@@ -32,7 +32,7 @@ S.W.A.T.
 (被動：死后爆炸) ✔ (REX)
 神射手
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
-(被動：狙擊槍散射和後座力減半)
+(被動：冰冻手雷，狙擊槍散射和後座力減半)
 医疗兵
 (犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半，10秒内手榴彈及煙霧彈改為治療效果)
 (被動：移動速度+25%)
@@ -198,7 +198,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
-	"[T]血量越低伤害越高，承受致命伤不会立刻死亡",
+	"[T]提升移速，承受致命伤不会立刻死亡",
 	"",
 	"[T]標記指揮官位置並隱身",
 	""
@@ -210,12 +210,12 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	
 	"",
 	"",
-	"[被动]爆炸伤害减半，死后爆炸",
+	"[被动]减少受到的爆炸伤害，死后爆炸",
 	"",
 	"",
 	
 	"[被动]周围友军缓慢恢复生命",
-	"",
+	"[被动]血量越低伤害越高",
 	"",
 	"[被动]消音武器有1%%%%的概率暴擊",
 	""
@@ -321,6 +321,7 @@ new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTea
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
+new cvar_DebugMode;
 new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed;
 new g_ptrBeamSprite;
 
@@ -397,6 +398,7 @@ public plugin_init()
 	register_message(get_user_msgid("ScreenFade"),	"Message_ScreenFade");
 	
 	// CVars
+	cvar_DebugMode 		= register_cvar("lm_debug", 							"0");
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
 	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
@@ -700,15 +702,15 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 		}
 	}
 
-	if (is_user_alive(iAttacker) && g_rgbUsingSkill[iAttacker])
+	if (is_user_alive(iAttacker))
 	{
 		if (g_rgPlayerRole[iAttacker] == Role_Berserker)
 		{
 			new Float:flCurHealth;
 			pev(iVictim, pev_health, flCurHealth);
-			SetHamParamFloat(4, 100.0 - flCurHealth + flDamage);
+			SetHamParamFloat(4, floatclamp(100.0 - flCurHealth, 0.0, 100.0) + flDamage);
 		}
-		else if (g_rgPlayerRole[iAttacker] == Role_Blaster)
+		else if (g_rgPlayerRole[iAttacker] == Role_Blaster && g_rgbUsingSkill[iAttacker])
 		{
 			if (bitsDamageTypes & DMG_BLAST || bitsDamageTypes & (1<<24))		// Blast or HE Grenade damage
 				SetHamParamFloat(4, flDamage * 1.5);
@@ -1745,11 +1747,6 @@ public Command_VoteONC(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
-public Command_Assassin(pPlayer)
-{
-	g_rgPlayerRole[pPlayer] = Role_Assassin;
-}
-
 public Command_DeclareRole(pPlayer)
 {
 	if (!is_user_connected(pPlayer))
@@ -1772,18 +1769,42 @@ public Command_ManageRoles(pPlayer)
 
 public Command_Berserker(pPlayer)
 {
-	g_rgPlayerRole[pPlayer] = Role_Berserker;
+	if (get_pcvar_num(cvar_DebugMode))
+	{
+		g_rgPlayerRole[pPlayer] = Role_Berserker;
+		return PLUGIN_HANDLED;
+	}
+	return PLUGIN_CONTINUE;
 }
 
 public Command_Blaster(pPlayer)
 {
-	g_rgPlayerRole[pPlayer] = Role_Blaster;
+	if (get_pcvar_num(cvar_DebugMode))
+	{
+		g_rgPlayerRole[pPlayer] = Role_Blaster;
+		return PLUGIN_HANDLED;
+	}
+	return PLUGIN_CONTINUE;
 }
 
 public Command_Sharpshooter(pPlayer)
 {
-	g_rgPlayerRole[pPlayer] = Role_Sharpshooter;
-	return PLUGIN_HANDLED;
+	if (get_pcvar_num(cvar_DebugMode))
+	{
+		g_rgPlayerRole[pPlayer] = Role_Sharpshooter;
+		return PLUGIN_HANDLED;
+	}
+	return PLUGIN_CONTINUE;
+}
+
+public Command_Assassin(pPlayer)
+{
+	if (get_pcvar_num(cvar_DebugMode))
+	{
+		g_rgPlayerRole[pPlayer] = Role_Assassin;
+		return PLUGIN_HANDLED;
+	}
+	return PLUGIN_CONTINUE;
 }
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
