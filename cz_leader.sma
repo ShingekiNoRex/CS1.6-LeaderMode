@@ -217,7 +217,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"",
 	"",
 	"[被动]减少受到的爆炸伤害，死后爆炸",
-	"[被动]烟雾弹变冰冻手雷",
+	"[被动]冰冻手雷",
 	"",
 	
 	"[被动]周围友军缓慢恢复生命",
@@ -1029,7 +1029,7 @@ public fw_SetModel(iEntity, szModel[])
 	{
 		set_pev(iEntity, pev_nextthink, get_gametime() + get_pcvar_float(cvar_WMDLkilltime));
 	}
-	else if (!strcmp(classname, "grenade") && !strcmp(szModel,"models/w_smokegrenade.mdl"))
+	else if (!strcmp(classname, "grenade") && !strcmp(szModel,"models/w_hegrenade.mdl"))
 	{
 		new iPlayer = pev(iEntity, pev_owner);
 		if (g_rgPlayerRole[iPlayer] == Role_Sharpshooter)
