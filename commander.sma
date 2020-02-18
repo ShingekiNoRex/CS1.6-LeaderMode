@@ -92,6 +92,7 @@ public Commander_ExecuteSkill(pPlayer)
 		
 		client_cmd(i, "spk %s", COMMANDER_GRAND_SFX);
 	}
+	
 	UTIL_ColorfulPrintChat(0, "/g%s執行了無人機低空掃描, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, COMMANDER_TEXT, GODFATHER_TEXT, g_szLeaderNetname[TEAM_TERRORIST - 1]);
 	set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
 }
