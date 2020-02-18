@@ -315,6 +315,7 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 
 new g_fwBotForwardRegister;
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
+new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
 new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTeamCnfdnceMtnBallotBox[4][2], g_rgiConfidenceMotionVotes[33];
@@ -1310,12 +1311,12 @@ public fw_PlayerPostThink_Post(pPlayer)
 		return;
 	
 	// HUD
-	if (!is_user_bot(pPlayer))
+	if (!is_user_bot(pPlayer) && g_rgflHUDThink[pPlayer] < get_gametime())
 	{
 		new rgColor[3] = { 255, 255, 0 };
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
 		new Float:flGoalCoordinate[2] = { -1.0, 0.05 };
-		new Float:rgflTime[4] = { 0.1, 0.1, 0.0, 0.0 };
+		new Float:rgflTime[4] = { 6.0, 12.0, 0.0, 0.0 };
 		
 		static szText[192], szSkillText[192], szGoal[192];
 		formatex(szSkillText, charsmax(szSkillText), "");	// have to clear it each frame, or the strcpy() will fuck everything up.
@@ -1378,8 +1379,17 @@ public fw_PlayerPostThink_Post(pPlayer)
 		else
 			formatex(szGoal, charsmax(szGoal), "任務目標: 击杀敌方%s %s", g_rgszRoleNames[g_rgPlayerRole[g_iLeader[2 - iTeam]]], g_szLeaderNetname[2 - iTeam]);
 		
-		ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
-		ShowHudMessage(pPlayer, rgColor, flGoalCoordinate, 0, rgflTime, HUD_SHOWGOAL, szGoal);
+		if (strcmp(g_rgszLastHUDText[pPlayer][0], szText))
+		{
+			g_rgszLastHUDText[pPlayer][0] = szText;
+			ShowHudMessage(pPlayer, rgColor, flCoordinate, 0, rgflTime, HUD_SHOWHUD, szText);
+		}
+		if (strcmp(g_rgszLastHUDText[pPlayer][1], szText))
+		{
+			g_rgszLastHUDText[pPlayer][1] = szText;
+			ShowHudMessage(pPlayer, rgColor, flGoalCoordinate, 0, rgflTime, HUD_SHOWGOAL, szGoal);
+		}
+		g_rgflHUDThink[pPlayer] = 0.5 + get_gametime();
 	}
 	
 	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(pPlayer))
