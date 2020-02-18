@@ -13,7 +13,7 @@ new cvar_sharpshooterDeathMarkDur, cvar_sharpshooterCooldown;
 public Sharpshooter_Initialize()
 {
 	cvar_sharpshooterDeathMarkDur	= register_cvar("lm_sharpshooter_deathmark_duration",	"5.0");
-	cvar_sharpshooterCooldown		= register_cvar("lm_sharpshooter_cooldown",				"3.0");
+	cvar_sharpshooterCooldown		= register_cvar("lm_sharpshooter_cooldown",				"30.0");
 	
 	g_rgSkillDuration[Role_Sharpshooter] = cvar_sharpshooterDeathMarkDur;
 	g_rgSkillCooldown[Role_Sharpshooter] = cvar_sharpshooterCooldown;
