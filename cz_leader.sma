@@ -407,7 +407,7 @@ public plugin_init()
 
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
-	register_forward(FM_Think, "fw_Think");
+	register_forward(FM_Touch, "fw_Touch_Post", 1);
 	register_forward(FM_SetModel, "fw_SetModel");
 	register_forward(FM_StartFrame, "fw_StartFrame_Post", 1);
 	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink_Post", 1)
@@ -1045,19 +1045,18 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 	}
 }
 
-public fw_Think(iEntity)
+public fw_Touch_Post(iEntity)
 {
 	static szClassName[33];
 	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
 	
 	if (strcmp(szClassName, "grenade"))
-		return FMRES_IGNORED;
+		return;
 	
 	if (pev(iEntity, pev_weapons) != ICE_GRENADE_KEY)
-		return FMRES_IGNORED;
+		return;
 	
 	Sharpshooter_IceExplode(iEntity);
-	return FMRES_SUPERCEDE;
 }
 
 public fw_SetModel(iEntity, szModel[])
@@ -1081,7 +1080,6 @@ public fw_SetModel(iEntity, szModel[])
 		if (g_rgPlayerRole[iPlayer] == Role_Sharpshooter)
 		{
 			set_pev(iEntity, pev_dmgtime, 99999.0)
-			set_pev(iEntity, pev_nextthink, get_gametime()+1.0)
 			set_pev(iEntity, pev_weapons, ICE_GRENADE_KEY)
 		}
 	}
