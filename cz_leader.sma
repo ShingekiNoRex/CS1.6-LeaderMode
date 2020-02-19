@@ -1047,6 +1047,9 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 
 public fw_Touch_Post(iEntity)
 {
+	if (!pev_valid(iEntity))
+		return;
+
 	static szClassName[33];
 	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
 	
