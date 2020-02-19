@@ -326,7 +326,8 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 new g_fwBotForwardRegister;
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
-new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes, Float:g_flNextMWDThink;
+new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink;
+new TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes, Float:g_flNextMWDThink;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
 new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTeamCnfdnceMtnBallotBox[4][2], g_rgiConfidenceMotionVotes[33];
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
@@ -421,6 +422,7 @@ public plugin_init()
 	register_message(get_user_msgid("Health"),		"Message_Health");
 	register_message(get_user_msgid("ScreenFade"),	"Message_ScreenFade");
 	register_message(get_user_msgid("StatusValue"),	"Message_StatusValue");
+	register_message(get_user_msgid("StatusText"),	"Message_StatusText");
 	
 	// CVars
 	cvar_restartSV		= get_cvar_pointer("sv_restart");
@@ -1837,38 +1839,70 @@ public Message_StatusValue(msg_id, msg_dest, msg_entity)
 	/**
 	Name:		StatusValue
 	Structure:	
-				byte	Flag
-				short	Value
+				byte	Flag	// 1 is TeamRelation, 2 is PlayerID, and 3 is Health.
+				short	Value	// For TeamRelation, 1 is Teammate player, 2 is Non-Teammate player, 3 is Hostage. If TeamRelation is Hostage, PlayerID will be 0 or will be not sent at all.
 	**/
-	if(get_msg_arg_int(2) == 0)
+	
+	// reference: CBasePlayer::UpdateStatusBar()
+	
+	if(get_msg_arg_int(2) == 0)	// this can only occurs when player health == 0 ???
 	{
 		if (get_msg_arg_int(1) == 1)
 		{
-			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("StatusText"), _, msg_entity);
+			message_begin(MSG_ONE, get_user_msgid("StatusText"), _, msg_entity);
 			write_byte(0);
 			write_string("");
 			message_end();
 		}
-		return PLUGIN_HANDLED;
+		
+		return PLUGIN_HANDLED;	// LUNA: why block them all?
 	}
 
 	if (get_msg_arg_int(1) == 2)
 	{
 		new iTarget = get_msg_arg_int(2);
-		if (is_user_alive(iTarget))
+		if (!is_user_connected(iTarget))	// don't use is_user_alive(), this will skip assassins when they are using skill.
+			return PLUGIN_CONTINUE;
+		
+		new Float:flHealth;
+		pev(iTarget, pev_health, flHealth)
+		if (flHealth <= 0.0)
+			return PLUGIN_CONTINUE;
+		
+		if (g_rgPlayerRole[msg_entity] == Role_Sharpshooter
+			|| (g_rgPlayerRole[msg_entity] == Role_Assassin && g_rgbUsingSkill[msg_entity])	// only sniper and sneaking assassin have the detail.
+			|| fm_is_user_same_team(msg_entity, iTarget)	// or you are in the same team.
+			|| (g_rgPlayerRole[iTarget] == Role_Assassin && g_rgbUsingSkill[iTarget])	// this is a assassin with skill on!
+			)
 		{
-			static szMsg[64], Float:fHealth;
-			pev(iTarget, pev_health, fHealth);
-			formatex(szMsg, charsmax(szMsg), "%s: %%p2 生命值：%d%%%%", g_rgszRoleNames[g_rgPlayerRole[iTarget]], floatround(fHealth));
-			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("StatusText"), _, msg_entity);
+			static szMsg[64];
+			formatex(szMsg, charsmax(szMsg), "%s: %%p2 生命值: %d%%%%", g_rgszRoleNames[g_rgPlayerRole[iTarget]], floatround(flHealth));
+			
+			message_begin(MSG_ONE, get_user_msgid("StatusText"), _, msg_entity);
 			write_byte(0);
 			write_string(szMsg);
 			message_end();
 		}
+		
 		return PLUGIN_CONTINUE;
 	}
 
-	return PLUGIN_HANDLED;
+	return PLUGIN_HANDLED;	// LUNA: why block them all?
+}
+
+public Message_StatusText(msg_id, msg_dest, msg_entity)
+{
+	/**
+	Name:		StatusText
+	Structure:	
+				byte	Unknown
+				string	Text
+	**/
+	
+	// reference: CBasePlayer::UpdateStatusBar()
+
+	set_msg_arg_string(2, " ");	// LUNA: I wish nobody notice enemies by the text.
+	return PLUGIN_CONTINUE;
 }
 
 public Command_VoteTS(pPlayer)
