@@ -140,6 +140,9 @@ public Assassin_RevokeSkill(iTaskId)
 	if (!is_user_connected(pPlayer))
 		return;
 	
+	if (!g_rgbUsingSkill[pPlayer])	// which means the assassin was killed when cooling down.
+		return;
+	
 	NvgScreen(pPlayer);
 	
 	new Float:flHealth;

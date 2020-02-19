@@ -38,7 +38,7 @@ S.W.A.T.
 (10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
 (被動：死后爆炸) ✔ (REX)
 神射手
-(優惠M200、手榴彈和ANACONDA，允許AWP、半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
+(優惠M200、手榴彈、ANACONDA和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：冰凍手榴彈) ✔ (REX)
 医疗兵
@@ -59,7 +59,7 @@ TR:
 (優惠G18C、ANACONDA和煙霧彈，允許KSG、PM9和MP7)
 (遭受的傷害(HP+AP)以電擊形式返還，將瞄準目標吸往自己的方向)
 (被動：煙霧彈更換為毒氣彈、30%概率發射電擊彈藥(減速，扳機和視角不受控制))
-暗杀者
+刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
 (消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
 (被動：消音武器有1%的概率暴擊) ✔ (LUNA)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.11.1"
+#define VERSION	"1.11.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -322,6 +322,7 @@ stock const g_rgszWeaponEntity[][] =
 	"weapon_p90"
 };
 
+#if defined USING_REAL_NAME	// weapon display name
 stock const g_rgszWeaponName[][] =
 {
 	"",
@@ -356,6 +357,42 @@ stock const g_rgszWeaponName[][] =
 	"匕首",
 	"FN P90"
 };
+#else
+stock const g_rgszWeaponName[][] =
+{
+	"",
+	"巨蟒左輪手槍",
+	"",
+	"M200狙擊槍消音型",
+	"手榴彈",
+	"前鋒型霰彈槍",
+	"定時炸彈",
+	"PM-9衝鋒槍",
+	"ACR突擊步槍",
+	"煙霧彈",
+	"雙持P99手槍",
+	"五七式手槍",
+	"UMP45衝鋒槍",
+	"Mk.14戰鬥增強型",
+	"CM901突擊步槍",
+	"QBZ95突擊步槍",
+	"USP.45消音手槍",
+	"格洛克18C全自動手槍",
+	"精密國際AW狙擊槍",
+	"MP5衝鋒槍",
+	"Mk.46輕機槍",
+	"KSG-12泵動式霰彈槍",
+	"M4A1突擊步槍",
+	"MP7A1消音衝鋒槍",
+	"SVD精確射手步槍",
+	"閃光彈",
+	"沙漠之鷹",
+	"SCAR-L突擊步槍",
+	"AK-47突擊步槍",
+	"匕首",
+	"P90衝鋒槍"
+};
+#endif
 
 //												5			   10			  15			 20				25			   30	// if this isn't lined up, please use Notepad++
 stock const g_rgiClipRegen[] = { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 4, 0, 1, 2, 0, 0, 0, 1, 1, 0, 2 };
@@ -371,7 +408,7 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 /*Role_Commander = 1*/	{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_SWAT*/			{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D },
 /*Role_Blaster*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
-/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_A, WPN_P, WPN_P, WPN_F, WPN_F },
+/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_A, WPN_P, WPN_P, WPN_F, WPN_F },
 /*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D },
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
@@ -513,7 +550,7 @@ public plugin_init()
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
 	cvar_TSDmenpowermul	= register_cvar("lm_TSD_MAD_menpower_multiplier",		"2.0");
 	cvar_TSDmoneyaddinv	= register_cvar("lm_TSD_GBD_account_refill_interval",	"5.0");
-	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"200");
+	cvar_TSDmoneyaddnum	= register_cvar("lm_TSD_GBD_account_refill_amount",		"75");
 	cvar_TSDbountymul	= register_cvar("lm_TSD_GBD_bounty_multiplier",			"2.0");
 	cvar_VONCperTeam	= register_cvar("lm_VONC_per_team_per_round",			"2");
 	cvar_VONCtimeLimit	= register_cvar("lm_VONC_voting_time_limit",			"60.0");
@@ -530,8 +567,8 @@ public plugin_init()
 	register_clcmd("say /dr",			"Command_DeclareRole");
 	register_clcmd("mr",				"Command_ManageRoles");
 	register_clcmd("say /dr",			"Command_ManageRoles");
-	register_clcmd("buy",				"Command_Buy");
 	register_clcmd("buy2",				"Command_Buy");
+	register_clcmd("buy3",				"Command_Buy3");
 	
 	// debug commands
 	register_clcmd("assassin",			"Command_Assassin");
@@ -1938,7 +1975,8 @@ public Message_ScreenFade(msg_id, msg_dest, msg_entity)
 	if (get_msg_arg_int(4) != 255 || get_msg_arg_int(5) != 255 || get_msg_arg_int(6) != 255 || get_msg_arg_int(7) < 200)
 		return PLUGIN_CONTINUE;
 	
-	if (is_user_connected(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Assassin && g_rgbUsingSkill[msg_entity])	// assassin is immue to flashbang when he is using his skill.
+	if ( (is_user_connected(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Assassin && g_rgbUsingSkill[msg_entity])	// assassin is immue to flashbang when he is using his skill.
+		|| (is_user_alive(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Sharpshooter && g_rgbUsingSkill[msg_entity]) )	// sniper is immue to his own flash shot when he is using his skill.
 		return PLUGIN_HANDLED;
 	
 	return PLUGIN_CONTINUE;
@@ -2203,6 +2241,37 @@ public Command_Buy(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
+public Command_Buy3(pPlayer)
+{
+	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
+		return PLUGIN_HANDLED;
+	
+	static szCommand[24]
+	read_argv(1, szCommand, charsmax(szCommand))
+	
+	if (!strlen(szCommand))
+		formatex(szCommand, charsmax(szCommand), "%d", g_rgPlayerRole[pPlayer]);
+	
+	new szBuffer[192];
+	formatex(szBuffer, charsmax(szBuffer), "\r購買菜單^n\y身份: \w%s", g_rgszRoleNames[Role_e:str_to_num(szCommand)]);
+	
+	new hMenu = menu_create(szBuffer, "MenuHandler_Buy3");
+
+	menu_additem(hMenu, "手槍", szCommand);
+	menu_additem(hMenu, "霰彈槍", szCommand);
+	menu_additem(hMenu, "衝鋒槍", szCommand);
+	menu_additem(hMenu, "突擊步槍與輕機槍", szCommand);
+	menu_additem(hMenu, "狙擊槍", szCommand);
+	menu_additem(hMenu, "裝備", szCommand);
+	menu_additem(hMenu, "自動購買", szCommand);
+	
+	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
+	menu_setprop(hMenu, MPROP_EXITNAME, "離開");
+	menu_display(pPlayer, hMenu, 0);
+	
+	return PLUGIN_HANDLED;
+}
+
 #if defined AIR_SUPPORT_ENABLE
 public Command_GiveRadio(pPlayer)
 {
@@ -2300,6 +2369,12 @@ public MenuHandler_VoteONC(pPlayer, hMenu, iItem)
 
 public MenuHandler_Buy(pPlayer, hMenu, iItem)
 {
+	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
 	new hNextMenu = -1;
 	new szRoleIndex[8], Role_e:iRoleIndex, iDummy, szDummy[32], iDummy2;
 	menu_item_getinfo(hMenu, iItem, iDummy, szRoleIndex, charsmax(szRoleIndex), szDummy, charsmax(szDummy), iDummy2);
@@ -2323,7 +2398,7 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 					else
 						formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i] / 2);
 					
-					new szInfo[8];
+					new szInfo[16];
 					formatex(szInfo, charsmax(szInfo), "%d,%d", i, g_rgiWeaponDefaultCost[i] / 2);
 					menu_additem(hNextMenu, szBuffer, szInfo);
 				}
@@ -2345,7 +2420,7 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 					else
 						formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i]);
 					
-					new szInfo[8];
+					new szInfo[16];
 					formatex(szInfo, charsmax(szInfo), "%d,%d", i, g_rgiWeaponDefaultCost[i]);
 					menu_additem(hNextMenu, szBuffer, szInfo);
 				}
@@ -2367,7 +2442,7 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 					else
 						formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i] * 2);
 					
-					new szInfo[8];
+					new szInfo[16];
 					formatex(szInfo, charsmax(szInfo), "%d,%d", i, g_rgiWeaponDefaultCost[i] * 2);
 					menu_additem(hNextMenu, szBuffer, szInfo);
 				}
@@ -2375,11 +2450,151 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 		}
 		case 3:
 		{
-			engclient_cmd("vest");
+			engclient_cmd(pPlayer, "vest");
 		}
 		case 4:
 		{
-			engclient_cmd("vesthelm");
+			engclient_cmd(pPlayer, "vesthelm");
+		}
+		default:
+		{
+		}
+	}
+	
+	menu_destroy(hMenu);
+	
+	if (hNextMenu >= 0)
+	{
+		menu_setprop(hNextMenu, MPROP_BACKNAME, "上一頁");
+		menu_setprop(hNextMenu, MPROP_NEXTNAME, "下一頁");
+		menu_setprop(hNextMenu, MPROP_EXITNAME, "離開");
+		menu_display(pPlayer, hNextMenu);
+	}
+
+	return PLUGIN_HANDLED;
+}
+
+public MenuHandler_Buy3(pPlayer, hMenu, iItem)
+{
+	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new hNextMenu = -1;
+	new szRoleIndex[8], Role_e:iRoleIndex, iDummy, szDummy[32], iDummy2;
+	menu_item_getinfo(hMenu, iItem, iDummy, szRoleIndex, charsmax(szRoleIndex), szDummy, charsmax(szDummy), iDummy2);
+	iRoleIndex = Role_e:str_to_num(szRoleIndex);
+	
+	new szBuffer[192], iMoney = get_pdata_int(pPlayer, m_iAccount);
+	switch (iItem)
+	{
+		case 0:	// pistols
+		{
+			formatex(szBuffer, charsmax(szBuffer), "\r[手槍] \w購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			AddMenuWeaponItem(iRoleIndex, CSW_GLOCK18,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_USP,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_ANACONDA,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_DEAGLE,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_FIVESEVEN,hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_P99,		hNextMenu, iMoney);
+		}
+		case 1:	// shotguns
+		{
+			formatex(szBuffer, charsmax(szBuffer), "\r[霰彈槍] \w購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			AddMenuWeaponItem(iRoleIndex, CSW_KSG12,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_STRIKER,	hNextMenu, iMoney);
+		}
+		case 2:	// submachine gun
+		{
+			formatex(szBuffer, charsmax(szBuffer), "\r[衝鋒槍] \w購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			AddMenuWeaponItem(iRoleIndex, CSW_MP7A1,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_PM9,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_MP5NAVY,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_UMP45,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_P90,		hNextMenu, iMoney);
+		}
+		case 3:	// assault rifle / LMG
+		{
+			formatex(szBuffer, charsmax(szBuffer), "\r[突擊步槍&輕機槍] \w購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			AddMenuWeaponItem(iRoleIndex, CSW_CM901,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_QBZ95,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_AK47,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_M4A1,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_SG552,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_AUG,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_MK46,		hNextMenu, iMoney);
+		}
+		case 4:	// sniper rifle
+		{
+			formatex(szBuffer, charsmax(szBuffer), "\r[狙擊槍] \w購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			AddMenuWeaponItem(iRoleIndex, CSW_M200,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_M14EBR,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_AWP,		hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_SVD,		hNextMenu, iMoney);
+		}
+		case 5:	// equpiments
+		{
+			formatex(szBuffer, charsmax(szBuffer), "\r[裝備] \w購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			menu_additem(hNextMenu, "\w防彈衣 - \y650\w$", "31,650");
+			menu_additem(hNextMenu, "\w防彈衣與頭盔 - \y1000\w$", "32,1000");
+			AddMenuWeaponItem(iRoleIndex, CSW_FLASHBANG,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_HEGRENADE,	hNextMenu, iMoney);
+			AddMenuWeaponItem(iRoleIndex, CSW_SMOKEGRENADE,	hNextMenu, iMoney);
+		}
+		case 6:	// auto buy
+		{
+			if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[1])) != 2)	// have no primary weapon
+			{
+				switch (iRoleIndex)
+				{
+					case Role_SWAT, Role_Medic:
+						AttemptPurchase(pPlayer, CSW_MP5NAVY);
+					case Role_Blaster, Role_Arsonist:
+						AttemptPurchase(pPlayer, CSW_KSG12);
+					case Role_Sharpshooter:
+						AttemptPurchase(pPlayer, CSW_M200);
+					case Role_MadScientist, Role_Assassin:
+						AttemptPurchase(pPlayer, CSW_MP7A1);
+					default:
+						AttemptPurchase(pPlayer, CSW_CM901);
+				}
+			}
+			
+			if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[2])) != 2)	// have no secondary weapon
+			{
+				switch (iRoleIndex)
+				{
+					case Role_Sharpshooter, Role_Godfather, Role_Medic:
+						AttemptPurchase(pPlayer, CSW_ANACONDA);
+					case Role_Assassin:
+						AttemptPurchase(pPlayer, CSW_USP);
+					default:
+						AttemptPurchase(pPlayer, CSW_GLOCK18);
+				}
+			}
+			
+			engclient_cmd(pPlayer, "primammo");
+			engclient_cmd(pPlayer, "secammo");
+			engclient_cmd(pPlayer, "vesthelm");
+			engclient_cmd(pPlayer, "vest");
+			AttemptPurchase(pPlayer, CSW_HEGRENADE);
+			AttemptPurchase(pPlayer, CSW_FLASHBANG);
+			AttemptPurchase(pPlayer, CSW_FLASHBANG);
+			AttemptPurchase(pPlayer, CSW_FLASHBANG);
 		}
 		default:
 		{
@@ -2401,7 +2616,13 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 
 public MenuHandler_GiveWeapon(pPlayer, hMenu, iItem)
 {
-	new szInfo[8], iDummy, szDummy[32], iDummy2;
+	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new szInfo[16], iDummy, szDummy[32], iDummy2;
 	menu_item_getinfo(hMenu, iItem, iDummy, szInfo, charsmax(szInfo), szDummy, charsmax(szDummy), iDummy2);
 	
 	new sziId[8], szCost[8];
@@ -2416,16 +2637,20 @@ public MenuHandler_GiveWeapon(pPlayer, hMenu, iItem)
 		return PLUGIN_HANDLED;
 	}
 	
-	if (get_pdata_int(pPlayer, m_iAccount) < iCost)
+	if (iId == 31)
 	{
-		print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+		engclient_cmd(pPlayer, "vest");
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	else if (iId == 32)
+	{
+		engclient_cmd(pPlayer, "vesthelm");
+		menu_destroy(hMenu);
 		return PLUGIN_HANDLED;
 	}
 	
-	DropWeapons(pPlayer, g_rgiWeaponDefaultSlot[iId] + 1);	// this array was designed for gmsgWeaponList. needs a constant offset.
-	fm_give_item(pPlayer, g_rgszWeaponEntity[iId]);
-	UTIL_AddAccount(pPlayer, -iCost);
-	
+	AttemptPurchase(pPlayer, iId);
 	menu_destroy(hMenu);
 	return PLUGIN_HANDLED;
 }
@@ -2912,6 +3137,71 @@ stock UTIL_GetAliasId(szAlias[])
 	}
 	
 	return 0;
+}
+
+AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)
+{
+	static szBuffer[192], szInfo[16];
+	
+	if (g_rgRoleWeaponsAccessibility[iRoleIndex][iId] == WPN_F)
+	{
+		formatex(szBuffer, charsmax(szBuffer), "\d%s - 不可用", g_rgszWeaponName[iId]);
+		copy(szInfo, charsmax(szInfo), "-1,-1");
+	}
+	else
+	{
+		new iCost = g_rgiWeaponDefaultCost[iId];
+		if (g_rgRoleWeaponsAccessibility[iRoleIndex][iId] == WPN_D)
+			iCost /= 2;
+		else if (g_rgRoleWeaponsAccessibility[iRoleIndex][iId] == WPN_P)
+			iCost *= 2;
+		
+		if (iCurrentAccount >= iCost)
+			formatex(szBuffer, charsmax(szBuffer), "\w%s - \y%d\w$", g_rgszWeaponName[iId], iCost);
+		else
+			formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[iId], iCost);
+		
+		if (g_rgRoleWeaponsAccessibility[iRoleIndex][iId] == WPN_D)
+			strcat(szBuffer, " \y(已折扣)", charsmax(szBuffer));
+		else if (g_rgRoleWeaponsAccessibility[iRoleIndex][iId] == WPN_P)
+			strcat(szBuffer, " \r(含罰金)", charsmax(szBuffer));
+		
+		formatex(szInfo, charsmax(szInfo), "%d,%d", iId, iCost);
+	}
+	
+	menu_additem(hMenu, szBuffer, szInfo);
+}
+
+bool:AttemptPurchase(pPlayer, iId)
+{
+	new iCost = g_rgiWeaponDefaultCost[iId];
+	
+	switch (g_rgRoleWeaponsAccessibility[g_rgPlayerRole[pPlayer]][iId])
+	{
+		case WPN_F:
+		{
+			print_chat_color(pPlayer, REDCHAT, "你的身份不允許你持有%s!", g_rgszWeaponName[iId]);
+			return false;
+		}
+		case WPN_D:
+			iCost /= 2;
+		case WPN_P:
+			iCost *= 2;
+		default:
+		{
+		}
+	}
+	
+	if (get_pdata_int(pPlayer, m_iAccount) < iCost)
+	{
+		print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+		return false;
+	}
+	
+	DropWeapons(pPlayer, g_rgiWeaponDefaultSlot[iId] + 1);	// this array was designed for gmsgWeaponList. needs a constant offset.
+	fm_give_item(pPlayer, g_rgszWeaponEntity[iId]);
+	UTIL_AddAccount(pPlayer, -iCost);
+	return true;
 }
 
 
