@@ -121,10 +121,14 @@ TR:
 #define CSW_M200		CSW_SCOUT
 #define CSW_RADIO		2
 
+// airsupport
+//#define AIR_SUPPORT_ENABLE
+#if defined AIR_SUPPORT_ENABLE
 #define ANIM_RADIO_DRAW		1
 #define ANIM_RADIO_USE		3
 #define ANIMTIME_RADIO_DRAW	1.033
 #define ANIMTIME_RADIO_USE	2.756
+#endif
 
 enum TacticalScheme_e
 {
@@ -322,15 +326,19 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 new g_fwBotForwardRegister;
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
 new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
-new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes;
+new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink, TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes, Float:g_flNextMWDThink;
 new Role_e:g_rgPlayerRole[33], bool:g_rgbUsingSkill[33], bool:g_rgbAllowSkill[33], Float:g_rgflSkillCooldown[33], Float:g_rgflSkillExecutedTime[33];
 new g_rgiTeamCnfdnceMtnLeft[4], Float:g_rgflTeamCnfdnceMtnTimeLimit[4], g_rgiTeamCnfdnceMtnBallotBox[4][2], g_rgiConfidenceMotionVotes[33];
 new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
-new cvar_DebugMode;
+new cvar_DebugMode, cvar_restartSV;
 new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed;
-new g_ptrBeamSprite, g_strRadioViewModel, g_strRadioPersonalModel;
+new g_ptrBeamSprite;
+
+#if defined AIR_SUPPORT_ENABLE
+new g_strRadioViewModel, g_strRadioPersonalModel;
+#endif
 
 // SFX
 #define SFX_GAME_START_1		"leadermode/start_game_01.wav"
@@ -340,17 +348,21 @@ new g_ptrBeamSprite, g_strRadioViewModel, g_strRadioPersonalModel;
 #define SFX_TSD_SFD				"leadermode/infantry_rifle_cartridge_0%d.wav"
 #define SFX_GAME_WON			"leadermode/brittania_mission_arrived.wav"
 #define SFX_GAME_LOST			"leadermode/end_turn_brittania_04.wav"
-#define SFX_RADIO_DRAW			"weapons/radio_draw.wav"
-#define SFX_RADIO_USE			"weapons/radio_use.wav"
 #define MUSIC_GAME_WON			"sound/leadermode/Tally-ho.mp3"
 #define MUSIC_GAME_LOST			"sound/leadermode/Warrior_s_Tomb.mp3"
 #define SFX_VONC_PASSED			"leadermode/complete_focus_01.wav"
 #define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
 #define SFX_RADAR_BEEP			"leadermode/nes_8bit_alien3_radar_beep1.wav"
+#if defined AIR_SUPPORT_ENABLE
+#define SFX_RADIO_DRAW			"weapons/radio_draw.wav"
+#define SFX_RADIO_USE			"weapons/radio_use.wav"
+#endif
 
 // Models
+#if defined AIR_SUPPORT_ENABLE
 #define MDL_RADIO_V				"models/v_radio.mdl"
 #define MDL_RADIO_P				"models/p_radio.mdl"
+#endif
 
 // DIVIDE ET IMPERA
 #include "godfather.sma"
@@ -359,6 +371,9 @@ new g_ptrBeamSprite, g_strRadioViewModel, g_strRadioPersonalModel;
 #include "assassin.sma"
 #include "blaster.sma"
 #include "sharpshooter.sma"
+#if defined AIR_SUPPORT_ENABLE
+#include "commander_airsupport.sma"
+#endif
 
 public plugin_init()
 {
@@ -388,11 +403,6 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_HEGRENADE], "HamF_Weapon_WeaponIdle");
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_FLASHBANG], "HamF_Weapon_WeaponIdle");
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_SMOKEGRENADE], "HamF_Weapon_WeaponIdle");
-	
-	RegisterHam(Ham_Item_Deploy, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Deploy_Post", 1);
-	RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Knife_Slash");
-	RegisterHam(Ham_Weapon_SecondaryAttack, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Knife_Stab");
-	RegisterHam(Ham_Item_Holster, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Holster_Post", 1);
 
 	// FM hooks
 	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1)
@@ -413,8 +423,9 @@ public plugin_init()
 	register_message(get_user_msgid("StatusValue"),	"Message_StatusValue");
 	
 	// CVars
+	cvar_restartSV		= get_cvar_pointer("sv_restart");
 	cvar_DebugMode 		= register_cvar("lm_debug", 							"0");
-	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"60.0");
+	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"120.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
 	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
 	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
@@ -428,9 +439,6 @@ public plugin_init()
 	cvar_VONCtimeLimit	= register_cvar("lm_VONC_voting_time_limit",			"60.0");
 	
 	// client commands
-	register_clcmd("weapon_radio",		"Command_SelectRadio");
-	register_clcmd("weapon_knife",		"Command_SelectKnife");
-	//register_clcmd("lastinv",			"Command_LastWeapon");	// I am not sure whether this is needed.
 	register_clcmd("vs",				"Command_VoteTS");
 	register_clcmd("votescheme",		"Command_VoteTS");
 	register_clcmd("say /votescheme",	"Command_VoteTS");
@@ -458,11 +466,27 @@ public plugin_init()
 	Berserker_Initialize();
 	Sharpshooter_Initialize();
 	
+	// bot support
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
 	
 	// orpheu
 	g_pfn_RadiusFlash = OrpheuGetFunction("RadiusFlash");
 	g_pfn_CBasePlayer_ResetMaxSpeed = OrpheuGetFunctionFromClass("player", "ResetMaxSpeed", "CBasePlayer");
+	
+	// airsupport
+	#if defined AIR_SUPPORT_ENABLE
+	RegisterHam(Ham_Item_Deploy, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Deploy_Post", 1);
+	RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Knife_Slash");
+	RegisterHam(Ham_Weapon_SecondaryAttack, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Knife_Stab");
+	RegisterHam(Ham_Item_Holster, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Holster_Post", 1);
+	
+	register_clcmd("giveradio",			"Command_GiveRadio");
+	register_clcmd("weapon_radio",		"Command_SelectRadio");
+	register_clcmd("weapon_knife",		"Command_SelectKnife");
+	//register_clcmd("lastinv",			"Command_LastWeapon");	// I am not sure whether this is needed.
+	
+	AirSupport_Initialize();
+	#endif
 }
 
 public plugin_precache()
@@ -482,6 +506,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
 	
 	// Radio
+	#if defined AIR_SUPPORT_ENABLE
 	engfunc(EngFunc_PrecacheSound, SFX_RADIO_DRAW);
 	engfunc(EngFunc_PrecacheSound, SFX_RADIO_USE);
 	engfunc(EngFunc_PrecacheModel, MDL_RADIO_V);
@@ -492,6 +517,9 @@ public plugin_precache()
 	
 	g_strRadioPersonalModel	= engfunc(EngFunc_AllocString, MDL_RADIO_P);
 	g_strRadioViewModel		= engfunc(EngFunc_AllocString, MDL_RADIO_V);
+	
+	AirSupport_Precache();
+	#endif
 
 	// Schemes
 	engfunc(EngFunc_PrecacheSound, SFX_TSD_GBD);
@@ -516,6 +544,12 @@ public plugin_precache()
 	Sharpshooter_Precache();
 	Berserker_Precache();
 	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
+}
+
+public plugin_cfg()
+{
+	set_cvar_float("sv_maxvelocity", 99999.0);
+	set_cvar_float("sv_maxspeed", 9999.0);
 }
 
 public client_putinserver(pPlayer)
@@ -775,6 +809,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 		UTIL_AddAccount(iAttacker, -floatround(flDamage * 3.0));
 }
 
+#if defined AIR_SUPPORT_ENABLE
 public HamF_Item_Deploy_Post(iEntity)
 {
 	if (pev(iEntity, pev_weapons) != CSW_RADIO)
@@ -791,6 +826,7 @@ public HamF_Item_Deploy_Post(iEntity)
 	set_pdata_float(iEntity, m_flNextSecondaryAttack, ANIMTIME_RADIO_DRAW, 4);
 	set_pdata_float(iEntity, m_flTimeWeaponIdle, ANIMTIME_RADIO_DRAW, 4);
 }
+#endif
 
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
 {
@@ -801,6 +837,7 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack) * 0.5, 4);
 }
 
+#if defined AIR_SUPPORT_ENABLE
 public HamF_Knife_Slash(iEntity)
 {
 	if (pev(iEntity, pev_weapons) != CSW_RADIO)
@@ -815,6 +852,12 @@ public HamF_Knife_Slash(iEntity)
 	set_pdata_float(iEntity, m_flNextPrimaryAttack, ANIMTIME_RADIO_USE, 4);
 	set_pdata_float(iEntity, m_flNextSecondaryAttack, ANIMTIME_RADIO_USE, 4);
 	set_pdata_float(iEntity, m_flTimeWeaponIdle, ANIMTIME_RADIO_USE, 4);
+	
+	new Float:vecGoal[3], Float:vecOrigin[3];
+	get_aim_origin_vector(pPlayer, 9999.0, 0.0, 0.0, vecGoal);
+	engfunc(EngFunc_TraceLine, vecOrigin, vecGoal, IGNORE_MONSTERS|IGNORE_MISSILE|IGNORE_GLASS, pPlayer, 0);
+	get_tr2(0, TR_vecEndPos, vecGoal);
+	Call(pPlayer, TEAM_CT, vecGoal);
 	return HAM_SUPERCEDE;
 }
 
@@ -825,6 +868,7 @@ public HamF_Knife_Stab(iEntity)
 	
 	return HAM_SUPERCEDE;
 }
+#endif
 
 public HamF_Weapon_WeaponIdle(iEntity)
 {
@@ -858,10 +902,12 @@ public HamF_Weapon_WeaponIdle(iEntity)
 	return HAM_IGNORED;
 }
 
+#if defined AIR_SUPPORT_ENABLE
 public HamF_Item_Holster_Post(iEntity)
 {
 	set_pev(iEntity, pev_weapons, 0);
 }
+#endif
 
 public HamF_CS_RoundRespawn_Post(pPlayer)
 {
@@ -1460,7 +1506,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		g_rgflHUDThink[pPlayer] = 0.5 + get_gametime();
 	}
 	
-	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(pPlayer))
+	if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MobileWarfare && is_user_alive(pPlayer) && g_flNextMWDThink < get_gametime())
 	{
 		/**
 		// copy from player.h
@@ -1498,12 +1544,19 @@ public fw_PlayerPostThink_Post(pPlayer)
 		new bool:bEnemyExist = false;
 		for (new i = 1; i <= global_get(glb_maxClients); i++)
 		{
-			if (is_user_alive(i) && get_pdata_int(i, m_iTeam) == (3 - iTeam))	// this pdata is save, since '&&' operator will prevent the execution of the second parameter if the first one was already FALSE.
+			if (is_user_alive(i) && get_pdata_int(i, m_iTeam) == (3 - iTeam))	// this pdata is safe, since '&&' operator will prevent the execution of the second parameter if the first one was already FALSE.
 			{
 				bEnemyExist = true;
 				break;
 			}
 		}
+		
+		// LUNA: when sv_restart is used, the exact same bug would occurs.
+		if (get_pcvar_num(cvar_restartSV))
+			bEnemyExist = false;
+		
+		if (get_pcvar_num(cvar_restartSV) == 1)	// since sv_restart == 0 doesn't means the restart has over, we have to pause the think for 1 second.
+			g_flNextMWDThink = get_gametime() + 1.5;
 		
 		if (bEnemyExist)
 			set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
@@ -1979,6 +2032,12 @@ public Command_Assassin(pPlayer)
 
 public Command_Test(pPlayer)
 {
+	return PLUGIN_HANDLED;
+}
+
+#if defined AIR_SUPPORT_ENABLE
+public Command_GiveRadio(pPlayer)
+{
 	if (pev(pPlayer, pev_weapons) & (1<<CSW_RADIO))
 		set_pev(pPlayer, pev_weapons, pev(pPlayer, pev_weapons) & ~(1<<CSW_RADIO));
 	else
@@ -2029,6 +2088,7 @@ public Command_SelectKnife(pPlayer)
 	ExecuteHamB(Ham_Item_Deploy, iEntity);
 	return PLUGIN_HANDLED;
 }
+#endif
 
 public MenuHandler_VoteTS(pPlayer, hMenu, iItem)
 {
@@ -2440,6 +2500,51 @@ stock GetVelocityFromOrigin(Float:origin1[3], Float:origin2[3], Float:speed, Flo
 	
 	xs_vec_div_scalar(velocity, valve, velocity)
 }
+
+stock bool:fm_is_user_same_team(index1, index2)
+{
+	return !!(get_pdata_int(index1, m_iTeam) == get_pdata_int(index2, m_iTeam));
+}
+
+stock get_spherical_coord(const Float:ent_origin[3], Float:redius, Float:level_angle, Float:vertical_angle, Float:origin[3])
+{
+	static Float:length
+	length = redius * floatcos(vertical_angle, degrees)
+	
+	origin[0] = ent_origin[0] + length * floatcos(level_angle, degrees)
+	origin[1] = ent_origin[1] + length * floatsin(level_angle, degrees)
+	origin[2] = ent_origin[2] + redius * floatsin(vertical_angle, degrees)
+}
+
+stock bool:UTIL_PointVisible(const Float:vecSrc[3], const Float:vecEnd[3], iIgnoreType = DONT_IGNORE_MONSTERS, iSkipEntity = 0)
+{
+	new Float:flFraction;
+	engfunc(EngFunc_TraceLine, vecSrc, vecEnd, iIgnoreType, iSkipEntity, 0);
+	get_tr2(0, TR_flFraction, flFraction);
+	
+	return (flFraction >= 1.0);
+}
+
+stock get_aim_origin_vector(iPlayer, Float:forw, Float:right, Float:up, Float:vStart[])
+{
+	new Float:vOrigin[3], Float:vAngle[3], Float:vForward[3], Float:vRight[3], Float:vUp[3]
+	
+	pev(iPlayer, pev_origin, vOrigin)
+	pev(iPlayer, pev_view_ofs, vUp)
+	xs_vec_add(vOrigin, vUp, vOrigin)
+	pev(iPlayer, pev_v_angle, vAngle)
+	
+	angle_vector(vAngle, ANGLEVECTOR_FORWARD, vForward)
+	angle_vector(vAngle, ANGLEVECTOR_RIGHT, vRight)
+	angle_vector(vAngle, ANGLEVECTOR_UP, vUp)
+	
+	vStart[0] = vOrigin[0] + vForward[0] * forw + vRight[0] * right + vUp[0] * up
+	vStart[1] = vOrigin[1] + vForward[1] * forw + vRight[1] * right + vUp[1] * up
+	vStart[2] = vOrigin[2] + vForward[2] * forw + vRight[2] * right + vUp[2] * up
+}
+
+
+
 
 
 
