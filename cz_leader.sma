@@ -617,10 +617,8 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, SFX_VONC_REJECTED);
 	
 	// Roles
-	engfunc(EngFunc_PrecacheSound, GODFATHER_GRAND_SFX);
-	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
-	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
-	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
+	Godfather_Precache();
+	Commander_Precache();
 	Assassin_Precache();
 	Blaster_Precache();
 	Sharpshooter_Precache();
