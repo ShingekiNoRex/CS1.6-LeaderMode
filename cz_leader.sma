@@ -76,9 +76,10 @@ TR:
 #include <offset>
 #include <xs>
 #include <orpheu>
+#include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.11"
+#define VERSION	"1.11.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -489,6 +490,7 @@ public plugin_init()
 	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink_Post", 1)
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
 	register_forward(FM_CmdStart, "fw_CmdStart");
+	register_forward(FM_ClientCommand, "fw_ClientCommand");
 	
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
@@ -640,8 +642,6 @@ public client_putinserver(pPlayer)
 	g_rgflSkillCooldown[pPlayer] = 0.0;
 	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
-	
-	client_cmd(pPlayer, "bind b buy2");
 }
 
 public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
@@ -1762,6 +1762,17 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 	return FMRES_IGNORED;
 }
 
+public fw_ClientCommand(iPlayer)
+{
+	static szCommand[24];
+	read_argv(0, szCommand, charsmax(szCommand));
+	
+	if (UTIL_GetAliasId(szCommand))	// block original buy
+		return FMRES_SUPERCEDE;
+	
+	return FMRES_IGNORED;
+}
+
 public Task_PlayerResurrection(iPlayer)
 {
 	if (!is_user_connected(iPlayer))
@@ -2861,6 +2872,80 @@ stock get_aim_origin_vector(iPlayer, Float:forw, Float:right, Float:up, Float:vS
 	vStart[2] = vOrigin[2] + vForward[2] * forw + vRight[2] * right + vUp[2] * up
 }
 
+stock UTIL_GetAliasId(szAlias[])
+{
+	static Trie:tAliasesIds;
+	if( tAliasesIds == Trie:0 )
+	{
+		tAliasesIds = TrieCreate()
+		TrieSetCell(tAliasesIds, "p228",		CSW_P228)
+		TrieSetCell(tAliasesIds, "228compact",	CSW_P228)
+		TrieSetCell(tAliasesIds, "scout",		CSW_SCOUT)
+		TrieSetCell(tAliasesIds, "hegren",		CSW_HEGRENADE)
+		TrieSetCell(tAliasesIds, "xm1014",		CSW_XM1014)
+		TrieSetCell(tAliasesIds, "autoshotgun",	CSW_XM1014)
+		TrieSetCell(tAliasesIds, "mac10",		CSW_MAC10)
+		TrieSetCell(tAliasesIds, "aug",			CSW_AUG)
+		TrieSetCell(tAliasesIds, "bullpup",		CSW_AUG)
+		TrieSetCell(tAliasesIds, "sgren",		CSW_SMOKEGRENADE)
+		TrieSetCell(tAliasesIds, "elites",		CSW_ELITE)
+		TrieSetCell(tAliasesIds, "fn57",		CSW_FIVESEVEN)
+		TrieSetCell(tAliasesIds, "fiveseven",	CSW_FIVESEVEN)
+		TrieSetCell(tAliasesIds, "ump45",		CSW_UMP45)
+		TrieSetCell(tAliasesIds, "sg550",		CSW_SG550)
+		TrieSetCell(tAliasesIds, "krieg550",	CSW_SG550)
+		TrieSetCell(tAliasesIds, "galil",		CSW_GALIL)
+		TrieSetCell(tAliasesIds, "defender",	CSW_GALIL)
+		TrieSetCell(tAliasesIds, "famas",		CSW_FAMAS)
+		TrieSetCell(tAliasesIds, "clarion",		CSW_FAMAS)
+		TrieSetCell(tAliasesIds, "usp",			CSW_USP)
+		TrieSetCell(tAliasesIds, "km45",		CSW_USP)
+		TrieSetCell(tAliasesIds, "glock",		CSW_GLOCK18)
+		TrieSetCell(tAliasesIds, "9x19mm",		CSW_GLOCK18)
+		TrieSetCell(tAliasesIds, "awp",			CSW_AWP)
+		TrieSetCell(tAliasesIds, "magnum",		CSW_AWP)
+		TrieSetCell(tAliasesIds, "mp5",			CSW_MP5NAVY)
+		TrieSetCell(tAliasesIds, "smg",			CSW_MP5NAVY)
+		TrieSetCell(tAliasesIds, "m249",		CSW_M249)
+		TrieSetCell(tAliasesIds, "m3",			CSW_M3)
+		TrieSetCell(tAliasesIds, "12gauge",		CSW_M3)
+		TrieSetCell(tAliasesIds, "m4a1",		CSW_M4A1)
+		TrieSetCell(tAliasesIds, "tmp",			CSW_TMP)
+		TrieSetCell(tAliasesIds, "mp",			CSW_TMP)
+		TrieSetCell(tAliasesIds, "g3sg1",		CSW_G3SG1)
+		TrieSetCell(tAliasesIds, "d3au1",		CSW_G3SG1)
+		TrieSetCell(tAliasesIds, "flash",		CSW_FLASHBANG)
+		TrieSetCell(tAliasesIds, "deagle",		CSW_DEAGLE)
+		TrieSetCell(tAliasesIds, "nighthawk",	CSW_DEAGLE)
+		TrieSetCell(tAliasesIds, "sg552",		CSW_SG552)
+		TrieSetCell(tAliasesIds, "krieg552",	CSW_SG552)
+		TrieSetCell(tAliasesIds, "ak47",		CSW_AK47)
+		TrieSetCell(tAliasesIds, "cv47",		CSW_AK47)
+		TrieSetCell(tAliasesIds, "p90",			CSW_P90)
+		TrieSetCell(tAliasesIds, "c90",			CSW_P90)
+
+		TrieSetCell(tAliasesIds, "vest",		99)
+		TrieSetCell(tAliasesIds, "vesthelm",	99)
+
+		TrieSetCell(tAliasesIds, "defuser",		99)
+		TrieSetCell(tAliasesIds, "nvgs",		99)
+		TrieSetCell(tAliasesIds, "shield",		99)
+		TrieSetCell(tAliasesIds, "buyammo1",	99)
+		TrieSetCell(tAliasesIds, "primammo",	99)
+		TrieSetCell(tAliasesIds, "buyammo2",	99)
+		TrieSetCell(tAliasesIds, "secammo",		99)
+	}
+
+	strtolower(szAlias);
+
+	new iId
+	if( TrieGetCell(tAliasesIds, szAlias, iId) )
+	{
+		return iId;
+	}
+	
+	return 0;
+}
 
 
 
