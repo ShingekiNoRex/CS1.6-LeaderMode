@@ -6,7 +6,7 @@
 #include <offset>
 
 #define PLUGIN		"Grenade Quick Throw"
-#define VERSION		"1.0"
+#define VERSION		"1.0.1"
 #define AUTHOR		"Luna the Reborn"
 
 #define CLASSNAME_GRENADE	"weapon_hegrenade"
@@ -27,6 +27,8 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
+	register_forward(FM_UpdateClientData, "fw_UpdateClientData_Post", 1);
+	
 	register_clcmd("+qtg",	"Command_QTGStart");
 	register_clcmd("-qtg",	"Command_QTGRelease");
 	
@@ -41,6 +43,24 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheModel, QTG_VMDL);
 	
 	g_strQuickHEVMDL = engfunc(EngFunc_AllocString, QTG_VMDL);
+}
+
+public fw_UpdateClientData_Post(pPlayer, iSendWeapon, hCD)
+{
+	if (get_cd(hCD, CD_DeadFlag) != DEAD_NO)
+		return;
+	
+	if (get_cd(hCD, CD_ID) != CSW_HEGRENADE)
+		return;
+	
+	new iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+	if (pev(iEntity, pev_iuser4) != QUICKTHROW_KEY && pev(iEntity, pev_iuser3) != QUICKTHROW_KEY)	// don't block normal grenades.
+		return;
+	
+	// reference: client.cpp::void (*UpdateClientData)(const struct edict_s *ent, int sendweapons, struct clientdata_s *cd)
+	
+	set_cd(hCD, CD_iUser3, 0);	// prevents IUSER3_CANSHOOT
+	set_cd(hCD, CD_ID, 0);		// prevents client weapon predicts.
 }
 
 public Command_QTGStart(pPlayer)
@@ -60,6 +80,9 @@ public Command_QTGStart(pPlayer)
 		// FOUND!
 		break;
 	}
+	
+	if (get_pdata_cbase(pPlayer, m_pActiveItem) == iEntity)	// never QGT when player had already take it out.
+		return PLUGIN_HANDLED;
 	
 	set_pev(iEntity, pev_iuser4, QUICKTHROW_KEY);
 	engclient_cmd(pPlayer, CLASSNAME_GRENADE);
