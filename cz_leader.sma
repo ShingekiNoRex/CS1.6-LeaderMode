@@ -4,6 +4,7 @@
  - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
  - 不信任動議投票 (罷免指揮官)
  - 選舉(指揮官任命?)職業，職業人數限制
+ - 購買手槍默認全員允許
 
 
 策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。策略每20秒得以更換。 ✔ (LUNA)
@@ -17,40 +18,53 @@
 	造成傷害及擊殺賞金翻倍。
 	初始裝備包含護甲和各類手榴彈。
 機動作戰學說：	✔
-	增援會部署於指揮官附近。
+	增援會部署於隊長附近。
 	可以於任意地點購買裝備。
+
+
+叮噹貓：什麼都可以買。
 
 CT:
 指挥官	(1)
+(半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
 (被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
 S.W.A.T.
+(優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
 (立即填充所有手榴彈、彈藥和護甲，10秒内轉移90%傷害至護甲)
 (被動：AP 200，周围友军缓慢恢复护甲)
 爆破手
+(優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
 (10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
 (被動：死后爆炸) ✔ (REX)
 神射手
+(優惠M200、手榴彈和ANACONDA，允許AWP、半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：冰凍手榴彈) ✔ (REX)
 医疗兵
+(優惠G18C、ANACONDA、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半)
 (被動：煙霧彈具有治療效果)
 
 TR:
 教父	(1)
+(優惠手槍，半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
-(血量越低枪械伤害越高，5秒内最低维持1血，5秒后若血量不超过1则死亡)	✔ (REX)
-(被動：擊殺賞金均全額賦予)	(UNDONE)
+(優惠輕機槍、自動步槍、衝鋒槍、霰彈槍)
+(5秒内最低维持1血，5秒后若血量不超过1则死亡)	✔ (REX)
+(被動：血量越低枪械伤害越高)	(UNDONE)
 疯狂科学家
-(電擊彈藥，將瞄準目標吸往自己的方向)
-(被動：遭受的AP傷害以電擊雙倍返還)
+(優惠G18C、ANACONDA和煙霧彈，允許KSG、PM9和MP7)
+(遭受的傷害(HP+AP)以電擊形式返還，將瞄準目標吸往自己的方向)
+(被動：煙霧彈更換為毒氣彈、30%概率發射電擊彈藥(減速，扳機和視角不受控制))
 暗杀者
+(優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
 (消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
 (被動：消音武器有1%的概率暴擊) ✔ (LUNA)
 纵火犯
+(優惠霰彈槍和手榴彈，允許衝鋒槍、突擊步槍)
 (火焰弹药，燃烧伤害附带减速效果)
 (被動：高爆手雷改为燃烧瓶)
 
@@ -64,7 +78,7 @@ TR:
 #include <orpheu>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.10.2"
+#define VERSION	"1.11"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -120,6 +134,11 @@ TR:
 #define CSW_P99			CSW_ELITE
 #define CSW_M200		CSW_SCOUT
 #define CSW_RADIO		2
+
+#define WPN_P	-1	// penalty: price * 2
+#define WPN_F	0	// forbidden: price * 99999
+#define WPN_A	1	// allowed: price * 1
+#define WPN_D	2	// discounted: price * 0.5
 
 // airsupport
 //#define AIR_SUPPORT_ENABLE
@@ -302,8 +321,64 @@ stock const g_rgszWeaponEntity[][] =
 	"weapon_p90"
 };
 
+stock const g_rgszWeaponName[][] =
+{
+	"",
+	"Colt Anaconda",
+	"",
+	"CheyTac Intervention M200",
+	"手榴彈",
+	"Armsel Striker",
+	"定時炸彈",
+	"Minebea PM-9",
+	"Remington ACR",
+	"煙霧彈",
+	"雙持Walther P99",
+	"FiveseveN",
+	"H&K UMP45",
+	"Mk.14 EBR",
+	"Colt CM901",
+	"Norinco QBZ95",
+	"H&K USP.45",
+	"Glock 18C",
+	"A.I. Arctic Warfare",
+	"H&K MP5",
+	"Mk.46 Mod.0",
+	"Kel-Tec KSG-12",
+	"Colt M4A1",
+	"H&K MP7A1",
+	"Dragunov SVD",
+	"閃光彈",
+	"IMI Desert Eagle",
+	"FN SCAR-L",
+	"Автомат Калашникова",
+	"匕首",
+	"FN P90"
+};
+
 //												5			   10			  15			 20				25			   30	// if this isn't lined up, please use Notepad++
 stock const g_rgiClipRegen[] = { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 4, 0, 1, 2, 0, 0, 0, 1, 1, 0, 2 };
+
+stock const g_rgiWeaponDefaultCost[] = { -1, 600, -1, 2750, 300, 3000, 0, 1400, 3500, 300, 800, 750, 1700, 4200, 2000, 2250, 500, 400, 4750, 1500, 5750, 1700, 3100, 1250, 5000, 200, 650, 3500, 2500, 0, 2350 };
+stock const g_rgiWeaponDefaultSlot[] = { -1, 1, -1, 0, 3, 0, 4, 0, 0, 3, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 2, 0 };
+stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
+{
+//					      0                                  5                                  10                                 15                                 20                                 25                                 30
+//					      NONE   ANACO  UNUSED M200   HE     M1014  C4     PM9    ACR    S_GR   P99    FN57   UMP45  M14    CM901  QBZ95  USP    G18C   AWP    MP5    MK46   KSG    M4A1   MP7A1  SVD    FBang  DEAGLE SG552  AK74   KNIFE  P90
+/*Role_UNASSIGNED*/		{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
+
+/*Role_Commander = 1*/	{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
+/*Role_SWAT*/			{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D },
+/*Role_Blaster*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
+/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_A, WPN_P, WPN_P, WPN_F, WPN_F },
+/*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D },
+
+/*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
+/*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
+/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
+/*Role_Assassin*/		{ WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
+/*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A }
+};
 
 new const g_rgszEntityToRemove[][] =
 {
@@ -389,6 +464,7 @@ public plugin_init()
 	RegisterHam(Ham_TakeDamage, "player", "HamF_TakeDamage_Post", 1);
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	RegisterHam(Ham_BloodColor, "player", "HamF_BloodColor");
+	RegisterHam(Ham_Touch, "weaponbox", "HamF_Weaponbox_Touch");
 	
 	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
@@ -452,13 +528,15 @@ public plugin_init()
 	register_clcmd("say /dr",			"Command_DeclareRole");
 	register_clcmd("mr",				"Command_ManageRoles");
 	register_clcmd("say /dr",			"Command_ManageRoles");
+	register_clcmd("buy",				"Command_Buy");
+	register_clcmd("buy2",				"Command_Buy");
 	
 	// debug commands
 	register_clcmd("assassin",			"Command_Assassin");
 	register_clcmd("berserker",			"Command_Berserker");
 	register_clcmd("blaster",			"Command_Blaster");
 	register_clcmd("sharpshooter",		"Command_Sharpshooter");
-	register_clcmd("test",				"Command_Test");
+	//register_clcmd("test",				"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -562,6 +640,8 @@ public client_putinserver(pPlayer)
 	g_rgflSkillCooldown[pPlayer] = 0.0;
 	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
+	
+	client_cmd(pPlayer, "bind b buy2");
 }
 
 public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
@@ -995,6 +1075,26 @@ public HamF_BloodColor(iPlayer)
 	
 	SetHamReturnInteger(15);
 	return HAM_SUPERCEDE;
+}
+
+public HamF_Weaponbox_Touch(iEntity, iPlayer)
+{
+	if (!is_user_alive(iPlayer))	// assassin is not allowed to pickup weapons while sneaking.
+		return HAM_IGNORED
+	
+	for (new i = 1; i < 6; i++)
+	{
+		new iWeapon = get_pdata_cbase(iEntity, m_rgpPlayerItems2[i], 4);
+		
+		if (pev_valid(iWeapon) != 2)
+			continue;
+		
+		new iId = get_pdata_int(iWeapon, m_iId, 4);
+		if (g_rgRoleWeaponsAccessibility[g_rgPlayerRole[iPlayer]][iId] == WPN_F)
+			return HAM_SUPERCEDE;
+	}
+	
+	return HAM_IGNORED;
 }
 
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
@@ -2062,8 +2162,32 @@ public Command_Assassin(pPlayer)
 	return PLUGIN_CONTINUE;
 }
 
-public Command_Test(pPlayer)
+public Command_Buy(pPlayer)
 {
+	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
+		return PLUGIN_HANDLED;
+	
+	static szCommand[24]
+	read_argv(1, szCommand, charsmax(szCommand))
+	
+	if (!strlen(szCommand))
+		formatex(szCommand, charsmax(szCommand), "%d", g_rgPlayerRole[pPlayer]);
+	
+	new szBuffer[192];
+	formatex(szBuffer, charsmax(szBuffer), "\r購買菜單^n\y身份: \w%s", g_rgszRoleNames[Role_e:str_to_num(szCommand)]);
+	
+	new hMenu = menu_create(szBuffer, "MenuHandler_Buy");
+
+	menu_additem(hMenu, "職業折扣武器", szCommand);
+	menu_additem(hMenu, "允許的武器", szCommand);
+	menu_additem(hMenu, "價格有懲罰的武器", szCommand);
+	menu_additem(hMenu, "防彈衣 - 650$", szCommand);
+	menu_additem(hMenu, "鋼盔與防彈衣 - 1000$", szCommand);
+	
+	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
+	menu_setprop(hMenu, MPROP_EXITNAME, "離開");
+	menu_display(pPlayer, hMenu, 0);
+	
 	return PLUGIN_HANDLED;
 }
 
@@ -2157,6 +2281,165 @@ public MenuHandler_VoteONC(pPlayer, hMenu, iItem)
 	
 	UTIL_ColorfulPrintChat(0, "/y針對%s/g%s/y的/t不信任動議/y: %s/t%d/y票, %s/g%d/y票。", REDCHAT, g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgszCnfdnceMtnText[DEPRIVE], g_rgiTeamCnfdnceMtnBallotBox[iTeam][DEPRIVE], g_rgszCnfdnceMtnText[TRUST], g_rgiTeamCnfdnceMtnBallotBox[iTeam][TRUST]);
 	UTIL_ColorfulPrintChat(0, "/t%s/y至少要比/g%s/y多一票, 不信任動議方可通過。", REDCHAT, g_rgszCnfdnceMtnText[DEPRIVE], g_rgszCnfdnceMtnText[TRUST]);
+	
+	menu_destroy(hMenu);
+	return PLUGIN_HANDLED;
+}
+
+public MenuHandler_Buy(pPlayer, hMenu, iItem)
+{
+	new hNextMenu = -1;
+	new szRoleIndex[8], Role_e:iRoleIndex, iDummy, szDummy[32], iDummy2;
+	menu_item_getinfo(hMenu, iItem, iDummy, szRoleIndex, charsmax(szRoleIndex), szDummy, charsmax(szDummy), iDummy2);
+	iRoleIndex = Role_e:str_to_num(szRoleIndex);
+	
+	switch (iItem)
+	{
+		case 0:
+		{
+			new szBuffer[192];
+			formatex(szBuffer, charsmax(szBuffer), "\r職業折扣武器^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			for (new i = 1; i <= CSW_P90; i++)
+			{
+				if (g_rgRoleWeaponsAccessibility[iRoleIndex][i] == WPN_D)
+				{
+					if (get_pdata_int(pPlayer, m_iAccount) >= g_rgiWeaponDefaultCost[i] / 2)
+						formatex(szBuffer, charsmax(szBuffer), "\w%s - \y%d\w$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i] / 2);
+					else
+						formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i] / 2);
+					
+					new szInfo[8];
+					formatex(szInfo, charsmax(szInfo), "%d,%d", i, g_rgiWeaponDefaultCost[i] / 2);
+					menu_additem(hNextMenu, szBuffer, szInfo);
+				}
+			}
+		}
+		case 1:
+		{
+			new szBuffer[192];
+			formatex(szBuffer, charsmax(szBuffer), "\r允許的武器^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			for (new i = 1; i <= CSW_P90; i++)
+			{
+				if (g_rgRoleWeaponsAccessibility[iRoleIndex][i] == WPN_A)
+				{
+					if (get_pdata_int(pPlayer, m_iAccount) >= g_rgiWeaponDefaultCost[i])
+						formatex(szBuffer, charsmax(szBuffer), "\w%s - \y%d\w$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i]);
+					else
+						formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i]);
+					
+					new szInfo[8];
+					formatex(szInfo, charsmax(szInfo), "%d,%d", i, g_rgiWeaponDefaultCost[i]);
+					menu_additem(hNextMenu, szBuffer, szInfo);
+				}
+			}
+		}
+		case 2:
+		{
+			new szBuffer[192];
+			formatex(szBuffer, charsmax(szBuffer), "\r價格有懲罰的武器^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
+			
+			hNextMenu = menu_create(szBuffer, "MenuHandler_GiveWeapon");
+			
+			for (new i = 1; i <= CSW_P90; i++)
+			{
+				if (g_rgRoleWeaponsAccessibility[iRoleIndex][i] == WPN_P)
+				{
+					if (get_pdata_int(pPlayer, m_iAccount) >= g_rgiWeaponDefaultCost[i] * 2)
+						formatex(szBuffer, charsmax(szBuffer), "\w%s - \y%d\w$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i] * 2);
+					else
+						formatex(szBuffer, charsmax(szBuffer), "\d%s - \r%d\d$", g_rgszWeaponName[i], g_rgiWeaponDefaultCost[i] * 2);
+					
+					new szInfo[8];
+					formatex(szInfo, charsmax(szInfo), "%d,%d", i, g_rgiWeaponDefaultCost[i] * 2);
+					menu_additem(hNextMenu, szBuffer, szInfo);
+				}
+			}
+		}
+		case 3:
+		{
+			if (get_pdata_int(pPlayer, m_iAccount) >= 650)
+			{
+				set_pev(pPlayer, pev_armorvalue, 100.0);
+				set_pdata_int(pPlayer, m_iKevlar, max(get_pdata_int(pPlayer, m_iKevlar), 1));
+				UTIL_AddAccount(pPlayer, -650);
+			}
+			else
+				print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+		}
+		case 4:
+		{
+			if (get_pdata_int(pPlayer, m_iKevlar) == 2)
+			{
+				if (get_pdata_int(pPlayer, m_iAccount) >= 650)
+				{
+					set_pev(pPlayer, pev_armorvalue, 100.0);
+					UTIL_AddAccount(pPlayer, -650);
+				}
+				else
+					print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+			}
+			else
+			{
+				if (get_pdata_int(pPlayer, m_iAccount) >= 1000)
+				{
+					set_pev(pPlayer, pev_armorvalue, 100.0);
+					set_pdata_int(pPlayer, m_iKevlar, 2);
+					UTIL_AddAccount(pPlayer, -1000);
+				}
+				else
+					print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+			}
+		}
+		default:
+		{
+		}
+	}
+	
+	menu_destroy(hMenu);
+	
+	if (hNextMenu >= 0)
+	{
+		menu_setprop(hNextMenu, MPROP_BACKNAME, "上一頁");
+		menu_setprop(hNextMenu, MPROP_NEXTNAME, "下一頁");
+		menu_setprop(hNextMenu, MPROP_EXITNAME, "離開");
+		menu_display(pPlayer, hNextMenu);
+	}
+
+	return PLUGIN_HANDLED;
+}
+
+public MenuHandler_GiveWeapon(pPlayer, hMenu, iItem)
+{
+	new szInfo[8], iDummy, szDummy[32], iDummy2;
+	menu_item_getinfo(hMenu, iItem, iDummy, szInfo, charsmax(szInfo), szDummy, charsmax(szDummy), iDummy2);
+	
+	new sziId[8], szCost[8];
+	strtok(szInfo, sziId, charsmax(sziId), szCost, charsmax(szCost), ',', true);
+	
+	new iId = str_to_num(sziId);
+	new iCost = str_to_num(szCost);
+	
+	if (iId <= 0 || iCost <= 0)
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
+	if (get_pdata_int(pPlayer, m_iAccount) < iCost)
+	{
+		print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+		return PLUGIN_HANDLED;
+	}
+	
+	DropWeapons(pPlayer, g_rgiWeaponDefaultSlot[iId] + 1);	// this array was designed for gmsgWeaponList. needs a constant offset.
+	fm_give_item(pPlayer, g_rgszWeaponEntity[iId]);
+	UTIL_AddAccount(pPlayer, -iCost);
 	
 	menu_destroy(hMenu);
 	return PLUGIN_HANDLED;
@@ -2280,8 +2563,8 @@ stock fm_set_user_money(index, iMoney, bool:bSignal = true)
 	
 	if (iMoney > 16000)
 		iMoney = 16000;
-	else if (iMoney < 800)
-		iMoney = 800;
+	else if (iMoney < 0)
+		iMoney = 0;
 
 	set_pdata_int(index, m_iAccount, iMoney);
 
@@ -2366,6 +2649,9 @@ stock bool:UTIL_CheckPassibility(const Float:vecOrigin[3])	// return true is acc
 
 stock DropWeapons(iPlayer, iSlot)
 {
+	if (iSlot != 1 && iSlot != 2)
+		return;
+	
 	new pItem = get_pdata_cbase(iPlayer, m_rgpPlayerItems[iSlot], 4);
 	while (pItem > 0)
 	{
