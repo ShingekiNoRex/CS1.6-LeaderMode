@@ -7,7 +7,7 @@
 
 #define PLUGIN		"Grenade Quick Throw"
 #define VERSION		"1.0.1"
-#define AUTHOR		"Luna the Reborn"
+#define AUTHOR		"Luna(plugin) & Matoilet(model)"
 
 #define CLASSNAME_GRENADE	"weapon_hegrenade"
 #define QTG_VMDL	"models/v_CODhegrenade.mdl"

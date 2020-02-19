@@ -1558,7 +1558,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 			bEnemyExist = false;
 		
 		if (get_pcvar_num(cvar_restartSV) == 1)	// since sv_restart == 0 doesn't means the restart has over, we have to pause the think for 1 second.
-			g_flNextMWDThink = get_gametime() + 1.5;
+			g_flNextMWDThink = get_gametime() + 2.5;
 		
 		if (bEnemyExist)
 			set_pdata_int(pPlayer, m_signals[0], get_pdata_int(pPlayer, m_signals[0]) | SIGNAL_BUY);
