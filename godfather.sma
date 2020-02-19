@@ -6,6 +6,9 @@
 #define GODFATHER_TEXT	g_rgszRoleNames[Role_Godfather]
 #define GODFATHER_TASK	3654861	// just some random number.
 
+#define GODFATHER_MODEL			"models/player/Redmat.mdl"
+#define GODFATHER_MODEL_T		"models/player/RedmatT.mdl"
+
 #define GODFATHER_GRAND_SFX		"leadermode/sfx_event_sainthood_01.wav"
 #define GODFATHER_REVOKE_SFX	"leadermode/sfx_bloodline_add_bloodline_01.wav"
 
@@ -24,6 +27,15 @@ public Godfather_Initialize()
 
 	g_rgSkillDuration[Role_Godfather] = cvar_godfatherDuration;
 	g_rgSkillCooldown[Role_Godfather] = cvar_godfatherCooldown;
+}
+
+public Godfather_Precache()
+{
+	engfunc(EngFunc_PrecacheModel, GODFATHER_MODEL);
+	engfunc(EngFunc_PrecacheModel, GODFATHER_MODEL_T);
+
+	engfunc(EngFunc_PrecacheSound, GODFATHER_GRAND_SFX);
+	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
 }
 
 public Godfather_Assign(pPlayer)

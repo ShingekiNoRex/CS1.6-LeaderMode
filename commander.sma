@@ -6,6 +6,9 @@
 #define COMMANDER_TEXT	g_rgszRoleNames[Role_Commander]
 #define COMMANDER_TASK	2876674	// just some random number.
 
+#define COMMANDER_MODEL			"models/player/Bluemat.mdl"
+#define COMMANDER_MODEL_T		"models/player/BluematT.mdl"
+
 #define COMMANDER_GRAND_SFX		"leadermode/peace_summary_message_01.wav"
 #define COMMANDER_REVOKE_SFX	"leadermode/assign_leader_02.wav"
 
@@ -23,6 +26,15 @@ public Commander_Initialize()
 	
 	gmsgHostagePos	= get_user_msgid("HostagePos");
 	gmsgHostageK	= get_user_msgid("HostageK");
+}
+
+public Commander_Precache()
+{
+	engfunc(EngFunc_PrecacheModel, COMMANDER_MODEL);
+	engfunc(EngFunc_PrecacheModel, COMMANDER_MODEL_T);
+
+	engfunc(EngFunc_PrecacheSound, COMMANDER_GRAND_SFX);
+	engfunc(EngFunc_PrecacheSound, COMMANDER_REVOKE_SFX);
 }
 
 public Commander_Assign(pPlayer)
