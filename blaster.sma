@@ -5,6 +5,8 @@
 #define BLASTER_TEXT	g_rgszRoleNames[Role_Blaster]
 #define BLASTER_TASK	5971543	// just some random number.
 
+#define BLASTER_EXPLODE_SFX		"leadermode/Allahu.wav"
+
 new g_smodelindexfireball[2];
 new cvar_blasterDuration, cvar_blasterCooldown, cvar_explosionDamage, cvar_explosionRange;
 
@@ -21,6 +23,7 @@ public Blaster_Initialize()
 
 public Blaster_Precache()
 {
+	engfunc(EngFunc_PrecacheSound, BLASTER_EXPLODE_SFX);
 	g_smodelindexfireball[0] = engfunc(EngFunc_PrecacheModel, "sprites/eexplo.spr");
 	g_smodelindexfireball[1] = engfunc(EngFunc_PrecacheModel, "sprites/fexplo.spr");
 }
@@ -103,4 +106,6 @@ public Blaster_Explosion(iPlayer)
 	write_byte(30);
 	write_byte(TE_EXPLFLAG_NONE);
 	message_end();
+
+	engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, BLASTER_EXPLODE_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 }
