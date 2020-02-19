@@ -2,9 +2,9 @@
 
  - 金錢有限，以傷害為準	✔ (LUNA)
  - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
- - 不信任動議投票 (罷免指揮官)
+ - 不信任動議投票 (罷免指揮官) ✔ (LUNA)
  - 選舉(指揮官任命?)職業，職業人數限制
- - 購買手槍默認全員允許
+ - 購買手槍默認全員允許；因為職業持有錯誤的武器可以退款
 
 
 策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。策略每20秒得以更換。 ✔ (LUNA)
@@ -30,13 +30,13 @@ CT:
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
 (被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
 S.W.A.T.
-(優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
+(優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)	(LUNA預定)
 (立即填充所有手榴彈、彈藥和護甲，10秒内轉移90%傷害至護甲)
 (被動：AP 200，周围友军缓慢恢复护甲)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
 (10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
-(被動：死后爆炸) ✔ (REX)
+(被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (UNDONE: 霰彈槍效果)
 神射手
 (優惠M200、手榴彈、ANACONDA和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
@@ -135,6 +135,8 @@ TR:
 #define CSW_P99			CSW_ELITE
 #define CSW_M200		CSW_SCOUT
 #define CSW_RADIO		2
+#define CSW_VEST		31
+#define CSW_VESTHELM	32
 
 #define WPN_P	-1	// penalty: price * 2
 #define WPN_F	0	// forbidden: price * 99999
@@ -373,7 +375,7 @@ stock const g_rgszWeaponName[][] =
 	"雙持P99手槍",
 	"五七式手槍",
 	"UMP45衝鋒槍",
-	"Mk.14戰鬥增強型",
+	"Mk.14消音型",
 	"CM901突擊步槍",
 	"QBZ95突擊步槍",
 	"USP.45消音手槍",
@@ -413,10 +415,19 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
-/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
+/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
 /*Role_Assassin*/		{ WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
 /*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A }
 };
+
+stock const g_rgiPistolsId[] = { CSW_GLOCK18, CSW_USP, CSW_ANACONDA, CSW_DEAGLE, CSW_FIVESEVEN, CSW_P99 };
+stock const g_rgiShotgunsId[] = { CSW_KSG12, CSW_STRIKER };
+stock const g_rgiSMGsId[] = { CSW_MP7A1, CSW_PM9, CSW_MP5NAVY, CSW_UMP45, CSW_P90 };
+stock const g_rgiAssaultRiflesId[] = { CSW_CM901, CSW_QBZ95, CSW_M4A1, CSW_AK47, CSW_ACR, CSW_SCARL, CSW_MK46 };
+stock const g_rgiSniperRiflesId[] = { CSW_M200, CSW_M14EBR, CSW_AWP, CSW_SVD };
+stock const g_rgiEquipmentsId[] = { CSW_FLASHBANG, CSW_HEGRENADE, CSW_SMOKEGRENADE };
+stock const g_rgszBuyMenu3Text[][] = { "手槍", "霰彈槍", "衝鋒槍", "突擊武器", "狙擊槍", "裝備" };
+stock const g_rgiWeaponCategory[] = { -1, 0, -1, 4, 5, 1, 0, 2, 3, 5, 0, 0, 2, 4, 3, 3, 0, 0, 4, 2, 3, 1, 3, 2, 4, 5, 0, 3, 3, 0, 2 };
 
 new const g_rgszEntityToRemove[][] =
 {
@@ -2252,17 +2263,30 @@ public Command_Buy3(pPlayer)
 	if (!strlen(szCommand))
 		formatex(szCommand, charsmax(szCommand), "%d", g_rgPlayerRole[pPlayer]);
 	
-	new szBuffer[192];
-	formatex(szBuffer, charsmax(szBuffer), "\r購買菜單^n\y身份: \w%s", g_rgszRoleNames[Role_e:str_to_num(szCommand)]);
+	new szBuffer[192], Role_e:iRoleIndex = Role_e:str_to_num(szCommand);
+	formatex(szBuffer, charsmax(szBuffer), "\r購買菜單^n\y身份: \w%s", g_rgszRoleNames[iRoleIndex]);
 	
 	new hMenu = menu_create(szBuffer, "MenuHandler_Buy3");
 
-	menu_additem(hMenu, "手槍", szCommand);
-	menu_additem(hMenu, "霰彈槍", szCommand);
-	menu_additem(hMenu, "衝鋒槍", szCommand);
-	menu_additem(hMenu, "突擊步槍與輕機槍", szCommand);
-	menu_additem(hMenu, "狙擊槍", szCommand);
-	menu_additem(hMenu, "裝備", szCommand);
+	new iAvailableCounts[sizeof g_rgszBuyMenu3Text];
+	iAvailableCounts[5] += 2;	// vest and vesthelm.
+	
+	for (new i = 1; i <= CSW_P90; i++)
+	{
+		if (g_rgRoleWeaponsAccessibility[iRoleIndex][i] != WPN_F)
+			iAvailableCounts[g_rgiWeaponCategory[i]]++;
+	}
+	
+	for (new i = 0; i < sizeof g_rgiPistolsId; i++)
+	{
+		if (!iAvailableCounts[i])
+			formatex(szBuffer, charsmax(szBuffer), "\d%s - 不可用", g_rgszBuyMenu3Text[i]);
+		else
+			formatex(szBuffer, charsmax(szBuffer), "\w%s (\y%d\w可用)", g_rgszBuyMenu3Text[i], iAvailableCounts[i]);
+		
+		menu_additem(hMenu, szBuffer, szCommand);
+	}
+
 	menu_additem(hMenu, "自動購買", szCommand);
 	
 	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
@@ -3146,7 +3170,7 @@ AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)
 	if (g_rgRoleWeaponsAccessibility[iRoleIndex][iId] == WPN_F)
 	{
 		formatex(szBuffer, charsmax(szBuffer), "\d%s - 不可用", g_rgszWeaponName[iId]);
-		copy(szInfo, charsmax(szInfo), "-1,-1");
+		formatex(szInfo, charsmax(szInfo), "%d,16001", iId);
 	}
 	else
 	{
