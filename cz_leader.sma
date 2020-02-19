@@ -1362,7 +1362,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 						if (pev_valid(iEntity))
 						{
 							new iId = get_pdata_int(iEntity, m_iId, 4);
-							if (iId != CSW_C4 && iId != CSW_HEGRENADE && iId != CSW_KNIFE && iId != CSW_SMOKEGRENADE && iId != CSW_FLASHBANG && get_pdata_int(iEntity, m_iClip, 4) < 127)	// these weapons are not allowed to have clip.
+							if (g_rgiClipRegen[iId] > 0 && get_pdata_int(iEntity, m_iClip, 4) < 127)	// these weapons are not allowed to have clip.
 							{
 								set_pdata_int(iEntity, m_iClip, get_pdata_int(iEntity, m_iClip, 4) + g_rgiClipRegen[iId], 4);
 								
@@ -2377,38 +2377,11 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 		}
 		case 3:
 		{
-			if (get_pdata_int(pPlayer, m_iAccount) >= 650)
-			{
-				set_pev(pPlayer, pev_armorvalue, 100.0);
-				set_pdata_int(pPlayer, m_iKevlar, max(get_pdata_int(pPlayer, m_iKevlar), 1));
-				UTIL_AddAccount(pPlayer, -650);
-			}
-			else
-				print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+			engclient_cmd("vest");
 		}
 		case 4:
 		{
-			if (get_pdata_int(pPlayer, m_iKevlar) == 2)
-			{
-				if (get_pdata_int(pPlayer, m_iAccount) >= 650)
-				{
-					set_pev(pPlayer, pev_armorvalue, 100.0);
-					UTIL_AddAccount(pPlayer, -650);
-				}
-				else
-					print_chat_color(pPlayer, REDCHAT, "金錢不足!");
-			}
-			else
-			{
-				if (get_pdata_int(pPlayer, m_iAccount) >= 1000)
-				{
-					set_pev(pPlayer, pev_armorvalue, 100.0);
-					set_pdata_int(pPlayer, m_iKevlar, 2);
-					UTIL_AddAccount(pPlayer, -1000);
-				}
-				else
-					print_chat_color(pPlayer, REDCHAT, "金錢不足!");
-			}
+			engclient_cmd("vesthelm");
 		}
 		default:
 		{
