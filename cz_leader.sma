@@ -2925,16 +2925,9 @@ stock UTIL_GetAliasId(szAlias[])
 		TrieSetCell(tAliasesIds, "p90",			CSW_P90)
 		TrieSetCell(tAliasesIds, "c90",			CSW_P90)
 
-		TrieSetCell(tAliasesIds, "vest",		99)
-		TrieSetCell(tAliasesIds, "vesthelm",	99)
-
 		TrieSetCell(tAliasesIds, "defuser",		99)
 		TrieSetCell(tAliasesIds, "nvgs",		99)
 		TrieSetCell(tAliasesIds, "shield",		99)
-		TrieSetCell(tAliasesIds, "buyammo1",	99)
-		TrieSetCell(tAliasesIds, "primammo",	99)
-		TrieSetCell(tAliasesIds, "buyammo2",	99)
-		TrieSetCell(tAliasesIds, "secammo",		99)
 	}
 
 	strtolower(szAlias);
