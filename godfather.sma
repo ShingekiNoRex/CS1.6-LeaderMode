@@ -6,8 +6,8 @@
 #define GODFATHER_TEXT	g_rgszRoleNames[Role_Godfather]
 #define GODFATHER_TASK	3654861	// just some random number.
 
-#define GODFATHER_MODEL			"models/player/Redmat.mdl"
-#define GODFATHER_MODEL_T		"models/player/RedmatT.mdl"
+#define GODFATHER_MODEL			"models/player/Redmat/Redmat.mdl"
+#define GODFATHER_MODEL_T		"models/player/Redmat/RedmatT.mdl"
 
 #define GODFATHER_GRAND_SFX		"leadermode/sfx_event_sainthood_01.wav"
 #define GODFATHER_REVOKE_SFX	"leadermode/sfx_bloodline_add_bloodline_01.wav"

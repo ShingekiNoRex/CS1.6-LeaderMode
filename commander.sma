@@ -6,8 +6,8 @@
 #define COMMANDER_TEXT	g_rgszRoleNames[Role_Commander]
 #define COMMANDER_TASK	2876674	// just some random number.
 
-#define COMMANDER_MODEL			"models/player/Bluemat.mdl"
-#define COMMANDER_MODEL_T		"models/player/BluematT.mdl"
+#define COMMANDER_MODEL			"models/player/Bluemat/Bluemat.mdl"
+#define COMMANDER_MODEL_T		"models/player/Bluemat/BluematT.mdl"
 
 #define COMMANDER_GRAND_SFX		"leadermode/peace_summary_message_01.wav"
 #define COMMANDER_REVOKE_SFX	"leadermode/assign_leader_02.wav"
