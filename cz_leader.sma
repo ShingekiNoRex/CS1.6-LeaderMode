@@ -311,6 +311,16 @@ stock g_rgSkillCooldown[ROLE_COUNT] =
 
 new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
+new const g_rgszBuyCommand[][] =
+{
+    "rebuy",
+    "autobuy",
+    "cl_rebuy",
+    "cl_setrebuy",
+    "cl_autobuy",
+    "cl_setautobuy"
+}
+
 stock const g_rgszWeaponEntity[][] =
 {
 	"",
@@ -740,6 +750,12 @@ public client_putinserver(pPlayer)
 	g_rgflSkillCooldown[pPlayer] = 0.0;
 	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
+}
+
+public client_connect(pPlayer)
+{
+	client_cmd(pPlayer, "bind f1 vs");
+	client_cmd(pPlayer, "bind f2 buy3");
 }
 
 public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
@@ -1943,6 +1959,18 @@ public fw_ClientCommand(iPlayer)
 {
 	static szCommand[24];
 	read_argv(0, szCommand, charsmax(szCommand));
+
+	if (!strcmp(szCommand, "client_buy_close"))
+	{
+		Command_Buy3(iPlayer);
+		return FMRES_IGNORED;
+	}
+
+	for(new i = 0; i < sizeof g_rgszBuyCommand; i ++)
+	{
+		if(!strcmp(szCommand, g_rgszBuyCommand[i]))
+			return FMRES_SUPERCEDE;
+	}
 	
 	if (UTIL_GetAliasId(szCommand))	// block original buy
 		return FMRES_SUPERCEDE;
