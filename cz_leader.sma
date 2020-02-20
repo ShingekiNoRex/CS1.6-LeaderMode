@@ -4,7 +4,7 @@
  - 死亡總次數有限，復活時間 = 隊長HP / 100 ✔ (LUNA)
  - 不信任動議投票 (罷免指揮官) ✔ (LUNA)
  - 選舉(指揮官任命?)職業，職業人數限制
- - 購買手槍默認全員允許；因為職業持有錯誤的武器可以退款
+ - 購買手槍默認全員允許；因為職業持有錯誤的武器可以退款 ✔ (LUNA)
 
 
 策略：全體隊員投票決定隊伍策略。每次有且僅有一項策略生效。策略每20秒得以更換。 ✔ (LUNA)
@@ -31,7 +31,7 @@ CT:
 (被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
 S.W.A.T.
 (優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
-(立即填充所有手榴彈、彈藥和護甲，15秒内轉移90%傷害至護甲)	✔ (LUNA)
+(立即填充所有手榴彈、彈藥和護甲，15秒内轉移50%傷害至護甲)	✔ (LUNA)
 (被動：AP 200，周围友军缓慢恢复护甲)	✔ (LUNA)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.12.4"
+#define VERSION	"1.12.5"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -246,7 +246,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"先輩たちから習って下さい！",
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
-	"[T]立即填充所有物資，15秒内轉移90%傷害至護甲",
+	"[T]立即填充所有物資並於15秒內轉移50%傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
 	"[T]狙擊槍強制命中頭部，並造成目標失明",
 	"",
@@ -313,13 +313,13 @@ new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
 new const g_rgszBuyCommand[][] =
 {
-    //"rebuy",
+    "rebuy",
     "autobuy",
-    //"cl_rebuy",
-    //"cl_setrebuy",
+    "cl_rebuy",
+    "cl_setrebuy",
     "cl_autobuy",
     "cl_setautobuy"
-}
+};
 
 stock const g_rgszWeaponEntity[][] =
 {
@@ -502,7 +502,7 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 stock g_rgszPlayerDefaultModel[][] = { "urban", "urban", "terror", "leet", "arctic", "gsg9", "gign", "sas", "guerilla", "vip", "militia", "spetsnaz" };
 
 new g_fwBotForwardRegister;
-new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
+new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4], g_rgbitsPlayerRebuy[33];
 new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink;
 new TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes, Float:g_flNextMWDThink;
@@ -532,6 +532,8 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #define SFX_VONC_PASSED			"leadermode/complete_focus_01.wav"
 #define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
 #define SFX_RADAR_BEEP			"leadermode/nes_8bit_alien3_radar_beep1.wav"
+#define SFX_REFUND_GUNS			"leadermode/money_out.wav"
+
 #if defined AIR_SUPPORT_ENABLE
 #define SFX_RADIO_DRAW			"weapons/radio_draw.wav"
 #define SFX_RADIO_USE			"weapons/radio_use.wav"
@@ -646,7 +648,8 @@ public plugin_init()
 	register_clcmd("blaster",			"Command_Blaster");
 	register_clcmd("sharpshooter",		"Command_Sharpshooter");
 	register_clcmd("SWAT",				"Command_SWAT");
-	register_clcmd("test",				"Command_Test");
+	register_clcmd("addmoney",			"Command_AddMoney");
+	register_clcmd("give",				"Command_Give");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -695,6 +698,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, SFX_RADAR_BEEP);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
+	engfunc(EngFunc_PrecacheSound, SFX_REFUND_GUNS);
 	
 	// Radio
 	#if defined AIR_SUPPORT_ENABLE
@@ -750,6 +754,7 @@ public client_putinserver(pPlayer)
 	g_rgflSkillCooldown[pPlayer] = 0.0;
 	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
+	g_rgbitsPlayerRebuy[pPlayer] = 0;
 }
 
 public client_connect(pPlayer)
@@ -796,6 +801,9 @@ public HamF_Killed(iVictim, iAttacker, bShouldGib)
 		SetHamParamInteger(3, GIB_ALWAYS);
 		Sharpshooter_SetFree(iVictim);
 	}
+	
+	// save rebuy info.
+	g_rgbitsPlayerRebuy[iVictim] = pev(iVictim, pev_weapons);
 	
 	if (!is_user_connected(iAttacker))
 		return HAM_IGNORED;
@@ -1401,13 +1409,13 @@ public fw_StartFrame_Post()
 			
 			new iTeam = get_pdata_int(i, m_iTeam);
 			if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
-				return;
+				continue;
 		
 			if (!is_user_alive(g_iLeader[iTeam - 1]))
-				return;
+				continue;
 			
 			if (g_rgPlayerRole[i] == Role_Assassin && g_rgbUsingSkill[i])	// assassin will "look" like dead when using his invisible skill.
-				return;
+				continue;
 
 			new iResurrectionTime = max(floatround(flHealth[iTeam] / 1000.0 * 10.0), 1);
 			if (g_rgTeamTacticalScheme[iTeam] == Doctrine_MassAssault)
@@ -1416,6 +1424,12 @@ public fw_StartFrame_Post()
 			set_task(float(iResurrectionTime), "Task_PlayerResurrection", i);
 			UTIL_BarTime(i, iResurrectionTime);
 			g_rgbResurrecting[i] = true;
+			
+			if ( (g_rgPlayerRole[i] >= Role_Commander && g_rgPlayerRole[i] <= Role_Medic && iTeam != TEAM_CT)
+				|| (g_rgPlayerRole[i] >= Role_Godfather && g_rgPlayerRole[i] <= Role_Arsonist && iTeam != TEAM_TERRORIST) )	// avoid "the joke of BaiFvckmouZ"
+			{
+				g_rgPlayerRole[i] = Role_UNASSIGNED;
+			}
 		}
 TAG_SKIP_NEW_PLAYER_SCAN:
 	}
@@ -1701,7 +1715,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (!is_user_connected(pPlayer))
 		return;
 	
-	if (!is_user_alive(pPlayer) && pev(pPlayer, pev_effects) & EF_NODRAW && g_rgPlayerRole[pPlayer] != Role_Assassin && !g_rgbUsingSkill[pPlayer])	// death by ice shattered
+	if (!is_user_alive(pPlayer) && (pev(pPlayer, pev_effects) & EF_NODRAW) && g_rgPlayerRole[pPlayer] != Role_Assassin && !g_rgbUsingSkill[pPlayer])	// death by ice shattered
 		set_pdata_float(pPlayer, m_fDeadTime, get_gametime());	// CBasePlayer::SpawnClientSideCorpse(void)
 	
 	if (IsObserver(pPlayer))	// including player "afterlife".
@@ -1711,6 +1725,25 @@ public fw_PlayerPostThink_Post(pPlayer)
 	
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
+	
+	if (is_user_alive(pPlayer) && g_rgPlayerRole[pPlayer] != Role_UNASSIGNED)
+	{
+		new iId = get_pdata_int(get_pdata_cbase(pPlayer, m_pActiveItem), m_iId, 4);
+		if (g_rgRoleWeaponsAccessibility[g_rgPlayerRole[pPlayer]][iId] == WPN_F && iId != CSW_KNIFE)
+		{
+			new iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+			
+			ExecuteHamB(Ham_Weapon_RetireWeapon, iEntity);
+			ExecuteHamB(Ham_RemovePlayerItem, pPlayer, iEntity);
+			ExecuteHamB(Ham_Item_Kill, iEntity);
+			set_pev(pPlayer, pev_weapons, pev(pPlayer, pev_weapons) & ~(1<<iId));
+			
+			// only refund half of its original price.
+			UTIL_AddAccount(pPlayer, g_rgiWeaponDefaultCost[iId] / 2);
+			engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, SFX_REFUND_GUNS, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			UTIL_ColorfulPrintChat(pPlayer, "/y不符合身份的武器/t%s/y已獲得/g退款/t%d/g$", REDCHAT, g_rgszWeaponName[iId], g_rgiWeaponDefaultCost[iId] / 2);
+		}
+	}
 	
 	// HUD
 	if (!is_user_bot(pPlayer) && g_rgflHUDThink[pPlayer] < get_gametime())
@@ -2572,17 +2605,116 @@ public Command_Buy3(pPlayer)
 	}
 
 	menu_additem(hMenu, "自動購買", szCommand);
+	menu_additem(hMenu, "重新購買", szCommand);
 	
-	menu_setprop(hMenu, MPROP_EXIT, MEXIT_ALL);
+	//menu_setprop(hMenu, MPROP_SHOWPAGE, false);	// FIXME: it will be avaliable in AMXMODX 1.9.0 update.
+	menu_setprop(hMenu, MPROP_BACKNAME, "上一頁");
+	menu_setprop(hMenu, MPROP_NEXTNAME, "下一頁");
 	menu_setprop(hMenu, MPROP_EXITNAME, "離開");
 	menu_display(pPlayer, hMenu, 0);
 	
 	return PLUGIN_HANDLED;
 }
 
-public Command_Test(pPlayer)
+public Command_Rebuy(pPlayer)
 {
-	set_pev(pPlayer, pev_health, 10.0);
+	if (!is_user_alive(pPlayer))
+		return;
+	
+	for (new i = 1; i <= CSW_P90; i++)
+	{
+		if (i == CSW_KNIFE || i == CSW_RADIO)	// you don't need to buy that...
+			continue;
+		
+		if (g_rgbitsPlayerRebuy[pPlayer] & (1<<i))
+			AttemptPurchase(pPlayer, i);
+	}
+	
+	Command_Autobuy(pPlayer);
+}
+
+public Command_Autobuy(pPlayer)
+{
+	if (!is_user_alive(pPlayer))
+		return PLUGIN_HANDLED;
+	
+	if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[1])) != 2)	// have no primary weapon
+	{
+		switch (g_rgPlayerRole[pPlayer])
+		{
+			case Role_SWAT, Role_Medic:
+				AttemptPurchase(pPlayer, CSW_MP5NAVY);
+			case Role_Blaster, Role_Arsonist:
+				AttemptPurchase(pPlayer, CSW_KSG12);
+			case Role_Sharpshooter:
+				AttemptPurchase(pPlayer, CSW_M200);
+			case Role_MadScientist, Role_Assassin:
+				AttemptPurchase(pPlayer, CSW_MP7A1);
+			default:
+				AttemptPurchase(pPlayer, CSW_CM901);
+		}
+	}
+
+	if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[2])) != 2)	// have no secondary weapon
+	{
+		switch (g_rgPlayerRole[pPlayer])
+		{
+			case Role_Sharpshooter, Role_Godfather, Role_Medic:
+				AttemptPurchase(pPlayer, CSW_ANACONDA);
+			case Role_Assassin:
+				AttemptPurchase(pPlayer, CSW_USP);
+			default:
+				AttemptPurchase(pPlayer, CSW_GLOCK18);
+		}
+	}
+
+	engclient_cmd(pPlayer, "primammo");
+	engclient_cmd(pPlayer, "secammo");
+
+	new iMoney = get_pdata_int(pPlayer, m_iAccount);
+	if (g_rgPlayerRole[pPlayer] == Role_SWAT || iMoney > 5000)
+		engclient_cmd(pPlayer, "vesthelm");
+
+	if (iMoney > 3000)
+		engclient_cmd(pPlayer, "vest");
+
+	if (g_rgPlayerRole[pPlayer] == Role_Sharpshooter || g_rgPlayerRole[pPlayer] == Role_Arsonist || g_rgPlayerRole[pPlayer] == Role_Blaster || iMoney > 8000)
+		AttemptPurchase(pPlayer, CSW_HEGRENADE);
+
+	if (g_rgPlayerRole[pPlayer] == Role_Medic || g_rgPlayerRole[pPlayer] == Role_MadScientist || iMoney > 10000)
+		AttemptPurchase(pPlayer, CSW_SMOKEGRENADE);
+
+	if (iMoney > 8000)
+		AttemptPurchase(pPlayer, CSW_FLASHBANG);
+	
+	return PLUGIN_HANDLED;
+}
+
+public Command_AddMoney(pPlayer)
+{
+	if (!get_pcvar_num(cvar_DebugMode))
+		return PLUGIN_CONTINUE;
+	
+	UTIL_AddAccount(pPlayer, 16000);
+	return PLUGIN_HANDLED;
+}
+
+public Command_Give(pPlayer)
+{
+	if (!get_pcvar_num(cvar_DebugMode))
+		return PLUGIN_CONTINUE;
+	
+	static szCommand[24];
+	read_argv(1, szCommand, charsmax(szCommand));
+	
+	if (!strlen(szCommand))
+	{
+		server_print("NULL ent given!");
+		return PLUGIN_HANDLED;
+	}
+	
+	fm_give_item(pPlayer, szCommand);
+	return PLUGIN_HANDLED;
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -2882,44 +3014,11 @@ public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 		}
 		case 6:	// auto buy
 		{
-			if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[1])) != 2)	// have no primary weapon
-			{
-				switch (iRoleIndex)
-				{
-					case Role_SWAT, Role_Medic:
-						AttemptPurchase(pPlayer, CSW_MP5NAVY);
-					case Role_Blaster, Role_Arsonist:
-						AttemptPurchase(pPlayer, CSW_KSG12);
-					case Role_Sharpshooter:
-						AttemptPurchase(pPlayer, CSW_M200);
-					case Role_MadScientist, Role_Assassin:
-						AttemptPurchase(pPlayer, CSW_MP7A1);
-					default:
-						AttemptPurchase(pPlayer, CSW_CM901);
-				}
-			}
-			
-			if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[2])) != 2)	// have no secondary weapon
-			{
-				switch (iRoleIndex)
-				{
-					case Role_Sharpshooter, Role_Godfather, Role_Medic:
-						AttemptPurchase(pPlayer, CSW_ANACONDA);
-					case Role_Assassin:
-						AttemptPurchase(pPlayer, CSW_USP);
-					default:
-						AttemptPurchase(pPlayer, CSW_GLOCK18);
-				}
-			}
-			
-			engclient_cmd(pPlayer, "primammo");
-			engclient_cmd(pPlayer, "secammo");
-			engclient_cmd(pPlayer, "vesthelm");
-			engclient_cmd(pPlayer, "vest");
-			AttemptPurchase(pPlayer, CSW_HEGRENADE);
-			AttemptPurchase(pPlayer, CSW_FLASHBANG);
-			AttemptPurchase(pPlayer, CSW_FLASHBANG);
-			AttemptPurchase(pPlayer, CSW_SMOKEGRENADE);
+			Command_Autobuy(pPlayer);
+		}
+		case 7: // rebuy
+		{
+			Command_Rebuy(pPlayer);
 		}
 		default:
 		{
@@ -3654,7 +3753,6 @@ bool:AttemptPurchase(pPlayer, iId)
 		case WPN_F:
 		{
 			print_chat_color(pPlayer, REDCHAT, "你的身份不允許你持有%s!", g_rgszWeaponName[iId]);
-			UTIL_BlinkAccount(pPlayer, 2);
 			return false;
 		}
 		case WPN_D:
@@ -3669,6 +3767,7 @@ bool:AttemptPurchase(pPlayer, iId)
 	if (get_pdata_int(pPlayer, m_iAccount) < iCost)
 	{
 		print_chat_color(pPlayer, REDCHAT, "金錢不足!");
+		UTIL_BlinkAccount(pPlayer, 2);
 		return false;
 	}
 	
