@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.12.2"
+#define VERSION	"1.12.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -213,7 +213,7 @@ enum Role_e
 
 stock const g_rgszRoleNames[ROLE_COUNT][] =
 {
-	"士兵",
+	"新進さん",
 	
 	"指揮官",
 	"S.W.A.T.",
@@ -230,7 +230,7 @@ stock const g_rgszRoleNames[ROLE_COUNT][] =
 
 stock const g_rgszRoleSkills[ROLE_COUNT][] =
 {
-	"",
+	"先輩たちから習って下さい！",
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"[T]立即填充所有物資，15秒内轉移90%傷害至護甲",
@@ -1994,14 +1994,38 @@ public Event_FreezePhaseEnd()
 {
 	new bool:bHumanPriority = !!get_pcvar_num(cvar_humanleader);
 	
-	Godfather_Assign(UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority));
-	Commander_Assign(UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority));
+	// allow player to select their leader in freeze phase.
 	
-	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Assassin;
-	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Sharpshooter;
-	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Berserker;
-	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_SWAT;
-	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Blaster;
+	if (!is_user_connected(THE_GODFATHER))
+		Godfather_Assign(UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority));
+	if (!is_user_connected(THE_COMMANDER))
+		Commander_Assign(UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority));
+	
+	new bool:rgbRolesAvaliable[ROLE_COUNT];
+	for (new Role_e:i = Role_UNASSIGNED; i < ROLE_COUNT; i++)
+		rgbRolesAvaliable[i] = true;	// they are all avaliable by default.
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_connected(i))
+			continue;
+		
+		rgbRolesAvaliable[g_rgPlayerRole[i]] = false;	// don't avoid Role_UNASSIGNED here. we don't need to assign Role_UNASSIGNED.
+	}
+	
+	for (new Role_e:i = Role_UNASSIGNED; i < ROLE_COUNT; i++)
+	{
+		if (i == Role_UNASSIGNED)
+			continue;
+		
+		if (!rgbRolesAvaliable[i])	// this role had been declared.
+			continue;
+		
+		if (i < Role_Godfather)
+			g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = i;
+		else
+			g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = i;
+	}
 
 	g_bRoundStarted = true;
 
@@ -2072,6 +2096,8 @@ public Event_HLTV()
 		{
 			remove_task(BERSERKER_TASK + i);
 			remove_task(BLASTER_TASK + i);
+			
+			// UNDONE: what about other roles??
 
 			g_rgPlayerRole[i] = Role_UNASSIGNED;
 			g_rgbUsingSkill[i] = false;
@@ -2080,6 +2106,12 @@ public Event_HLTV()
 			set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) & ~HIDEHUD_TIMER);
 			set_pev(i, pev_max_health, 100.0);
 		}
+	}
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i ++)	// we have to wait until all role data from last round had been cleared.
+	{
+		if (is_user_connected(i))
+			Command_DeclareRole(i);
 	}
 	
 	client_cmd(0, "stopsound");	// stop music
@@ -2309,8 +2341,54 @@ public Command_DeclareRole(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return PLUGIN_HANDLED;
 	
+	if (pPlayer == THE_COMMANDER || pPlayer == THE_GODFATHER)
+	{
+		print_chat_color(pPlayer, GREYCHAT, "%s必須經由不信任動議解職!", pPlayer == THE_COMMANDER ? COMMANDER_TEXT : GODFATHER_TEXT);
+		return PLUGIN_HANDLED;
+	}
+	
 	new szBuffer[192];
-	formatex(szBuffer, charsmax(szBuffer), "\r當前職業: \y%s\w^n選擇可用的職業以更換", g_rgszRoleNames[iTeam == TEAM_CT ? Role_Commander : Role_Godfather], g_szLeaderNetname[iTeam - 1], g_rgiTeamCnfdnceMtnLeft[iTeam]);
+	formatex(szBuffer, charsmax(szBuffer), "\r當前身份: \y%s\w^n選擇可用的身份以更換:", g_rgszRoleNames[g_rgPlayerRole[pPlayer]]);
+	
+	new hMenu = menu_create(szBuffer, "MenuHandler_DeclareRole");
+	
+	new bool:rgbRolesAvaliable[ROLE_COUNT];
+	for (new Role_e:i = Role_UNASSIGNED; i < ROLE_COUNT; i++)
+		rgbRolesAvaliable[i] = true;	// they are all avaliable by default.
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_connected(i))
+			continue;
+		
+		if (g_rgPlayerRole[i] != Role_UNASSIGNED)
+			rgbRolesAvaliable[g_rgPlayerRole[i]] = false;
+	}
+	
+	new szInfo[16];
+	formatex(szInfo, charsmax(szInfo), "%d", Role_UNASSIGNED);
+	menu_additem(hMenu, g_rgszRoleNames[Role_UNASSIGNED], szInfo);	// Role_UNASSIGNED is always avaliable.
+	
+	new Role_e:iStart = Role_Commander, Role_e:iEnd = Role_Medic;
+	if (iTeam == TEAM_TERRORIST)
+	{
+		iStart = Role_Godfather;
+		iEnd = Role_Medic;
+	}
+
+	for (new Role_e:i = iStart; i <= iEnd; i++)
+	{
+		if (!rgbRolesAvaliable[i])
+			continue;
+		
+		formatex(szInfo, charsmax(szInfo), "%d", i);
+		menu_additem(hMenu, g_rgszRoleNames[i], szInfo);
+	}
+	
+	menu_setprop(hMenu, MPROP_BACKNAME, "上一頁");
+	menu_setprop(hMenu, MPROP_NEXTNAME, "下一頁");
+	menu_setprop(hMenu, MPROP_EXITNAME, "離開");
+	menu_display(pPlayer, hMenu);
 	
 	return PLUGIN_HANDLED;
 }
@@ -2555,6 +2633,12 @@ public MenuHandler_VoteONC(pPlayer, hMenu, iItem)
 
 public MenuHandler_Buy(pPlayer, hMenu, iItem)
 {
+	if (iItem < 0)
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
 	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
 	{
 		menu_destroy(hMenu);
@@ -2662,6 +2746,12 @@ public MenuHandler_Buy(pPlayer, hMenu, iItem)
 
 public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 {
+	if (iItem < 0)
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
 	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
 	{
 		menu_destroy(hMenu);
@@ -2802,6 +2892,12 @@ public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 
 public MenuHandler_GiveWeapon(pPlayer, hMenu, iItem)
 {
+	if (iItem < 0)
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
 	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
 	{
 		menu_destroy(hMenu);
@@ -2840,6 +2936,64 @@ public MenuHandler_GiveWeapon(pPlayer, hMenu, iItem)
 	}
 	
 	AttemptPurchase(pPlayer, iId);
+	menu_destroy(hMenu);
+	return PLUGIN_HANDLED;
+}
+
+public MenuHandler_DeclareRole(pPlayer, hMenu, iItem)
+{
+	if (iItem < 0)
+	{
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
+	if (g_rgbUsingSkill[pPlayer])
+	{
+		print_chat_color(pPlayer, GREYCHAT, "你不能在使用技能的時候更換身份!");
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new szInfo[16], iDummy, szDummy[32], iDummy2;
+	menu_item_getinfo(hMenu, iItem, iDummy, szInfo, charsmax(szInfo), szDummy, charsmax(szDummy), iDummy2);
+	
+	new Role_e:iRoleIndex = Role_e:str_to_num(szInfo);
+	new bool:bAvailable = true;
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (iRoleIndex == Role_UNASSIGNED)	// Role_UNASSIGNED is always avaliable.
+			break;
+		
+		if (g_rgPlayerRole[i] == iRoleIndex)
+		{
+			bAvailable = false;
+			break;
+		}
+	}
+	
+	if (!bAvailable)
+	{
+		print_chat_color(pPlayer, GREYCHAT, "%s已有其他玩家擔任!", g_rgszRoleNames[iRoleIndex]);
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
+	switch (iRoleIndex)
+	{
+		case Role_Commander:
+			Commander_Assign(pPlayer);
+		case Role_Godfather:
+			Godfather_Assign(pPlayer);
+		default:
+		{
+			g_rgPlayerRole[pPlayer] = iRoleIndex;
+			g_rgflSkillCooldown[pPlayer] = get_gametime() + 20.0;
+			print_chat_color(pPlayer, GREENCHAT, "你已經成功轉變為%s!", g_rgszRoleNames[iRoleIndex]);
+		}
+	}
+	
 	menu_destroy(hMenu);
 	return PLUGIN_HANDLED;
 }
