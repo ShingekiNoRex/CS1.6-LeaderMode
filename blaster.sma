@@ -156,7 +156,8 @@ public Breacher_BulletsExplosion(iPlayer, tr)
 	write_byte(random_num(100, 110));
 	message_end();
 	
-	get_tr2(tr, TR_vecEndPos, vecOrigin)
+	get_tr2(tr, TR_vecEndPos, vecOrigin);
+	Breacher_Light(vecOrigin);
 	
 	new i = -1;
 	while ((i = engfunc(EngFunc_FindEntityInSphere, i, vecOrigin, get_pcvar_float(cvar_exploBulletRad))) > 0)
@@ -212,6 +213,22 @@ public Breacher_MakeGibs(Float:vecCentre[3], Float:vecAngles[3])
 	write_byte(1);
 	write_byte(0);
 	write_byte(0);
+	message_end();
+}
+
+public Breacher_Light(const Float:vecOrigin[3])
+{
+	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecOrigin, 0);
+	write_byte(TE_DLIGHT);
+	engfunc(EngFunc_WriteCoord, vecOrigin[0]);
+	engfunc(EngFunc_WriteCoord, vecOrigin[1]);
+	engfunc(EngFunc_WriteCoord, vecOrigin[2]);
+	write_byte(18 / 2);	// radius
+	write_byte(255);	// R
+	write_byte(150);	// G
+	write_byte(15);		// B
+	write_byte(8);		// life
+	write_byte(60);		// decay
 	message_end();
 }
 

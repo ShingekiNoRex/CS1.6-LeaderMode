@@ -1,9 +1,5 @@
 /**
 
-screenfade for the victims.
-set_pev(iVictim, pev_fixangle, 1)	// lock view angle for victims
-freezing SFX and breakout SFX: 2 from zp, perhaps another breath & hearbeat SFX?
-checking the death breakout - I can't do anything if I died like an ice sculpture.
 **/
 
 #define SHARPSHOOTER_TEXT	g_rgszRoleNames[Role_Sharpshooter]

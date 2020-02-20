@@ -61,6 +61,7 @@ public SWAT_ExecuteSkill(pPlayer)
 		ExecuteHamB(Ham_GiveAmmo, pPlayer, 240, g_rgszAmmoNameByIndex[get_pdata_int(iSecondaryWeapon, m_iPrimaryAmmoType, 4)], 240);
 	}
 	
+	ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));	// just some feeling stuff.
 	UTIL_ScreenFade(pPlayer, 0.5, get_pcvar_float(cvar_swatBulletproofLast), FFADE_IN, 179, 217, 255, 60);
 	client_cmd(pPlayer, "spk %s", SWAT_GRAND_SFX);
 }
