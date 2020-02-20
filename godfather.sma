@@ -11,6 +11,7 @@
 
 #define GODFATHER_GRAND_SFX		"leadermode/sfx_event_sainthood_01.wav"
 #define GODFATHER_REVOKE_SFX	"leadermode/sfx_bloodline_add_bloodline_01.wav"
+#define GODFATHER_PASSIVE_SFX	"leadermode/holy_roman_empire_screen.wav"
 
 new g_iGodchildrenCount = 0, g_rgiGodchildren[33];
 new Float:g_flGodfatherSavedHP = 1000.0, Float:g_rgflGodchildrenSavedHP[33];
@@ -36,6 +37,7 @@ public Godfather_Precache()
 
 	engfunc(EngFunc_PrecacheSound, GODFATHER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, GODFATHER_REVOKE_SFX);
+	engfunc(EngFunc_PrecacheSound, GODFATHER_PASSIVE_SFX);
 }
 
 public Godfather_Assign(pPlayer)
@@ -196,5 +198,8 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 			flCurHealth = 100.0
 
 		set_pev(iPlayer, pev_health, flCurHealth);
+		
+		client_cmd(iPlayer, "spk %s", GODFATHER_PASSIVE_SFX);
+		UTIL_ScreenFade(iPlayer, 0.2, 0.1, FFADE_IN, 179, 217, 255, 30);
 	}
 }

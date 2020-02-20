@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.11.3"
+#define VERSION	"1.12"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -114,6 +114,11 @@ TR:
 #define HIDEHUD_TIMER		(1<<4)
 #define HIDEHUD_MONEY		(1<<5)
 #define HIDEHUD_CROSSHAIR	(1<<6)
+
+#define FFADE_IN			0x0000		// Just here so we don't pass 0 into the function
+#define FFADE_OUT			0x0001		// Fade out (not in)
+#define FFADE_MODULATE		0x0002		// Modulate (don't blend)
+#define FFADE_STAYOUT		0x0004		// ignores the duration, stays faded out until new ScreenFade message received
 
 #define DISCARD	2
 #define TRUST	1
@@ -224,7 +229,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"",
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
-	"",
+	"[T]立即填充所有物資，15秒内轉移90%傷害至護甲",
 	"[T]无限手榴彈，爆炸伤害+50%%%%",
 	"[T]狙擊槍強制命中頭部，並造成目標失明",
 	"",
@@ -241,7 +246,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"",
 	
 	"",
-	"",
+	"[被動]周圍角色緩慢補充護甲",
 	"[被动]减少受到的爆炸伤害，死后爆炸",
 	"[被动]冰冻手雷",
 	"",
@@ -398,7 +403,7 @@ stock const g_rgszWeaponName[][] =
 
 //												5			   10			  15			 20				25			   30	// if this isn't lined up, please use Notepad++
 stock const g_rgiClipRegen[] = { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 4, 0, 1, 2, 0, 0, 0, 1, 1, 0, 2 };
-
+stock const g_rgiWeaponMaxClip[] = { -1, 6, -1, 7, -1, 7, -1, 25, 30, -1, 30, 20, 25, 20, 30, 30, 12, 17, 10, 30, 100, 14, 30, 40, 10, -1, 7, 30, 30, -1, 50 };
 stock const g_rgiWeaponDefaultCost[] = { -1, 600, -1, 2750, 300, 3000, 0, 1400, 3500, 300, 800, 750, 1700, 4200, 2000, 2250, 500, 400, 4750, 1500, 5750, 1700, 3100, 1250, 5000, 200, 650, 3500, 2500, 0, 2350 };
 stock const g_rgiWeaponDefaultSlot[] = { -1, 1, -1, 0, 3, 0, 4, 0, 0, 3, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 2, 0 };
 stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
@@ -428,6 +433,26 @@ stock const g_rgiSniperRiflesId[] = { CSW_M200, CSW_M14EBR, CSW_AWP, CSW_SVD };
 stock const g_rgiEquipmentsId[] = { CSW_FLASHBANG, CSW_HEGRENADE, CSW_SMOKEGRENADE };
 stock const g_rgszBuyMenu3Text[][] = { "手槍", "霰彈槍", "衝鋒槍", "突擊武器", "狙擊槍", "裝備" };
 stock const g_rgiWeaponCategory[] = { -1, 0, -1, 4, 5, 1, 0, 2, 3, 5, 0, 0, 2, 4, 3, 3, 0, 0, 4, 2, 3, 1, 3, 2, 4, 5, 0, 3, 3, 0, 2 };
+
+stock const g_rgszAmmoNameByIndex[][] =
+{
+	"",				// 0
+	"338Magnum",
+	"762Nato",
+	"556NatoBox",
+	"556Nato",
+	"buckshot",		// 5
+	"45acp",
+	"57mm",
+	"50AE",
+	"357SIG",
+	"9mm",			// 10
+	"Flashbang",
+	"HEGrenade",
+	"SmokeGrenade",
+	"C4"
+	// ARRAY SIZE: 15
+};
 
 new const g_rgszEntityToRemove[][] =
 {
@@ -496,6 +521,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #include "assassin.sma"
 #include "blaster.sma"
 #include "sharpshooter.sma"
+#include "SWAT.sma"
 #if defined AIR_SUPPORT_ENABLE
 #include "commander_airsupport.sma"
 #endif
@@ -514,6 +540,8 @@ public plugin_init()
 	RegisterHam(Ham_CS_RoundRespawn, "player", "HamF_CS_RoundRespawn_Post", 1);
 	RegisterHam(Ham_BloodColor, "player", "HamF_BloodColor");
 	RegisterHam(Ham_Touch, "weaponbox", "HamF_Weaponbox_Touch");
+	RegisterHam(Ham_Touch, "item_kevlar", "HamF_Armour_Touch_Post", 1);
+	RegisterHam(Ham_Touch, "item_assaultsuit", "HamF_Armour_Touch_Post", 1);
 	
 	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
@@ -586,7 +614,8 @@ public plugin_init()
 	register_clcmd("berserker",			"Command_Berserker");
 	register_clcmd("blaster",			"Command_Blaster");
 	register_clcmd("sharpshooter",		"Command_Sharpshooter");
-	//register_clcmd("test",				"Command_Test");
+	register_clcmd("SWAT",				"Command_SWAT");
+	register_clcmd("test",				"Command_Test");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -595,6 +624,7 @@ public plugin_init()
 	Blaster_Initialize();
 	Berserker_Initialize();
 	Sharpshooter_Initialize();
+	SWAT_Initialize();
 	
 	// bot support
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
@@ -671,6 +701,7 @@ public plugin_precache()
 	Blaster_Precache();
 	Sharpshooter_Precache();
 	Berserker_Precache();
+	SWAT_Precache();
 	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
 }
 
@@ -878,10 +909,12 @@ public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirect
 
 public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
 {
+	new Float:flDamageMultiplier = 1.0;
+	
 	if (is_user_alive(iVictim) && g_rgbUsingSkill[iVictim])
 	{
 		if (g_rgPlayerRole[iVictim] == Role_Godfather || g_rgPlayerRole[iVictim] == Role_Commander)
-			SetHamParamFloat(4, flDamage * 0.5);
+			flDamageMultiplier -= 0.5;
 		else if (g_rgPlayerRole[iVictim] == Role_Berserker)
 		{
 			new Float:flCurHealth;
@@ -892,29 +925,39 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 				return FMRES_SUPERCEDE;
 			}
 		}
+		else if (g_rgPlayerRole[iVictim] == Role_SWAT)
+		{
+			new Float:flArmorValue;
+			pev(iVictim, pev_armorvalue, flArmorValue);
+			
+			if (flArmorValue > 0.0)
+			{
+				flArmorValue -= flDamage * get_pcvar_float(cvar_swatBulletproofRatio);
+				flDamageMultiplier *= 1.0 - get_pcvar_float(cvar_swatBulletproofRatio);
+			}
+		}
 	}
+	else if (is_user_alive(iVictim) && g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))	// blaster is resist to grenade damage.
+		flDamageMultiplier -= 0.75;
 
-	if (is_user_alive(iAttacker))
+	if (is_user_connected(iAttacker))
 	{
 		if (g_rgPlayerRole[iAttacker] == Role_Berserker)
 		{
 			new Float:flCurHealth;
-			pev(iVictim, pev_health, flCurHealth);
-			SetHamParamFloat(4, floatclamp(100.0 - flCurHealth, 0.0, 100.0) + flDamage);
+			pev(iAttacker, pev_health, flCurHealth);
+			
+			flDamageMultiplier += floatclamp((100.0 - flCurHealth) / 100.0, 0.0, 1.0);
 		}
 		else if (g_rgPlayerRole[iAttacker] == Role_Blaster && g_rgbUsingSkill[iAttacker])
 		{
-			if (bitsDamageTypes & DMG_BLAST || bitsDamageTypes & (1<<24))		// Blast or HE Grenade damage
-				SetHamParamFloat(4, flDamage * 1.5);
+			if (bitsDamageTypes & (DMG_BLAST | (1<<24)) )		// Blast or HE Grenade damage
+				flDamageMultiplier += 0.5;
 		}
 	}
 	
-	if (is_user_connected(iVictim) && g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))	// blaster is resist to grenade damage.
-	{
-		SetHamParamFloat(4, flDamage * 0.25);
-	}
-	
-	return HAM_IGNORED;
+	SetHamParamFloat(4, flDamage * floatmax(flDamageMultiplier, 0.0));
+	return HAM_HANDLED;
 }
 
 public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamageTypes)
@@ -1143,6 +1186,15 @@ public HamF_Weaponbox_Touch(iEntity, iPlayer)
 	return HAM_IGNORED;
 }
 
+public HamF_Armour_Touch_Post(iEntity, iPlayer)
+{
+	if (!is_user_alive(iPlayer))
+		return;
+	
+	if (g_rgPlayerRole[iPlayer] == Role_SWAT)
+		set_pev(iPlayer, pev_armorvalue, get_pcvar_float(cvar_swatArmourMax));
+}
+
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
 	if (!is_user_connected(iHost))
@@ -1191,7 +1243,7 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 	}
 }
 
-public fw_Touch_Post(iEntity)
+public fw_Touch_Post(iEntity, iOther)
 {
 	if (!pev_valid(iEntity))
 		return;
@@ -1725,6 +1777,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (iTeam == TEAM_CT)	// Commander's skill
 	{
 		Commander_SkillThink(pPlayer);
+		SWAT_SkillThink(pPlayer);
 	}
 	else if (iTeam == TEAM_TERRORIST)	// Godfather's skill
 	{
@@ -1798,6 +1851,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		{
 			Sharpshooter_ExecuteSkill(iPlayer);
 		}
+		case Role_SWAT:
+		{
+			SWAT_ExecuteSkill(iPlayer);
+		}
 		default:
 			return FMRES_IGNORED;
 	}
@@ -1866,6 +1923,7 @@ public Event_FreezePhaseEnd()
 	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Assassin;
 	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Sharpshooter;
 	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_TERRORIST, bHumanPriority)] = Role_Berserker;
+	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_SWAT;
 	g_rgPlayerRole[UTIL_RandomNonroleCharacter(TEAM_CT, bHumanPriority)] = Role_Blaster;
 
 	g_bRoundStarted = true;
@@ -1987,7 +2045,9 @@ public Message_ScreenFade(msg_id, msg_dest, msg_entity)
 		return PLUGIN_CONTINUE;
 	
 	if ( (is_user_connected(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Assassin && g_rgbUsingSkill[msg_entity])	// assassin is immue to flashbang when he is using his skill.
-		|| (is_user_alive(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Sharpshooter && g_rgbUsingSkill[msg_entity]) )	// sniper is immue to his own flash shot when he is using his skill.
+		|| (is_user_alive(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Sharpshooter && g_rgbUsingSkill[msg_entity])	// sniper is immue to his own flash shot when he is using his skill.
+		|| (is_user_alive(msg_entity) && g_rgPlayerRole[msg_entity] == Role_Berserker && g_rgbUsingSkill[msg_entity])
+		|| (is_user_alive(msg_entity) && g_rgPlayerRole[msg_entity] == Role_SWAT && g_rgbUsingSkill[msg_entity]) )
 		return PLUGIN_HANDLED;
 	
 	return PLUGIN_CONTINUE;
@@ -2223,6 +2283,17 @@ public Command_Assassin(pPlayer)
 	return PLUGIN_CONTINUE;
 }
 
+public Command_SWAT(pPlayer)
+{
+	if (get_pcvar_num(cvar_DebugMode))
+	{
+		g_rgPlayerRole[pPlayer] = Role_SWAT;
+		return PLUGIN_HANDLED;
+	}
+	
+	return PLUGIN_CONTINUE;
+}
+
 public Command_Buy(pPlayer)
 {
 	if (!is_user_alive(pPlayer) || !(get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY))
@@ -2268,21 +2339,30 @@ public Command_Buy3(pPlayer)
 	
 	new hMenu = menu_create(szBuffer, "MenuHandler_Buy3");
 
-	new iAvailableCounts[sizeof g_rgszBuyMenu3Text];
+	new iMoney = get_pdata_int(pPlayer, m_iAccount);
+	new iAvailableCounts[sizeof g_rgszBuyMenu3Text], iAffordableCounts[sizeof g_rgszBuyMenu3Text];
 	iAvailableCounts[5] += 2;	// vest and vesthelm.
+	iAffordableCounts[5] += 2;	// vest and vesthelm.
 	
 	for (new i = 1; i <= CSW_P90; i++)
 	{
 		if (g_rgRoleWeaponsAccessibility[iRoleIndex][i] != WPN_F)
+		{
 			iAvailableCounts[g_rgiWeaponCategory[i]]++;
+			
+			if (iMoney >= GetPrice(iRoleIndex, i))
+				iAffordableCounts[g_rgiWeaponCategory[i]]++;
+		}
 	}
 	
 	for (new i = 0; i < sizeof g_rgiPistolsId; i++)
 	{
 		if (!iAvailableCounts[i])
 			formatex(szBuffer, charsmax(szBuffer), "\d%s - 不可用", g_rgszBuyMenu3Text[i]);
+		else if (!iAffordableCounts[i])
+			formatex(szBuffer, charsmax(szBuffer), "\r%s - 金錢不足", g_rgszBuyMenu3Text[i]);
 		else
-			formatex(szBuffer, charsmax(szBuffer), "\w%s (\y%d\w可用)", g_rgszBuyMenu3Text[i], iAvailableCounts[i]);
+			formatex(szBuffer, charsmax(szBuffer), "\w%s (\y%d\w可用|\y%d\w可負擔)", g_rgszBuyMenu3Text[i], iAvailableCounts[i], iAffordableCounts[i]);
 		
 		menu_additem(hMenu, szBuffer, szCommand);
 	}
@@ -2294,6 +2374,11 @@ public Command_Buy3(pPlayer)
 	menu_display(pPlayer, hMenu, 0);
 	
 	return PLUGIN_HANDLED;
+}
+
+public Command_Test(pPlayer)
+{
+	set_pev(pPlayer, pev_health, 10.0);
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -2661,15 +2746,18 @@ public MenuHandler_GiveWeapon(pPlayer, hMenu, iItem)
 		return PLUGIN_HANDLED;
 	}
 	
-	if (iId == 31)
+	if (iId == 31 || iId == 32)
 	{
-		engclient_cmd(pPlayer, "vest");
-		menu_destroy(hMenu);
-		return PLUGIN_HANDLED;
-	}
-	else if (iId == 32)
-	{
-		engclient_cmd(pPlayer, "vesthelm");
+		if (g_rgPlayerRole[pPlayer] == Role_SWAT)	// another trick just like ammo.
+		{
+			new flArmorValue;
+			pev(pPlayer, pev_armorvalue, flArmorValue);
+			
+			if (flArmorValue < get_pcvar_float(cvar_swatArmourMax))
+				set_pev(pPlayer, pev_armorvalue, 99.0);	// allow SWAT to buy a new vest even when the armorvalue is over 100.
+		}
+		
+		engclient_cmd(pPlayer, iId == 31 ? "vest" : "vesthelm");
 		menu_destroy(hMenu);
 		return PLUGIN_HANDLED;
 	}
@@ -2954,6 +3042,19 @@ stock NvgScreen(iPlayer, R = 0, B = 0, G = 0, density = 0)	// copy from zombieri
 	message_end();
 }
 
+stock UTIL_ScreenFade(iPlayer, Float:flDuration, Float:flHoldTime, bitsFlags, R, B, G, A)
+{
+	message_begin(MSG_ONE, get_user_msgid("ScreenFade"), {0, 0, 0}, iPlayer);
+	write_short(floatround(4096.0 * flDuration));
+	write_short(floatround(4096.0 * flHoldTime));
+	write_short(bitsFlags);
+	write_byte(R);
+	write_byte(B);
+	write_byte(G);
+	write_byte(A);
+	message_end();
+}
+
 stock UTIL_RandomNonroleCharacter(iTeam, bool:bHumanPriority = true)
 {
 	new iCandidateCount = 0, rgiCandidates[33];
@@ -3163,6 +3264,13 @@ stock UTIL_GetAliasId(szAlias[])
 	return 0;
 }
 
+stock UTIL_BlinkAccount(pPlayer, numBlinks)
+{
+	emessage_begin(MSG_ONE, get_user_msgid("BlinkAcct"), _, pPlayer);
+	ewrite_byte(numBlinks);
+	emessage_end();
+}
+
 AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)
 {
 	static szBuffer[192], szInfo[16];
@@ -3196,6 +3304,26 @@ AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)
 	menu_additem(hMenu, szBuffer, szInfo);
 }
 
+GetPrice(Role_e:iRoleIndex, iId)
+{
+	new iCost = g_rgiWeaponDefaultCost[iId];
+	
+	switch (g_rgRoleWeaponsAccessibility[iRoleIndex][iId])
+	{
+		case WPN_F:
+			iCost = 160001;
+		case WPN_D:
+			iCost /= 2;
+		case WPN_P:
+			iCost *= 2;
+		default:
+		{
+		}
+	}
+	
+	return iCost;
+}
+
 bool:AttemptPurchase(pPlayer, iId)
 {
 	new iCost = g_rgiWeaponDefaultCost[iId];
@@ -3205,6 +3333,7 @@ bool:AttemptPurchase(pPlayer, iId)
 		case WPN_F:
 		{
 			print_chat_color(pPlayer, REDCHAT, "你的身份不允許你持有%s!", g_rgszWeaponName[iId]);
+			UTIL_BlinkAccount(pPlayer, 2);
 			return false;
 		}
 		case WPN_D:
