@@ -24,7 +24,7 @@ public SWAT_Initialize()
 	cvar_swatArmourRegenRad		= register_cvar("lm_SWAT_armour_regen_rad",	"250.0");
 	cvar_swatBulletproofCD		= register_cvar("lm_SWAT_bulletproof_cd",	"40.0");
 	cvar_swatBulletproofLast	= register_cvar("lm_SWAT_bulletproof_last",	"15.0");
-	cvar_swatBulletproofRatio	= register_cvar("lm_SWAT_bulletproof_ratio","0.9");
+	cvar_swatBulletproofRatio	= register_cvar("lm_SWAT_bulletproof_ratio","0.5");
 	
 	g_rgSkillDuration[Role_SWAT] = cvar_swatBulletproofLast;
 	g_rgSkillCooldown[Role_SWAT] = cvar_swatBulletproofCD;

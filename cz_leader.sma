@@ -2919,7 +2919,7 @@ public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 			AttemptPurchase(pPlayer, CSW_HEGRENADE);
 			AttemptPurchase(pPlayer, CSW_FLASHBANG);
 			AttemptPurchase(pPlayer, CSW_FLASHBANG);
-			AttemptPurchase(pPlayer, CSW_FLASHBANG);
+			AttemptPurchase(pPlayer, CSW_SMOKEGRENADE);
 		}
 		default:
 		{
