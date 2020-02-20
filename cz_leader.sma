@@ -30,13 +30,13 @@ CT:
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
 (被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
 S.W.A.T.
-(優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)	(LUNA預定)
-(立即填充所有手榴彈、彈藥和護甲，10秒内轉移90%傷害至護甲)
-(被動：AP 200，周围友军缓慢恢复护甲)
+(優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)	✔ (LUNA)
+(立即填充所有手榴彈、彈藥和護甲，15秒内轉移90%傷害至護甲)	✔ (LUNA)
+(被動：AP 200，周围友军缓慢恢复护甲)	✔ (LUNA)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
 (10秒内无限高爆手雷，爆炸伤害+50%)	✔ (REX)
-(被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (UNDONE: 霰彈槍效果)
+(被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (LUNA)
 神射手
 (優惠M200、手榴彈、ANACONDA和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.12"
+#define VERSION	"1.12.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -230,7 +230,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"[T]立即填充所有物資，15秒内轉移90%傷害至護甲",
-	"[T]无限手榴彈，爆炸伤害+50%%%%",
+	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
 	"[T]狙擊槍強制命中頭部，並造成目標失明",
 	"",
 	
@@ -247,7 +247,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	
 	"",
 	"[被動]周圍角色緩慢補充護甲",
-	"[被动]减少受到的爆炸伤害，死后爆炸",
+	"[被动]霰彈槍使用爆炸彈頭",
 	"[被动]冰冻手雷",
 	"",
 	
@@ -550,7 +550,8 @@ public plugin_init()
 
 		if (i == CSW_C4 || i == CSW_HEGRENADE || i == CSW_KNIFE || i == CSW_SMOKEGRENADE || i == CSW_FLASHBANG)
 			continue;
-
+		
+		RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[i], "HamF_Weapon_PrimaryAttack");
 		RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[i], "HamF_Weapon_PrimaryAttack_Post", 1);
 	}
 	
@@ -567,6 +568,7 @@ public plugin_init()
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink_Post", 1);
 	register_forward(FM_CmdStart, "fw_CmdStart");
 	register_forward(FM_ClientCommand, "fw_ClientCommand");
+	register_forward(FM_TraceLine, "fw_TraceLine_Post", 1);
 	
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
@@ -999,6 +1001,19 @@ public HamF_Item_Deploy_Post(iEntity)
 }
 #endif
 
+public HamF_Weapon_PrimaryAttack(iEntity)
+{
+	new iId = get_pdata_int(iEntity, m_iId, 4);
+	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
+	
+	if (g_rgPlayerRole[iPlayer] == Role_Blaster &&
+		(g_rgbUsingSkill[iPlayer] || iId == CSW_KSG12 || iId == CSW_STRIKER) )
+	{
+		g_rgbBlasterShooting[iPlayer] = true;
+		client_cmd(iPlayer, "spk %s", ASSASSIN_CRITICAL_SFX);
+	}
+}
+
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
 {
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
@@ -1006,6 +1021,9 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	// Firerate for CT leader
 	if (is_user_alive(iPlayer) && iPlayer == THE_COMMANDER && g_rgbUsingSkill[iPlayer])
 		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pdata_float(iEntity, m_flNextPrimaryAttack) * 0.5, 4);
+	
+	if (g_rgbBlasterShooting[iPlayer])
+		g_rgbBlasterShooting[iPlayer] = false;
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -1877,6 +1895,27 @@ public fw_ClientCommand(iPlayer)
 		return FMRES_SUPERCEDE;
 	
 	return FMRES_IGNORED;
+}
+
+public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSkipEntity, tr)
+{
+	if (is_user_connected(iSkipEntity) && g_rgbBlasterShooting[iSkipEntity])
+	{
+		static Float:vecPlaneNorm[3], Float:vecAngles[3], Float:vecCentre[3];
+		get_tr2(tr, TR_vecEndPos, vecCentre);
+		get_tr2(tr, TR_vecPlaneNormal, vecPlaneNorm);
+		vecPlaneNorm[2] = -vecPlaneNorm[2];
+		
+		if(vecPlaneNorm[2] == 0.0)
+			xs_vec_mul_scalar(vecPlaneNorm, 8.0, vecPlaneNorm);
+		
+		vector_to_angle(vecPlaneNorm, vecAngles);
+		
+		Breacher_BulletsExplosion(iSkipEntity, tr);
+		
+		for (new i = 0; i < 6; i++)
+			Breacher_MakeGibs(vecCentre, vecAngles);
+	}
 }
 
 public Task_PlayerResurrection(iPlayer)
@@ -3269,6 +3308,15 @@ stock UTIL_BlinkAccount(pPlayer, numBlinks)
 	emessage_begin(MSG_ONE, get_user_msgid("BlinkAcct"), _, pPlayer);
 	ewrite_byte(numBlinks);
 	emessage_end();
+}
+
+stock UTIL_ScreenShake(iPlayer, Float:amplitude, Float:duration, Float:frequency)
+{
+	message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("ScreenShake"), _, iPlayer);
+	write_short(floatround(4096.0*amplitude));
+	write_short(floatround(4096.0*duration));
+	write_short(floatround(4096.0*frequency));
+	message_end();
 }
 
 AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)

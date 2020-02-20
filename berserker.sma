@@ -11,7 +11,7 @@ new cvar_berserkerDuration, cvar_berserkerCooldown, cvar_berserkerDashSpeed;
 
 public Berserker_Initialize()
 {
-	cvar_berserkerDuration	= register_cvar("lm_berserker_duration",	"5.0");
+	cvar_berserkerDuration	= register_cvar("lm_berserker_duration",	"6.0");
 	cvar_berserkerCooldown	= register_cvar("lm_berserker_cooldown",	"30.0");
 	cvar_berserkerDashSpeed	= register_cvar("lm_berserker_dashspeed",	"300.0");
 
@@ -30,8 +30,8 @@ public Berserker_ExecuteSkill(pPlayer)
 	
 	engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_berserkerDashSpeed));
 	set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_berserkerDashSpeed));
-	
-	NvgScreen(pPlayer, 255, 10, 10, 60);
+
+	UTIL_ScreenFade(pPlayer, 0.5, get_pcvar_float(cvar_berserkerDuration), FFADE_IN, 255, 10, 10, 60);
 	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, BERSERKER_GRAND_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 }
 
@@ -45,7 +45,6 @@ public Berserker_RevokeSkill(iTaskId)
 	if (g_rgPlayerRole[pPlayer] != Role_Berserker)
 		return;
 
-	NvgScreen(pPlayer);
 	ResetMaxSpeed(pPlayer);
 	
 	g_rgbUsingSkill[pPlayer] = false;

@@ -51,7 +51,7 @@ public Assassin_ExecuteSkill(pPlayer)
 	set_pev(pPlayer, pev_viewmodel, 0);
 	set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) | ASSASSIN_HIDEHUD);
 	
-	NvgScreen(pPlayer, 10, 10, 255, 60);
+	UTIL_ScreenFade(pPlayer, 0.3, get_pcvar_float(cvar_assassinInvisibleDur), FFADE_IN, 10, 10, 255, 60);
 	client_cmd(pPlayer, "spk %s", ASSASSIN_GRAND_SFX);
 	
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
@@ -142,8 +142,6 @@ public Assassin_RevokeSkill(iTaskId)
 	
 	if (!g_rgbUsingSkill[pPlayer])	// which means the assassin was killed when cooling down.
 		return;
-	
-	NvgScreen(pPlayer);
 	
 	new Float:flHealth;
 	pev(pPlayer, pev_health, flHealth);
