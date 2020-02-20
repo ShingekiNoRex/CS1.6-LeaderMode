@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.12.1"
+#define VERSION	"1.12.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -119,6 +119,10 @@ TR:
 #define FFADE_OUT			0x0001		// Fade out (not in)
 #define FFADE_MODULATE		0x0002		// Modulate (don't blend)
 #define FFADE_STAYOUT		0x0004		// ignores the duration, stays faded out until new ScreenFade message received
+
+#define GIB_NORMAL	0
+#define GIB_NEVER	1
+#define GIB_ALWAYS	2
 
 #define DISCARD	2
 #define TRUST	1
@@ -753,8 +757,17 @@ public client_disconnected(pPlayer, bool:bDrop, szMessage[], iMaxLen)
 
 public HamF_Killed(iVictim, iAttacker, bShouldGib)
 {
-	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
-		return;
+	if (!is_user_connected(iVictim))
+		return HAM_IGNORED;
+	
+	if (g_rgflFrozenNextthink[iVictim] != 0.0)	// freezing death.
+	{
+		SetHamParamInteger(3, GIB_ALWAYS);
+		Sharpshooter_SetFree(iVictim);
+	}
+	
+	if (!is_user_connected(iAttacker))
+		return HAM_IGNORED;
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
@@ -764,6 +777,8 @@ public HamF_Killed(iVictim, iAttacker, bShouldGib)
 		// for the +600 efx, don't notify client.dll here.
 		set_pdata_int(iAttacker, m_iAccount, get_pdata_int(iAttacker, m_iAccount) + floatround(300.0 * (get_pcvar_float(cvar_TSDbountymul) - 1.0)) );
 	}
+	
+	return HAM_IGNORED;
 }
 
 public HamF_Killed_Post(victim, attacker, shouldgib)
@@ -1180,7 +1195,7 @@ public HamF_BloodColor(iPlayer)
 	if (g_rgflFrozenNextthink[iPlayer] <= get_gametime())
 		return HAM_IGNORED;
 	
-	SetHamReturnInteger(15);
+	SetHamReturnInteger(45);	// this color matches the best.
 	return HAM_SUPERCEDE;
 }
 
@@ -1296,10 +1311,30 @@ public fw_SetModel(iEntity, szModel[])
 	else if (!strcmp(classname, "grenade") && !strcmp(szModel,"models/w_hegrenade.mdl"))
 	{
 		new iPlayer = pev(iEntity, pev_owner);
+		
 		if (g_rgPlayerRole[iPlayer] == Role_Sharpshooter)
 		{
 			set_pev(iEntity, pev_dmgtime, 99999.0)
 			set_pev(iEntity, pev_weapons, ICE_GRENADE_KEY)
+			
+			// Give it a glow
+			set_pev(iEntity, pev_renderfx, kRenderFxGlowShell);
+			set_pev(iEntity, pev_rendercolor, Float:{0.0, 100.0, 200.0} );
+			set_pev(iEntity, pev_rendermode, kRenderNormal);
+			set_pev(iEntity, pev_renderamt, 16.0);
+			
+			// And a colored trail
+			message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+			write_byte(TE_BEAMFOLLOW) // TE id
+			write_short(iEntity) // entity
+			write_short(g_ptrBeamSprite) // sprite
+			write_byte(10) // life
+			write_byte(10) // width
+			write_byte(0) // r
+			write_byte(100) // g
+			write_byte(200) // b
+			write_byte(200) // brightness
+			message_end()
 		}
 	}
 	
@@ -1634,6 +1669,9 @@ public fw_PlayerPostThink_Post(pPlayer)
 {
 	if (!is_user_connected(pPlayer))
 		return;
+	
+	if (!is_user_alive(pPlayer) && pev(pPlayer, pev_effects) & EF_NODRAW && g_rgPlayerRole[pPlayer] != Role_Assassin && !g_rgbUsingSkill[pPlayer])	// death by ice shattered
+		set_pdata_float(pPlayer, m_fDeadTime, get_gametime());	// CBasePlayer::SpawnClientSideCorpse(void)
 	
 	if (IsObserver(pPlayer))	// including player "afterlife".
 		return;
