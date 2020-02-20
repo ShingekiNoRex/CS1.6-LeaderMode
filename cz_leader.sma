@@ -313,10 +313,10 @@ new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
 new const g_rgszBuyCommand[][] =
 {
-    "rebuy",
+    //"rebuy",
     "autobuy",
-    "cl_rebuy",
-    "cl_setrebuy",
+    //"cl_rebuy",
+    //"cl_setrebuy",
     "cl_autobuy",
     "cl_setautobuy"
 }
