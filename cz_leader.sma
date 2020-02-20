@@ -313,12 +313,12 @@ new const g_rgszTeamName[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
 new const g_rgszBuyCommand[][] =
 {
-    "rebuy",
     "autobuy",
+	"cl_autobuy",
+	"cl_setautobuy",
+	"rebuy",
     "cl_rebuy",
-    "cl_setrebuy",
-    "cl_autobuy",
-    "cl_setautobuy"
+    "cl_setrebuy"
 };
 
 stock const g_rgszWeaponEntity[][] =
@@ -2002,7 +2002,10 @@ public fw_ClientCommand(iPlayer)
 	for(new i = 0; i < sizeof g_rgszBuyCommand; i ++)
 	{
 		if(!strcmp(szCommand, g_rgszBuyCommand[i]))
+		{
+			i < 3 ? Command_Autobuy(iPlayer) : Command_Rebuy(iPlayer);
 			return FMRES_SUPERCEDE;
+		}
 	}
 	
 	if (UTIL_GetAliasId(szCommand))	// block original buy
