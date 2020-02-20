@@ -124,6 +124,19 @@ TR:
 #define GIB_NEVER	1
 #define GIB_ALWAYS	2
 
+#define CLASS_UNASSIGNED	0
+#define CLASS_URBAN			1
+#define CLASS_TERROR		2
+#define CLASS_LEET			3
+#define CLASS_ARCTIC		4
+#define CLASS_GSG9			5
+#define CLASS_GIGN			6
+#define CLASS_SAS			7
+#define CLASS_GUERILLA		8
+#define CLASS_VIP			9
+#define CLASS_MILITIA		10
+#define CLASS_SPETSNAZ		11
+
 #define DISCARD	2
 #define TRUST	1
 #define DEPRIVE	0
@@ -475,6 +488,8 @@ new const g_rgszEntityToRemove[][] =
 }
 
 stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
+
+stock g_rgszPlayerDefaultModel[][] = { "urban", "urban", "terror", "leet", "arctic", "gsg9", "gign", "sas", "guerilla", "vip", "militia", "spetsnaz" };
 
 new g_fwBotForwardRegister;
 new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4];
@@ -1863,7 +1878,7 @@ public fw_Spawn(iEntity)	// 移除任务实体
 
 public fw_CmdStart(iPlayer, uc_handle, seed)
 {
-	if (!is_user_alive(iPlayer))
+	if (!is_user_alive(iPlayer) || !g_bRoundStarted)	// you can't use your skill in freeze phase!
 		return FMRES_IGNORED;
 
 	if (get_uc(uc_handle, UC_Impulse) != 201)
@@ -2105,6 +2120,9 @@ public Event_HLTV()
 			
 			set_pdata_int(i, m_iHideHUD, get_pdata_int(i, m_iHideHUD) & ~HIDEHUD_TIMER);
 			set_pev(i, pev_max_health, 100.0);
+			
+			// reset player model.
+			UTIL_SetPlayerModel(i);
 		}
 	}
 	
@@ -2379,6 +2397,9 @@ public Command_DeclareRole(pPlayer)
 	for (new Role_e:i = iStart; i <= iEnd; i++)
 	{
 		if (!rgbRolesAvaliable[i])
+			continue;
+		
+		if (i == Role_Medic || i == Role_Arsonist || i == Role_MadScientist)	// UNDONE & FIXME this is the code of skipping unfinished roles.
 			continue;
 		
 		formatex(szInfo, charsmax(szInfo), "%d", i);
@@ -2989,8 +3010,18 @@ public MenuHandler_DeclareRole(pPlayer, hMenu, iItem)
 		default:
 		{
 			g_rgPlayerRole[pPlayer] = iRoleIndex;
-			g_rgflSkillCooldown[pPlayer] = get_gametime() + 20.0;
 			print_chat_color(pPlayer, GREENCHAT, "你已經成功轉變為%s!", g_rgszRoleNames[iRoleIndex]);
+			
+			if (!g_bRoundStarted)	// allow players select their roles in freeze phase.
+			{
+				g_rgflSkillCooldown[pPlayer] = 0.0;
+				g_rgbAllowSkill[pPlayer] = true;
+			}
+			else
+			{
+				g_rgflSkillCooldown[pPlayer] = get_gametime() + 20.0;
+				g_rgbAllowSkill[pPlayer] = false;
+			}
 		}
 	}
 	
@@ -3509,6 +3540,28 @@ stock UTIL_ScreenShake(iPlayer, Float:amplitude, Float:duration, Float:frequency
 	write_short(floatround(4096.0*duration));
 	write_short(floatround(4096.0*frequency));
 	message_end();
+}
+
+stock UTIL_SetPlayerModel(iPlayer, const szModel[] = "")
+{
+	if (!is_user_connected(iPlayer))
+		return;
+	
+	static szModelPath[64];
+	if (strlen(szModel))
+	{
+		engfunc(EngFunc_SetClientKeyValue, iPlayer, engfunc(EngFunc_GetInfoKeyBuffer, iPlayer), "model", szModel);
+		formatex(szModelPath, charsmax(szModelPath), "models/player/%s/%s.mdl", szModel, szModel);
+	}
+	else
+	{
+		new iModelName = get_pdata_int(iPlayer, m_iModelName);
+		engfunc(EngFunc_SetClientKeyValue, iPlayer, engfunc(EngFunc_GetInfoKeyBuffer, iPlayer), "model", g_rgszPlayerDefaultModel[iModelName]);
+		formatex(szModelPath, charsmax(szModelPath), "models/player/%s/%s.mdl", g_rgszPlayerDefaultModel[iModelName], g_rgszPlayerDefaultModel[iModelName]);
+	}
+	
+	set_pdata_int(iPlayer, m_modelIndexPlayer, engfunc(EngFunc_ModelIndex, szModelPath));
+	dllfunc(DLLFunc_ClientUserInfoChanged, iPlayer);
 }
 
 AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)

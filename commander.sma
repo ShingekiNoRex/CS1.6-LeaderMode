@@ -8,6 +8,7 @@
 
 #define COMMANDER_MODEL			"models/player/Bluemat/Bluemat.mdl"
 #define COMMANDER_MODEL_T		"models/player/Bluemat/BluematT.mdl"
+#define COMMANDER_MODEL_KEY		"Bluemat"
 
 #define COMMANDER_GRAND_SFX		"leadermode/peace_summary_message_01.wav"
 #define COMMANDER_REVOKE_SFX	"leadermode/assign_leader_02.wav"
@@ -54,6 +55,7 @@ public Commander_Assign(pPlayer)
 
 		set_pev(iAbdicator, pev_health, 100.0);
 		set_pev(iAbdicator, pev_max_health, 100.0);
+		UTIL_SetPlayerModel(pPlayer);	// reset his model.
 	}
 	
 	if (!is_user_alive(pPlayer))	// what if this guy was dead?
@@ -61,6 +63,7 @@ public Commander_Assign(pPlayer)
 	
 	// LONG LIVE THE KING!
 	THE_COMMANDER = pPlayer;
+	UTIL_SetPlayerModel(pPlayer, COMMANDER_MODEL_KEY);
 	pev(THE_COMMANDER, pev_netname, g_szLeaderNetname[TEAM_CT - 1], charsmax(g_szLeaderNetname[]));
 	set_pev(THE_COMMANDER, pev_health, flSucceedHealth);
 	set_pev(THE_COMMANDER, pev_max_health, 1000.0);
