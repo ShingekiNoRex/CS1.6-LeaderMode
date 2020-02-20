@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.12.3"
+#define VERSION	"1.12.4"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -2391,7 +2391,7 @@ public Command_DeclareRole(pPlayer)
 	if (iTeam == TEAM_TERRORIST)
 	{
 		iStart = Role_Godfather;
-		iEnd = Role_Medic;
+		iEnd = Role_Arsonist;
 	}
 
 	for (new Role_e:i = iStart; i <= iEnd; i++)
