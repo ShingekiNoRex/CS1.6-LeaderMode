@@ -16,7 +16,8 @@
 new cvar_arsonistDuration, cvar_arsonistCooldown;
 new cvar_firegrenade_range, cvar_firegrenade_dmgtime, cvar_firegrenade_dmg, cvar_firegrenade_interval;
 
-new g_idFireSprite;
+new g_idFireSprite, g_idFireTrace, g_idFireHit;
+new bool:g_rgbArsonistFiring[33];
 
 public Arsonist_Initialize()
 {
@@ -39,6 +40,8 @@ public Arsonist_Precache()
 	engfunc(EngFunc_PrecacheSound, FIREGRENADE_SFX_B);
 	engfunc(EngFunc_PrecacheSound, FIREGRENADE_SFX_C);
 	g_idFireSprite = engfunc(EngFunc_PrecacheModel, "sprites/leadermode/flame.spr");
+	g_idFireTrace = engfunc(EngFunc_PrecacheModel, "sprites/leadermode/FireSmoke.spr")
+	g_idFireHit = engfunc(EngFunc_PrecacheModel, "sprites/xspark4.spr")
 }
 
 public Arsonist_ExecuteSkill(pPlayer)
@@ -97,4 +100,47 @@ public Arsonist_MakeFlames(const Float:origin[3])
 		message_end();
 	}
 	set_pev(iEntity, pev_flags, FL_KILLME);
+}
+
+public Arsonist_CreateTrace(iPlayer, Float:End[3])
+{
+	new Float:origin[3];
+	if (get_pdata_int(iPlayer, 363, 5) >= 90) 
+		get_aim_origin_vector(iPlayer, 16.0, 3.0, -3.0, origin);
+	else 
+		get_aim_origin_vector(iPlayer, 0.0, 0.0, 0.0, origin);
+	
+	message_begin(MSG_BROADCAST, SVC_TEMPENTITY);
+	write_byte(TE_BEAMPOINTS);
+	engfunc(EngFunc_WriteCoord, origin[0]);
+	engfunc(EngFunc_WriteCoord, origin[1]);
+	engfunc(EngFunc_WriteCoord, origin[2]);
+	engfunc(EngFunc_WriteCoord, End[0]);
+	engfunc(EngFunc_WriteCoord, End[1]);
+	engfunc(EngFunc_WriteCoord, End[2]);
+	write_short(g_idFireTrace);
+	write_byte(1);
+	write_byte(10);
+	write_byte(15);
+	write_byte(6);
+	write_byte(0);
+	write_byte(255);
+	write_byte(255);
+	write_byte(255);
+	write_byte(10);
+	write_byte(10);
+	message_end();
+	
+	if (engfunc(EngFunc_PointContents, End) == CONTENTS_SKY)
+		return;
+	
+	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, End, 0);
+	write_byte(TE_SPRITE);
+	engfunc(EngFunc_WriteCoord, End[0]);
+	engfunc(EngFunc_WriteCoord, End[1]);
+	engfunc(EngFunc_WriteCoord, End[2]);
+	write_short(g_idFireHit);
+	write_byte(3);
+	write_byte(180);
+	message_end();
 }

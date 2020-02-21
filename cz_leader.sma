@@ -1026,6 +1026,11 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 			if (bitsDamageTypes & (DMG_BLAST | (1<<24)) )		// Blast or HE Grenade damage
 				flDamageMultiplier += 0.5;
 		}
+		else if (g_rgPlayerRole[iAttacker] == Role_Arsonist && g_rgbUsingSkill[iAttacker])
+		{
+			if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))
+				flDamageMultiplier += 0.5;
+		}
 	}
 	
 	SetHamParamFloat(4, flDamage * floatmax(flDamageMultiplier, 0.0));
@@ -1088,6 +1093,14 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 		g_rgbShootingElectrobullets[iPlayer] = true;
 		engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ELECTROBULLETS_EFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	}
+
+	if (g_rgPlayerRole[iPlayer] == Role_Arsonist && g_rgbUsingSkill[iPlayer])
+	{
+		if (get_pdata_int(iEntity, m_iClip, 4))
+		{
+			g_rgbArsonistFiring[iPlayer] = true;
+		}
+	}
 }
 
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
@@ -1103,6 +1116,9 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	
 	if (g_rgbShootingElectrobullets[iPlayer])
 		g_rgbShootingElectrobullets[iPlayer] = false;
+
+	if (g_rgbArsonistFiring[iPlayer])
+		g_rgbArsonistFiring[iPlayer] = false;
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -2104,6 +2120,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		{
 			MadScientist_ExecuteSkill(iPlayer);
 		}
+		case Role_Arsonist:
+		{
+			Arsonist_ExecuteSkill(iPlayer);
+		}
 		default:
 			return FMRES_IGNORED;
 	}
@@ -2202,6 +2222,13 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 			write_byte(0);
 			message_end();
 		}
+	}
+
+	if (g_rgbArsonistFiring[iSkipEntity])
+	{
+		static Float:vecOrigin[3];
+		get_tr2(tr, TR_vecEndPos, vecOrigin);
+		Arsonist_CreateTrace(iSkipEntity, vecOrigin);
 	}
 }
 
