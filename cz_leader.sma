@@ -66,7 +66,7 @@ TR:
 纵火犯
 (優惠霰彈槍和手榴彈，允許衝鋒槍、突擊步槍)
 (火焰弹药，燃烧伤害附带减速效果)
-(被動：高爆手雷改为燃烧瓶)
+(被動：燃烧手雷，免疫燃烧伤害) ✔ (REX)
 
 **/
 
@@ -255,7 +255,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]提升移速，承受致命伤不会立刻死亡",
 	"[T]立即填裝電擊子彈。被命中者將失去角色控制。",
 	"[T]標記指揮官位置並隱身",
-	""
+	"[T]火焰弹药，燃烧伤害附带减速效果"
 };
 
 stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
@@ -272,7 +272,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[被动]血量越低伤害越高",
 	"[被動]煙霧彈內填充神經毒氣",
 	"[被动]消音武器有1%%%%的概率暴擊",
-	""
+	"[被动]燃烧手雷，免疫燃烧伤害"
 };
 
 stock g_rgSkillDuration[ROLE_COUNT] =
@@ -668,6 +668,7 @@ public plugin_init()
 	Sharpshooter_Initialize();
 	SWAT_Initialize();
 	MadScientist_Initialize();
+	Arsonist_Initialize();
 	
 	// bot support
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
@@ -747,6 +748,7 @@ public plugin_precache()
 	Berserker_Precache();
 	SWAT_Precache();
 	MadScientist_Precache();
+	Arsonist_Precache();
 	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
 }
 
@@ -1013,8 +1015,8 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 	{
 		if (g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))		// blaster is resist to grenade damage.
 			flDamageMultiplier -= 0.75;
-		else if(g_rgPlayerRole[iVictim] == Role_Arsonist && bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))		// arsonist is resist to burn damage.
-			flDamageMultiplier -= 0.9;
+		else if(g_rgPlayerRole[iVictim] == Role_Arsonist && bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))		// arsonist is immune to burn damage.
+			return FMRES_SUPERCEDE;
 	}
 
 	if (is_user_connected(iAttacker))
@@ -1030,6 +1032,18 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 		{
 			if (bitsDamageTypes & (DMG_BLAST | (1<<24)) )		// Blast or HE Grenade damage
 				flDamageMultiplier += 0.5;
+		}
+		else if (g_rgPlayerRole[iAttacker] == Role_Arsonist && g_rgbUsingSkill[iAttacker])
+		{
+			if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))
+			{
+				flDamageMultiplier += 0.5;
+				if (is_user_alive(iVictim))
+				{
+					new Float:velocity[3] = { 0.0, 0.0, 0.0 };
+					set_pev(iVictim, pev_velocity, velocity);
+				}
+			}
 		}
 	}
 	
@@ -1096,7 +1110,12 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 		g_rgbShootingElectrobullets[iPlayer] = true;
 		engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ELECTROBULLETS_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	}
-	
+
+	if (g_rgPlayerRole[iPlayer] == Role_Arsonist && g_rgbUsingSkill[iPlayer])
+	{
+		g_rgbArsonistFiring[iPlayer] = true;	// LUNA: don't worry, REX. the code won't reach here if the clip is <= 0. check the first line of this function.
+	}
+
 	return HAM_IGNORED;
 }
 
@@ -1113,6 +1132,9 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	
 	if (g_rgbShootingElectrobullets[iPlayer])
 		g_rgbShootingElectrobullets[iPlayer] = false;
+
+	if (g_rgbArsonistFiring[iPlayer])
+		g_rgbArsonistFiring[iPlayer] = false;
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -1511,12 +1533,8 @@ public fw_SetModel(iEntity, szModel[])
 		}
 		else if (g_rgPlayerRole[iPlayer] == Role_Arsonist)
 		{
-			new iEntity2 = get_pdata_cbase(iPlayer, m_pActiveItem);
-			if (pev(iEntity2, pev_weapons) == FIRE_GRENADE_OPEN)
-			{
-				set_pev(iEntity, pev_weapons, FIRE_GRENADE_OPEN);
-				set_pev(iEntity, pev_dmgtime, 9999.0);
-			}
+			set_pev(iEntity, pev_weapons, FIRE_GRENADE_OPEN);
+			set_pev(iEntity, pev_dmgtime, 9999.0);
 		}
 	}
 	
@@ -2125,6 +2143,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		{
 			MadScientist_ExecuteSkill(iPlayer);
 		}
+		case Role_Arsonist:
+		{
+			Arsonist_ExecuteSkill(iPlayer);
+		}
 		default:
 			return FMRES_IGNORED;
 	}
@@ -2226,6 +2248,13 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 			write_byte(0);
 			message_end();
 		}
+	}
+
+	if (g_rgbArsonistFiring[iSkipEntity])
+	{
+		static Float:vecOrigin[3];
+		get_tr2(tr, TR_vecEndPos, vecOrigin);
+		Arsonist_CreateTrace(iSkipEntity, vecOrigin);
 	}
 }
 
@@ -2690,7 +2719,7 @@ public Command_DeclareRole(pPlayer)
 		if (!rgbRolesAvaliable[i])
 			continue;
 		
-		if (i == Role_Medic || i == Role_Arsonist)	// UNDONE & FIXME this is the code of skipping unfinished roles.
+		if (i == Role_Medic)	// UNDONE & FIXME this is the code of skipping unfinished roles.
 			continue;
 		
 		formatex(szInfo, charsmax(szInfo), "%d", i);
