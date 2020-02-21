@@ -651,7 +651,7 @@ public plugin_init()
 	register_clcmd("blaster",			"Command_Blaster");
 	register_clcmd("sharpshooter",		"Command_Sharpshooter");
 	register_clcmd("SWAT",				"Command_SWAT");
-	register_clcmd("arsonist",			"Command_Arosinist");
+	register_clcmd("arsonist",			"Command_Arsonist");
 	register_clcmd("addmoney",			"Command_AddMoney");
 	register_clcmd("give",				"Command_Give");
 	register_clcmd("electrify",			"Command_Electrify");
