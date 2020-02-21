@@ -1029,7 +1029,14 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 		else if (g_rgPlayerRole[iAttacker] == Role_Arsonist && g_rgbUsingSkill[iAttacker])
 		{
 			if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))
+			{
 				flDamageMultiplier += 0.5;
+				if (is_user_alive(iVictim))
+				{
+					new Float:velocity[3] = { 0.0, 0.0, 0.0 };
+					set_pev(iVictim, pev_velocity, velocity);
+				}
+			}
 		}
 	}
 	
