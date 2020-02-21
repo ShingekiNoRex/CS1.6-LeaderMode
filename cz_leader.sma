@@ -66,7 +66,7 @@ TR:
 纵火犯
 (優惠霰彈槍和手榴彈，允許衝鋒槍、突擊步槍)
 (火焰弹药，燃烧伤害附带减速效果)
-(被動：燃烧手雷，免疫燃烧伤害)
+(被動：燃烧手雷，免疫燃烧伤害) ✔ (REX)
 
 **/
 
@@ -2633,7 +2633,7 @@ public Command_DeclareRole(pPlayer)
 		if (!rgbRolesAvaliable[i])
 			continue;
 		
-		if (i == Role_Medic || i == Role_Arsonist)	// UNDONE & FIXME this is the code of skipping unfinished roles.
+		if (i == Role_Medic)	// UNDONE & FIXME this is the code of skipping unfinished roles.
 			continue;
 		
 		formatex(szInfo, charsmax(szInfo), "%d", i);
