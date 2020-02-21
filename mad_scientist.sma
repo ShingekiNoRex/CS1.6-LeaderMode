@@ -11,6 +11,7 @@
 #define BREATHE_SFX			"leadermode/breathe1.wav"
 #define COUGH_SFX			"leadermode/cough%d.wav"
 
+new cvar_msRevengeRatio;
 new cvar_msGravityGunCD, cvar_msGravityGunDur, cvar_msGravityGunDragSpd;
 new cvar_msElectrobltDur, cvar_msElectrobltSpdLim;
 new cvar_msPoisonLast, cvar_msPoisonDmg, cvar_msPoisonDmgInv;
@@ -27,6 +28,7 @@ public MadScientist_Initialize()
 	cvar_msPoisonDmg		= register_cvar("lm_ms_poison_damage",			"7.0");
 	cvar_msPoisonLast		= register_cvar("lm_ms_poison_lasting",			"5.0");
 	cvar_msPoisonDmgInv		= register_cvar("lm_ms_poison_damage_interval",	"1.0");
+	cvar_msRevengeRatio		= register_cvar("lm_ms_revenge_ratio",			"0.15");
 	
 	g_rgSkillDuration[Role_MadScientist] = cvar_msGravityGunDur;
 	g_rgSkillCooldown[Role_MadScientist] = cvar_msGravityGunCD;

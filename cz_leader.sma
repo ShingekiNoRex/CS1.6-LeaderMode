@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13 beta"
+#define VERSION	"1.13"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -270,7 +270,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	
 	"[被动]周围友军缓慢恢复生命",
 	"[被动]血量越低伤害越高",
-	"[被動]煙霧彈內填充神經毒氣",
+	"[被動]煙霧彈內有神經毒氣、護甲帶電",
 	"[被动]消音武器有1%%%%的概率暴擊",
 	"[被动]燃烧手雷，免疫燃烧伤害"
 };
@@ -978,6 +978,31 @@ public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirect
 		
 		if (is_user_connected(iAttacker))
 			client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
+	}
+	
+	if (g_rgPlayerRole[iVictim] == Role_MadScientist)
+	{
+		engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
+		write_byte(TE_BEAMENTS);
+		write_short(iVictim);
+		write_short(iAttacker);
+		write_short(g_ptrBeamSprite);
+		write_byte(0);
+		write_byte(100);
+		write_byte(1);
+		write_byte(31);
+		write_byte(125);
+		write_byte(160);
+		write_byte(250);
+		write_byte(250);
+		write_byte(255);
+		write_byte(random_num(20, 30));
+		message_end();
+		
+		MadScientist_VFX(iAttacker);
+		MadScientist_VFX(iVictim);
+
+		ExecuteHamB(Ham_TakeDamage, iAttacker, 0, iVictim, flDamage * get_pcvar_float(cvar_msRevengeRatio), DMG_SHOCK | DMG_NEVERGIB);
 	}
 }
 
