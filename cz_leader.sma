@@ -1055,7 +1055,16 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 {
 	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
 		return;
-
+	
+	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// UNDONE, UNTESTED. can this triggered by HE or other blasts?
+	{
+		Assassin_TerminateSkill(iVictim);
+		client_cmd(iVictim, "spk %s", ASSASSIN_DISCOVERED_SFX);
+		
+		if (is_user_connected(iAttacker))
+			client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
+	}
+	
 	if (is_user_alive(iVictim))
 	{
 		if (bitsDamageTypes & DMG_FREEZE && iInflictor && pev(iInflictor, pev_weapons) == ICE_GRENADE_KEY)
