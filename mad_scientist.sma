@@ -4,20 +4,29 @@
 
 #define MADSCIENTIST_TASK	136874
 
-#define ELECTROBULLETS_EFX	"leadermode/electro1.wav"
+#define ELECTROBULLETS_SFX	"leadermode/electro1.wav"
 #define ELECTRIFY_SFX		"leadermode/electric_damage.wav"
+#define MADSCIENTIST_SFX	"leadermode/hermetic_society_interface_01.wav"
+#define STATIC_ELEC_SFX		"leadermode/electric_hum2.wav"
+#define BREATHE_SFX			"leadermode/breathe1.wav"
+#define COUGH_SFX			"leadermode/cough%d.wav"
 
 new cvar_msGravityGunCD, cvar_msGravityGunDur, cvar_msGravityGunDragSpd;
-new cvar_msElectrobltDur;
+new cvar_msElectrobltDur, cvar_msElectrobltSpdLim;
+new cvar_msPoisonLast, cvar_msPoisonDmg, cvar_msPoisonDmgInv;
 new Float:g_rgflPlayerElectrified[33], Float:g_rgflElectrifiedScreenFade[33], Float:g_rgflElectrifiedPunch[33], Float:g_rgflElectrifyingSFX[33], Float:g_rgflElectrifyingVFX[33];
 new bool:g_rgbShootingElectrobullets[33], Float:g_rgvecElectrobulletsHitsOfs[33][3];
 
 public MadScientist_Initialize()
 {
-	cvar_msGravityGunCD		= register_cvar("lm_ms_gravity_gun_cd",			"45.0");
-	cvar_msGravityGunDur	= register_cvar("lm_ms_gravity_gun_dur",		"12.0");
+	cvar_msGravityGunCD		= register_cvar("lm_ms_gravity_gun_cd",			"50.0");
+	cvar_msGravityGunDur	= register_cvar("lm_ms_gravity_gun_dur",		"14.0");
 	cvar_msGravityGunDragSpd= register_cvar("lm_ms_gravity_gun_drag_speed",	"900.0");
 	cvar_msElectrobltDur	= register_cvar("lm_ms_electrobullets_lasting",	"3.0");
+	cvar_msElectrobltSpdLim	= register_cvar("lm_ms_electrobullets_spdlim",	"125.0");
+	cvar_msPoisonDmg		= register_cvar("lm_ms_poison_damage",			"7.0");
+	cvar_msPoisonLast		= register_cvar("lm_ms_poison_lasting",			"5.0");
+	cvar_msPoisonDmgInv		= register_cvar("lm_ms_poison_damage_interval",	"1.0");
 	
 	g_rgSkillDuration[Role_MadScientist] = cvar_msGravityGunDur;
 	g_rgSkillCooldown[Role_MadScientist] = cvar_msGravityGunCD;
@@ -25,8 +34,18 @@ public MadScientist_Initialize()
 
 public MadScientist_Precache()
 {
-	precache_sound(ELECTROBULLETS_EFX);
+	precache_sound(ELECTROBULLETS_SFX);
 	precache_sound(ELECTRIFY_SFX);
+	precache_sound(MADSCIENTIST_SFX);
+	precache_sound(STATIC_ELEC_SFX);
+	precache_sound(BREATHE_SFX);
+	
+	static szCoughSFX[48];
+	for (new i = 1; i <= 6; i++)
+	{
+		formatex(szCoughSFX, charsmax(szCoughSFX), COUGH_SFX, i);
+		precache_sound(szCoughSFX);
+	}
 }
 
 public Command_Electrify(pPlayer)
@@ -38,17 +57,23 @@ public Command_Electrify(pPlayer)
 	read_argv(1, szCommand, charsmax(szCommand));
 	
 	g_rgflPlayerElectrified[pPlayer] = get_gametime() + str_to_float(szCommand);
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	return PLUGIN_HANDLED;
 }
 
 public MadScientist_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_msGravityGunDur), "MadScientist_RevokeSkill", MADSCIENTIST_TASK + pPlayer);
+	
+	client_cmd(pPlayer, "spk %s", MADSCIENTIST_SFX);
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, STATIC_ELEC_SFX, 0.5, ATTN_NORM, 0, PITCH_NORM);
 }
 
 public MadScientist_RevokeSkill(iTaskId)
 {
 	new pPlayer = iTaskId - MADSCIENTIST_TASK;
+	
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, STATIC_ELEC_SFX, 0.5, ATTN_NORM, SND_STOP, PITCH_NORM);
 	
 	if (!is_user_alive(pPlayer))
 		return;
@@ -88,9 +113,9 @@ public MadScientist_SkillThink(pPlayer)	// apply on victims
 		write_coord(0); // x
 		write_coord(0); // y
 		write_coord(0); // z
-		message_end()
+		message_end();
 		
-		engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		//engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);	// could be a overlap?
 		g_rgflElectrifyingSFX[pPlayer] = get_gametime() + 3.75;
 	}
 	
@@ -128,8 +153,8 @@ public MadScientist_SkillThink(pPlayer)	// apply on victims
 	if (!random_num(0, 2))
 		set_pev(pPlayer, pev_button, pev(pPlayer, pev_button) & ~IN_ATTACK);
 	
-	engfunc(EngFunc_SetClientMaxspeed, pPlayer, 125.0);
-	set_pev(pPlayer, pev_maxspeed, 125.0);
+	engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_msElectrobltSpdLim));
+	set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_msElectrobltSpdLim));
 }
 
 public MadScientist_DragPlayer(iVictim, Float:vecSrc[3])
@@ -184,3 +209,117 @@ public MadScientist_VFX(pPlayer)
 	
 	UTIL_BeamEntPoint(pPlayer, vecOrigin, g_ptrBeamSprite, 0, 100, 1, 31, 125, 160, 250, 250, 255, random_num(20, 30));
 }
+
+new Float:g_rgflPlayerPoisoned[33], g_rgiPoisonedBy[33], Float:g_rgflPoisonedDamage[33], bool:g_rgbPoisonedFadeIn[33], Float:g_rgflPoisonedFade[33], Float:g_rgflPoisonedCough[33], Float:g_rgflBreathStop[33];
+
+public Command_Poison(pPlayer)
+{
+	if (!get_pcvar_num(cvar_DebugMode))
+		return PLUGIN_CONTINUE;
+	
+	static szCommand[24];
+	read_argv(1, szCommand, charsmax(szCommand));
+	
+	g_rgflPlayerPoisoned[pPlayer] = get_gametime() + str_to_float(szCommand);
+	g_rgiPoisonedBy[pPlayer] = pPlayer;
+	return PLUGIN_HANDLED;
+}
+
+public GasGrenade_Think(iEntity)
+{
+	static Float:flTimeRemove;
+	pev(iEntity, pev_fuser1, flTimeRemove);
+	
+	if (flTimeRemove < get_gametime())
+	{
+		set_pev(iEntity, pev_flags, pev(iEntity, pev_flags) | FL_KILLME);
+		return;
+	}
+
+	static Float:vecOrigin[3];
+	pev(iEntity, pev_origin, vecOrigin);
+	
+	static iAttacker;
+	iAttacker = pev(iEntity, pev_iuser4);
+	
+	new pPlayer = -1;
+	while ((pPlayer = engfunc(EngFunc_FindEntityInSphere, pPlayer, vecOrigin, 280.0)) > 0)
+	{
+		if (!is_user_connected(pPlayer))
+			continue;
+		
+		g_rgflPlayerPoisoned[pPlayer] = get_gametime() + get_pcvar_float(cvar_msPoisonLast);
+		g_rgiPoisonedBy[pPlayer] = iAttacker;
+	}
+	
+	set_pev(iEntity, pev_nextthink, get_gametime() + 0.1);
+}
+
+public GasGrenade_VictimThink(pPlayer)
+{
+	if (g_rgflBreathStop[pPlayer] > 0.0 && g_rgflBreathStop[pPlayer] < get_gametime())
+	{
+		engfunc(EngFunc_EmitSound, pPlayer, CHAN_VOICE, BREATHE_SFX, VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+		g_rgflBreathStop[pPlayer] = 0.0;
+		return;
+	}
+	
+	if (g_rgflPlayerPoisoned[pPlayer] <= 0.0)	// not poisoned.
+		return;
+	
+	if (g_rgflPlayerPoisoned[pPlayer] < get_gametime())	// detoxify
+	{
+		g_rgbPoisonedFadeIn[pPlayer] = false;
+		g_rgflPlayerPoisoned[pPlayer] = 0.0;
+		g_rgflBreathStop[pPlayer] = get_gametime() + 6.0;
+		engfunc(EngFunc_EmitSound, pPlayer, CHAN_VOICE, BREATHE_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		return;
+	}
+	
+	if (g_rgflPoisonedFade[pPlayer] < get_gametime())
+	{
+		UTIL_ScreenFade(pPlayer, 0.6, 0.4, g_rgbPoisonedFadeIn[pPlayer] ? FFADE_IN : FFADE_OUT, 128, 255, 128, 150);
+		
+		g_rgbPoisonedFadeIn[pPlayer] = !g_rgbPoisonedFadeIn[pPlayer];
+		g_rgflPoisonedFade[pPlayer] = get_gametime() + 1.0;
+	}
+	
+	if (g_rgflPoisonedCough[pPlayer] < get_gametime())
+	{
+		static szCoughSFX[48];
+		formatex(szCoughSFX, charsmax(szCoughSFX), COUGH_SFX, random_num(1, 6));
+		engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, szCoughSFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		
+		g_rgflPoisonedCough[pPlayer] = get_gametime() + random_float(2.5, 4.0);
+	}
+	
+	if (g_rgflPoisonedDamage[pPlayer] < get_gametime())
+	{
+		new Float:flMaxDamage = get_pcvar_float(cvar_msPoisonDmg);
+		ExecuteHamB(Ham_TakeDamage, pPlayer, 0, g_rgiPoisonedBy[pPlayer], random_float(flMaxDamage / 2.0, flMaxDamage), DMG_NERVEGAS | DMG_NEVERGIB);
+		
+		g_rgflPoisonedDamage[pPlayer] = get_gametime() + get_pcvar_float(cvar_msPoisonDmgInv);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

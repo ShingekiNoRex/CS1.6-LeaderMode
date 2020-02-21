@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13 alpha"
+#define VERSION	"1.13 beta"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -253,7 +253,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
 	"[T]提升移速，承受致命伤不会立刻死亡",
-	"",
+	"[T]立即填裝電擊子彈。被命中者將失去角色控制。",
 	"[T]標記指揮官位置並隱身",
 	""
 };
@@ -270,7 +270,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	
 	"[被动]周围友军缓慢恢复生命",
 	"[被动]血量越低伤害越高",
-	"",
+	"[被動]煙霧彈內填充神經毒氣",
 	"[被动]消音武器有1%%%%的概率暴擊",
 	""
 };
@@ -603,6 +603,7 @@ public plugin_init()
 	register_forward(FM_ClientCommand, "fw_ClientCommand");
 	register_forward(FM_TraceLine, "fw_TraceLine_Post", 1);
 	register_forward(FM_Think, "fw_Think");
+	register_forward(FM_EmitSound, "fw_EmitSound_Post", 1);
 	
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
@@ -651,11 +652,12 @@ public plugin_init()
 	register_clcmd("blaster",			"Command_Blaster");
 	register_clcmd("sharpshooter",		"Command_Sharpshooter");
 	register_clcmd("SWAT",				"Command_SWAT");
-	register_clcmd("arsonist",			"Command_Arosinist");
+	register_clcmd("arsonist",			"Command_Arsonist");
 	register_clcmd("addmoney",			"Command_AddMoney");
 	register_clcmd("give",				"Command_Give");
 	register_clcmd("electrify",			"Command_Electrify");
-	
+	register_clcmd("poison",			"Command_Poison");
+	register_clcmd("healme",			"Command_Heal");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -764,6 +766,7 @@ public client_putinserver(pPlayer)
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
 	g_rgbitsPlayerRebuy[pPlayer] = 0;
 	g_rgflPlayerElectrified[pPlayer] = 0.0;
+	g_rgflPlayerPoisoned[pPlayer] = 0.0;
 }
 
 public client_connect(pPlayer)
@@ -885,6 +888,10 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 
 	if (!is_user_connected(victim))
 		return;
+	
+	// remove DOTs
+	g_rgflPlayerPoisoned[victim] = 0.0;
+	g_rgflPlayerElectrified[victim] = 0.0;
 
 	iTeam = get_pdata_int(victim, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
@@ -1071,6 +1078,9 @@ public HamF_Item_Deploy_Post(iEntity)
 
 public HamF_Weapon_PrimaryAttack(iEntity)
 {
+	if (get_pdata_int(iEntity, m_iClip, 4) <= 0)
+		return HAM_IGNORED;
+	
 	new iId = get_pdata_int(iEntity, m_iId, 4);
 	new iPlayer = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
@@ -1084,8 +1094,10 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 	if (g_rgPlayerRole[iPlayer] == Role_MadScientist && g_rgbUsingSkill[iPlayer])
 	{
 		g_rgbShootingElectrobullets[iPlayer] = true;
-		engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ELECTROBULLETS_EFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ELECTROBULLETS_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	}
+	
+	return HAM_IGNORED;
 }
 
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
@@ -1375,6 +1387,12 @@ public fw_Touch_Post(iEntity, iOther)
 
 public fw_Think(iEntity)
 {
+	if (pev(iEntity, pev_weapons) == MADSCIENTIST_TASK)
+	{
+		GasGrenade_Think(iEntity);
+		return FMRES_IGNORED;
+	}
+	
 	static szClassName[32];
 	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
 	if (strcmp(szClassName, "grenade"))
@@ -1834,6 +1852,7 @@ public fw_PlayerPreThink_Post(pPlayer)
 {
 	Sharpshooter_IceThink(pPlayer);
 	MadScientist_SkillThink(pPlayer);
+	GasGrenade_VictimThink(pPlayer);
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -2173,6 +2192,9 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 		new iVictim = get_tr2(tr, TR_pHit);
 		if (is_user_connected(iVictim))
 		{
+			if (g_rgflPlayerElectrified[iVictim] <= 0.0)	// never overlap
+				engfunc(EngFunc_EmitSound, iVictim, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			
 			MadScientist_DragPlayer(iVictim, vecStart);
 			g_rgflPlayerElectrified[iVictim] = get_gametime() + get_pcvar_float(cvar_msElectrobltDur);
 			
@@ -2205,6 +2227,39 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 			message_end();
 		}
 	}
+}
+
+public fw_EmitSound_Post(iGrenade, iChannel, const szSample[], Float:flVolume, Float:flAttn, bitsFlags, iPitch)
+{
+	if (strcmp(szSample, "weapons/sg_explode.wav"))	// this is the only place where this sound played.
+		return;
+	
+	new pPlayer = pev(iGrenade, pev_owner);
+	if (g_rgPlayerRole[pPlayer] != Role_MadScientist)
+		return;
+	
+	new Float:vecOrigin[3];
+	pev(iGrenade, pev_origin, vecOrigin);
+	
+	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
+	set_pev(iEntity, pev_origin, vecOrigin);
+	set_pev(iEntity, pev_weapons, MADSCIENTIST_TASK);
+	set_pev(iEntity, pev_nextthink, get_gametime() + 0.01);
+	set_pev(iEntity, pev_fuser1, get_gametime() + 25.5);
+	set_pev(iEntity, pev_iuser4, pPlayer);
+	
+	engfunc(EngFunc_MessageBegin, MSG_ALL, SVC_TEMPENTITY, vecOrigin, 0);
+	write_byte(TE_DLIGHT);
+	engfunc(EngFunc_WriteCoord, vecOrigin[0]);
+	engfunc(EngFunc_WriteCoord, vecOrigin[1]);
+	engfunc(EngFunc_WriteCoord, vecOrigin[2]);
+	write_byte(27);		// range: 275 ?
+	write_byte(128);
+	write_byte(255);
+	write_byte(128);
+	write_byte(255);	// time: original CS smokegrenade lasts 25 sec.
+	write_byte(0);
+	message_end();
 }
 
 public Task_PlayerResurrection(iPlayer)
@@ -2900,6 +2955,15 @@ public Command_Give(pPlayer)
 	}
 	
 	fm_give_item(pPlayer, szCommand);
+	return PLUGIN_HANDLED;
+}
+
+public Command_Heal(pPlayer)
+{
+	if (!get_pcvar_num(cvar_DebugMode))
+		return PLUGIN_CONTINUE;
+	
+	set_pev(pPlayer, pev_health, 100.0);
 	return PLUGIN_HANDLED;
 }
 
