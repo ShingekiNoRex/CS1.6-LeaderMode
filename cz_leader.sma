@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13"
+#define VERSION	"1.13.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -447,9 +447,9 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
-/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
+/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_P, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_P, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
 /*Role_Assassin*/		{ WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
-/*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A }
+/*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_P, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A }
 };
 
 stock const g_rgiPistolsId[] = { CSW_GLOCK18, CSW_USP, CSW_ANACONDA, CSW_DEAGLE, CSW_FIVESEVEN, CSW_P99 };
@@ -1086,6 +1086,9 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 		if (bitsDamageTypes & DMG_FREEZE && iInflictor && pev(iInflictor, pev_weapons) == ICE_GRENADE_KEY)
 			Sharpshooter_GetFrozen(iVictim);
 	}
+	
+	if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN | DMG_SHOCK | DMG_NERVEGAS))
+		set_pdata_float(iVictim, m_flVelocityModifier, 1.0);	// remove the freaking sticky damage feedback.
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
