@@ -43,8 +43,8 @@ S.W.A.T.
 (被動：冰凍手榴彈) ✔ (REX)
 医疗兵
 (優惠G18C、ANACONDA、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
-(犧牲50%HP將周圍非隊長角色的HP恢復最大值的一半)
-(被動：煙霧彈具有治療效果)
+(包含自己在内恢复周圍非隊長角色的HP)
+(被動：副武器射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害)
 
 TR:
 教父	(1)
@@ -1052,14 +1052,7 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 		else if (g_rgPlayerRole[iAttacker] == Role_Arsonist && g_rgbUsingSkill[iAttacker])
 		{
 			if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))
-			{
 				flDamageMultiplier += 0.5;
-				if (is_user_alive(iVictim))
-				{
-					new Float:velocity[3] = { 0.0, 0.0, 0.0 };
-					set_pev(iVictim, pev_velocity, velocity);
-				}
-			}
 		}
 	}
 	
@@ -1087,8 +1080,16 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 			Sharpshooter_GetFrozen(iVictim);
 	}
 	
-	if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS))
+	if (bitsDamageTypes & (DMG_SHOCK | DMG_NERVEGAS))
 		set_pdata_float(iVictim, m_flVelocityModifier, 0.9);	// nerf the freaking sticky damage feedback.
+
+	if (m_bitsDamageType & (DMG_BURN | DMG_SLOWBURN))
+	{
+		if (is_user_connected(iAttacker) && g_rgPlayerRole[iAttacker] == Role_Arsonist && g_rgbUsingSkill[iAttacker])
+			set_pdata_float(iVictim, m_flVelocityModifier, 0.3);
+		else
+			set_pdata_float(iVictim, m_flVelocityModifier, 0.9);
+	}
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
