@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.12.5"
+#define VERSION	"1.13 alpha"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -553,6 +553,8 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #include "blaster.sma"
 #include "sharpshooter.sma"
 #include "SWAT.sma"
+#include "mad_scientist.sma"
+
 #if defined AIR_SUPPORT_ENABLE
 #include "commander_airsupport.sma"
 #endif
@@ -650,6 +652,7 @@ public plugin_init()
 	register_clcmd("SWAT",				"Command_SWAT");
 	register_clcmd("addmoney",			"Command_AddMoney");
 	register_clcmd("give",				"Command_Give");
+	register_clcmd("electrify",			"Command_Electrify");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -659,6 +662,7 @@ public plugin_init()
 	Berserker_Initialize();
 	Sharpshooter_Initialize();
 	SWAT_Initialize();
+	MadScientist_Initialize();
 	
 	// bot support
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
@@ -755,6 +759,7 @@ public client_putinserver(pPlayer)
 	g_rgiConfidenceMotionVotes[pPlayer] = DISCARD;
 	g_rgTacticalSchemeVote[pPlayer] = Scheme_UNASSIGNED;
 	g_rgbitsPlayerRebuy[pPlayer] = 0;
+	g_rgflPlayerElectrified[pPlayer] = 0.0;
 }
 
 public client_connect(pPlayer)
@@ -1708,6 +1713,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 public fw_PlayerPreThink_Post(pPlayer)
 {
 	Sharpshooter_IceThink(pPlayer);
+	MadScientist_SkillThink(pPlayer);
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -1894,14 +1900,16 @@ public fw_PlayerPostThink_Post(pPlayer)
 		}
 	}
 	
-	if (iTeam == TEAM_CT)	// Commander's skill
+	// role custom think
+	if (iTeam == TEAM_CT)
 	{
 		Commander_SkillThink(pPlayer);
 		SWAT_SkillThink(pPlayer);
 	}
-	else if (iTeam == TEAM_TERRORIST)	// Godfather's skill
+	else if (iTeam == TEAM_TERRORIST)
 	{
 		Godfather_HealingThink(pPlayer);
+		MadScientist_GravityGunThink(pPlayer);
 	}
 }
 
@@ -1974,6 +1982,10 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		case Role_SWAT:
 		{
 			SWAT_ExecuteSkill(iPlayer);
+		}
+		case Role_MadScientist:
+		{
+			MadScientist_ExecuteSkill(iPlayer);
 		}
 		default:
 			return FMRES_IGNORED;
@@ -2463,7 +2475,7 @@ public Command_DeclareRole(pPlayer)
 		if (!rgbRolesAvaliable[i])
 			continue;
 		
-		if (i == Role_Medic || i == Role_Arsonist || i == Role_MadScientist)	// UNDONE & FIXME this is the code of skipping unfinished roles.
+		if (i == Role_Medic || i == Role_Arsonist)	// UNDONE & FIXME this is the code of skipping unfinished roles.
 			continue;
 		
 		formatex(szInfo, charsmax(szInfo), "%d", i);
@@ -3106,6 +3118,13 @@ public MenuHandler_DeclareRole(pPlayer, hMenu, iItem)
 		return PLUGIN_HANDLED;
 	}
 	
+	if (pPlayer == THE_COMMANDER || pPlayer == THE_GODFATHER)
+	{
+		print_chat_color(pPlayer, GREYCHAT, "%s必須經由不信任動議解職!", pPlayer == THE_COMMANDER ? COMMANDER_TEXT : GODFATHER_TEXT);
+		menu_destroy(hMenu);
+		return PLUGIN_HANDLED;
+	}
+	
 	new szInfo[16], iDummy, szDummy[32], iDummy2;
 	menu_item_getinfo(hMenu, iItem, iDummy, szInfo, charsmax(szInfo), szDummy, charsmax(szDummy), iDummy2);
 	
@@ -3128,6 +3147,7 @@ public MenuHandler_DeclareRole(pPlayer, hMenu, iItem)
 	{
 		print_chat_color(pPlayer, GREYCHAT, "%s已有其他玩家擔任!", g_rgszRoleNames[iRoleIndex]);
 		menu_destroy(hMenu);
+		Command_DeclareRole(pPlayer);	// show a new menu to player.
 		return PLUGIN_HANDLED;
 	}
 	
