@@ -244,10 +244,14 @@ public GasGrenade_Think(iEntity)
 	static iAttacker;
 	iAttacker = pev(iEntity, pev_iuser4);
 	
-	new pPlayer = -1;
+	new pPlayer = -1, Float:vecVictimOrigin[3];
 	while ((pPlayer = engfunc(EngFunc_FindEntityInSphere, pPlayer, vecOrigin, 280.0)) > 0)
 	{
 		if (!is_user_connected(pPlayer))
+			continue;
+		
+		pev(pPlayer, pev_origin, vecVictimOrigin);
+		if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
 			continue;
 		
 		g_rgflPlayerPoisoned[pPlayer] = get_gametime() + get_pcvar_float(cvar_msPoisonLast);
