@@ -553,6 +553,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #include "Scripts/Role/blaster.sma"
 #include "Scripts/Role/sharpshooter.sma"
 #include "Scripts/Role/SWAT.sma"
+#include "Scripts/Role/arsonist.sma"
 #include "mad_scientist.sma"
 #if defined AIR_SUPPORT_ENABLE
 #include "Scripts/UTIL/commander_airsupport.sma"
@@ -601,6 +602,7 @@ public plugin_init()
 	register_forward(FM_CmdStart, "fw_CmdStart");
 	register_forward(FM_ClientCommand, "fw_ClientCommand");
 	register_forward(FM_TraceLine, "fw_TraceLine_Post", 1);
+	register_forward(FM_Think, "fw_Think");
 	
 	// events
 	register_logevent("Event_FreezePhaseEnd", 2, "1=Round_Start")
@@ -997,8 +999,13 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 			}
 		}
 	}
-	else if (is_user_alive(iVictim) && g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))	// blaster is resist to grenade damage.
-		flDamageMultiplier -= 0.75;
+	else if (is_user_alive(iVictim))
+	{
+		if (g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))		// blaster is resist to grenade damage.
+			flDamageMultiplier -= 0.75;
+		else if(g_rgPlayerRole[iVictim] == Role_Arsonist && bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))		// arsonist is resist to burn damage.
+			flDamageMultiplier -= 0.9;
+	}
 
 	if (is_user_connected(iAttacker))
 	{
@@ -1025,9 +1032,9 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
 		return;
 
-	if (is_user_alive(iVictim) && bitsDamageTypes & DMG_FREEZE)
+	if (is_user_alive(iVictim))
 	{
-		if (iInflictor && pev(iInflictor, pev_weapons) == ICE_GRENADE_KEY)
+		if (bitsDamageTypes & DMG_FREEZE && iInflictor && pev(iInflictor, pev_weapons) == ICE_GRENADE_KEY)
 			Sharpshooter_GetFrozen(iVictim);
 	}
 	
@@ -1330,10 +1337,103 @@ public fw_Touch_Post(iEntity, iOther)
 	if (strcmp(szClassName, "grenade"))
 		return;
 	
-	if (pev(iEntity, pev_weapons) != ICE_GRENADE_KEY)
+	if (pev(iEntity, pev_weapons) == ICE_GRENADE_KEY)
+	{
+		Sharpshooter_IceExplode(iEntity);
+		return;
+	}
+
+	if (pev(iEntity, pev_weapons) != FIRE_GRENADE_OPEN)
 		return;
 	
-	Sharpshooter_IceExplode(iEntity);
+	if (!engfunc(EngFunc_EntIsOnFloor, iEntity))
+		return;
+
+	new Float:fCurTime;
+	global_get(glb_time, fCurTime);
+	set_pev(iEntity, pev_rendermode, kRenderTransAlpha);
+	set_pev(iEntity, pev_renderamt, 0.0);
+	set_pev(iEntity, pev_solid, SOLID_NOT);
+	set_pev(iEntity, pev_movetype, MOVETYPE_NONE);
+	set_pev(iEntity, pev_dmgtime, fCurTime+get_pcvar_float(cvar_firegrenade_dmgtime)+10.0);
+	set_pev(iEntity, pev_weapons, FIRE_GRENADE_CLOSED);
+	engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_A, 1.0, ATTN_NORM, 0, PITCH_NORM);
+	set_pev(iEntity, pev_fuser3, fCurTime+1.0);
+}
+
+public fw_Think(iEntity)
+{
+	static szClassName[32];
+	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
+	if (strcmp(szClassName, "grenade"))
+		return FMRES_IGNORED;
+	
+	if (pev(iEntity, pev_weapons) != FIRE_GRENADE_CLOSED)
+		return FMRES_IGNORED;
+	
+	new Float:dmgtime;
+	pev(iEntity, pev_dmgtime, dmgtime);
+	if (dmgtime - get_gametime() <= 10.0)
+	{
+		engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_B, 1.0, ATTN_NORM, SND_STOP, PITCH_NORM);
+		engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_C, 1.0, ATTN_NORM, 0, PITCH_NORM);
+		set_pev(iEntity, pev_flags, FL_KILLME);
+		return FMRES_SUPERCEDE;
+	}
+	
+	new Float:fCurTime, Float:ThinkTime;
+	global_get(glb_time, fCurTime);
+	set_pev(iEntity, pev_nextthink, fCurTime + 0.01);
+	pev(iEntity, pev_fuser1, ThinkTime);
+	
+	if (ThinkTime <= fCurTime)
+	{
+		new Float:origin[3];
+		pev(iEntity, pev_origin, origin);
+		new i = -1;
+		while ((i = engfunc(EngFunc_FindEntityInSphere, i, origin, get_pcvar_float(cvar_firegrenade_range))) > 0)
+		{
+			if (!pev_valid(i))
+				continue;
+			
+			if (pev(i, pev_takedamage) == DAMAGE_NO)
+				continue;
+			
+			new Float:fOrigin[3];
+			pev(i, pev_origin, fOrigin);
+			
+			if (!UTIL_PointVisible(origin, fOrigin, IGNORE_MONSTERS))
+				continue;
+			
+			new Float:fDistance = get_distance_f(fOrigin, origin);
+			new Float:range = get_pcvar_float(cvar_firegrenade_range);
+			new Float:fMaxDamage = floatmax(get_pcvar_float(cvar_firegrenade_dmg)*((range-fDistance)/range), 0.0);
+			
+			if (fMaxDamage <= 1.0)
+				continue;
+			
+			ExecuteHamB(Ham_TakeDamage, i, iEntity, pev(iEntity, pev_owner), fMaxDamage, DMG_SLOWBURN);
+		}
+		set_pev(iEntity, pev_fuser1, fCurTime + get_pcvar_float(cvar_firegrenade_interval));
+	}
+	
+	pev(iEntity, pev_fuser3, ThinkTime);
+	if (ThinkTime <= fCurTime)
+	{
+		engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_B, 1.0, ATTN_NORM, 0, PITCH_NORM);
+		set_pev(iEntity, pev_fuser3, fCurTime + 4.0);
+	}
+	
+	pev(iEntity, pev_fuser2, ThinkTime);
+	if (ThinkTime > fCurTime)
+		return FMRES_SUPERCEDE;
+	
+	new Float:origin[3];
+	pev(iEntity, pev_origin, origin);
+	Arsonist_MakeFlames(origin);
+	set_pev(iEntity, pev_fuser2, fCurTime + 0.1);
+	
+	return FMRES_SUPERCEDE;
 }
 
 public fw_SetModel(iEntity, szModel[])
@@ -1378,6 +1478,15 @@ public fw_SetModel(iEntity, szModel[])
 			write_byte(200) // b
 			write_byte(200) // brightness
 			message_end()
+		}
+		else if (g_rgPlayerRole[iPlayer] == Role_Arsonist)
+		{
+			new iEntity2 = get_pdata_cbase(iPlayer, m_pActiveItem);
+			if (pev(iEntity2, pev_weapons) == FIRE_GRENADE_OPEN)
+			{
+				set_pev(iEntity, pev_weapons, FIRE_GRENADE_OPEN);
+				set_pev(iEntity, pev_dmgtime, 9999.0);
+			}
 		}
 	}
 	
