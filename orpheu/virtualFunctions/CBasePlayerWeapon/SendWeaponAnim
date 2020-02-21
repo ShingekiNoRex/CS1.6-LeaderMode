@@ -1,0 +1,24 @@
+{
+    "name" : "SendWeaponAnim",
+    "class" : "CBasePlayerWeapon",
+    "library" : "mod",
+    "arguments" : 
+    [
+		{
+            "type" : "int",
+            "info" : "iAnim"
+        },
+        {
+            "type" : "int",
+            "info" : "skiplocal"
+        }
+    ],
+    "indexes" : 
+    [
+        {
+            "os" : "windows",
+            "mod" : "cstrike",
+            "value" : 85
+        }
+    ]
+}
