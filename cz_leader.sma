@@ -740,6 +740,7 @@ public plugin_precache()
 	Sharpshooter_Precache();
 	Berserker_Precache();
 	SWAT_Precache();
+	MadScientist_Precache();
 	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
 }
 
@@ -1070,6 +1071,12 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 		g_rgbBlasterShooting[iPlayer] = true;
 		client_cmd(iPlayer, "spk %s", ASSASSIN_CRITICAL_SFX);
 	}
+	
+	if (g_rgPlayerRole[iPlayer] == Role_MadScientist && g_rgbUsingSkill[iPlayer])
+	{
+		g_rgbShootingElectrobullets[iPlayer] = true;
+		engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ELECTROBULLETS_EFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	}
 }
 
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
@@ -1082,6 +1089,9 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	
 	if (g_rgbBlasterShooting[iPlayer])
 		g_rgbBlasterShooting[iPlayer] = false;
+	
+	if (g_rgbShootingElectrobullets[iPlayer])
+		g_rgbShootingElectrobullets[iPlayer] = false;
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -1908,7 +1918,6 @@ public fw_PlayerPostThink_Post(pPlayer)
 	else if (iTeam == TEAM_TERRORIST)
 	{
 		Godfather_HealingThink(pPlayer);
-		MadScientist_GravityGunThink(pPlayer);
 	}
 }
 
@@ -2027,7 +2036,10 @@ public fw_ClientCommand(iPlayer)
 
 public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSkipEntity, tr)
 {
-	if (is_user_connected(iSkipEntity) && g_rgbBlasterShooting[iSkipEntity])
+	if (!is_user_connected(iSkipEntity))
+		return;
+	
+	if (g_rgbBlasterShooting[iSkipEntity])
 	{
 		static Float:vecPlaneNorm[3], Float:vecAngles[3], Float:vecCentre[3];
 		get_tr2(tr, TR_vecEndPos, vecCentre);
@@ -2043,6 +2055,44 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 		
 		for (new i = 0; i < 6; i++)
 			Breacher_MakeGibs(vecCentre, vecAngles);
+	}
+	
+	if (g_rgbShootingElectrobullets[iSkipEntity])
+	{
+		new iVictim = get_tr2(tr, TR_pHit);
+		if (is_user_connected(iVictim))
+		{
+			MadScientist_DragPlayer(iVictim, vecStart);
+			g_rgflPlayerElectrified[iVictim] = get_gametime() + get_pcvar_float(cvar_msElectrobltDur);
+			
+			new Float:vecOrigin[3], Float:vecEndPos[3];
+			pev(iVictim, pev_origin, vecOrigin);
+			get_tr2(tr, TR_vecEndPos, vecEndPos);
+			xs_vec_sub(vecEndPos, vecOrigin, vecEndPos);
+			
+			xs_vec_sub(vecEnd, vecStart, g_rgvecElectrobulletsHitsOfs[iVictim]);
+			xs_vec_normalize(g_rgvecElectrobulletsHitsOfs[iVictim], g_rgvecElectrobulletsHitsOfs[iVictim]);
+			xs_vec_mul_scalar(g_rgvecElectrobulletsHitsOfs[iVictim], 2.0, g_rgvecElectrobulletsHitsOfs[iVictim]);
+			xs_vec_add(g_rgvecElectrobulletsHitsOfs[iVictim], vecEndPos, g_rgvecElectrobulletsHitsOfs[iVictim]);
+		}
+		else	// hit on the wall.
+		{
+			new Float:vecEndPos[3];
+			get_tr2(tr, TR_vecEndPos, vecEndPos);
+			
+			engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecEndPos, 0);
+			write_byte(TE_DLIGHT);
+			engfunc(EngFunc_WriteCoord, vecEndPos[0]);
+			engfunc(EngFunc_WriteCoord, vecEndPos[1]);
+			engfunc(EngFunc_WriteCoord, vecEndPos[2]);
+			write_byte(8);		//range
+			write_byte(160);
+			write_byte(250);
+			write_byte(250);
+			write_byte(1);		//time
+			write_byte(0);
+			message_end();
+		}
 	}
 }
 
