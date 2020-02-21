@@ -24,10 +24,10 @@ public Arsonist_Initialize()
 	cvar_arsonistDuration	= register_cvar("lm_arsonist_duration",	"15.0");
 	cvar_arsonistCooldown	= register_cvar("lm_arsonist_cooldown",	"30.0");
 
-	cvar_firegrenade_range		= register_cvar("lm_firegrenade_range", "400.0");
+	cvar_firegrenade_range		= register_cvar("lm_firegrenade_range", "350.0");
 	cvar_firegrenade_dmgtime	= register_cvar("lm_firegrenade_dmgtime", "20.0");
 	cvar_firegrenade_dmg		= register_cvar("lm_firegrenade_dmg", "15.0");
-	cvar_firegrenade_interval	= register_cvar("lm_firegrenade_interval", "0.3");
+	cvar_firegrenade_interval	= register_cvar("lm_firegrenade_interval", "0.7");
 
 	g_rgSkillDuration[Role_Arsonist] = cvar_arsonistDuration;
 	g_rgSkillCooldown[Role_Arsonist] = cvar_arsonistCooldown;
