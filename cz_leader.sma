@@ -546,15 +546,15 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #endif
 
 // DIVIDE ET IMPERA
-#include "godfather.sma"
-#include "commander.sma"
-#include "berserker.sma"
-#include "assassin.sma"
-#include "blaster.sma"
-#include "sharpshooter.sma"
-#include "SWAT.sma"
+#include "Scripts/Role/godfather.sma"
+#include "Scripts/Role/commander.sma"
+#include "Scripts/Role/berserker.sma"
+#include "Scripts/Role/assassin.sma"
+#include "Scripts/Role/blaster.sma"
+#include "Scripts/Role/sharpshooter.sma"
+#include "Scripts/Role/SWAT.sma"
 #if defined AIR_SUPPORT_ENABLE
-#include "commander_airsupport.sma"
+#include "Scripts/UTIL/commander_airsupport.sma"
 #endif
 
 public plugin_init()
