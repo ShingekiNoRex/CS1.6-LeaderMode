@@ -241,6 +241,7 @@ public Godfather_BotThink(pPlayer)
 	if (iPlayerCount > 0 && iPlayerCount <= 2)
 	{
 		Godfather_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
 		g_rgbAllowSkill[pPlayer] = false;	// we need to set this value manually, since we bypass fw_CmdStart().
 		return;
 	}
@@ -251,6 +252,7 @@ public Godfather_BotThink(pPlayer)
 	if (!iPlayerCount && is_user_alive(iEntity) && get_pdata_int(iEntity, m_iTeam) == TEAM_CT)	// don't use this skill when too many people around. it's dangerous.
 	{
 		Godfather_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
 		g_rgbAllowSkill[pPlayer] = false;
 	}
 }

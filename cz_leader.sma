@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13.3"
+#define VERSION	"1.13.4"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -246,7 +246,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"先輩たちから習って下さい！",
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
-	"[T]立即填充所有物資並於15秒內轉移50%%%%傷害至護甲",
+	"[T]立即填充所有物資並於15秒內轉移90%%%%傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
 	"[T]狙擊槍強制命中頭部，並造成目標失明",
 	"",
@@ -1025,6 +1025,8 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 				flArmorValue -= flDamage * get_pcvar_float(cvar_swatBulletproofRatio);
 				flDamageMultiplier *= 1.0 - get_pcvar_float(cvar_swatBulletproofRatio);
 			}
+			
+			set_pev(iVictim, pev_armorvalue, flArmorValue);	// LUNA: HOW CAN I FUCKING FORGOT THIS LINE???
 		}
 	}
 	else if (is_user_alive(iVictim))
@@ -2512,6 +2514,12 @@ public Event_HLTV()
 			
 			// reset player model.
 			UTIL_SetPlayerModel(i);
+			
+			// SWAT newround gitch
+			new Float:flArmorValue;
+			pev(i, pev_armorvalue, flArmorValue);
+			flArmorValue = floatmin(flArmorValue, 100.0);
+			set_pev(i, pev_armorvalue, flArmorValue);
 		}
 	}
 	

@@ -200,12 +200,14 @@ public Commander_BotThink(pPlayer)
 		if (is_user_alive(iTarget) && get_pdata_int(iTarget, m_iTeam) == TEAM_TERRORIST)
 		{
 			Commander_ExecuteSkill(pPlayer);
+			g_rgbUsingSkill[pPlayer] = true;
 			g_rgbAllowSkill[pPlayer] = false;	// we need to set this value manually, since we bypass fw_CmdStart().
 		}
 	}
 	else
 	{
 		Commander_ExecuteSkill(pPlayer);	// if there is a player in the team, commander should keep his skill running ASAP.
+		g_rgbUsingSkill[pPlayer] = true;
 		g_rgbAllowSkill[pPlayer] = false;
 	}
 }
