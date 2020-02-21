@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13.1"
+#define VERSION	"1.13.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -892,8 +892,8 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		return;
 	
 	// remove DOTs
-	g_rgflPlayerPoisoned[victim] = 0.0;
-	g_rgflPlayerElectrified[victim] = 0.0;
+	g_rgflPlayerPoisoned[victim] = 1.0;	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
+	g_rgflPlayerElectrified[victim] = 1.0;
 
 	iTeam = get_pdata_int(victim, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
@@ -1088,7 +1088,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	}
 	
 	if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN | DMG_SHOCK | DMG_NERVEGAS))
-		set_pdata_float(iVictim, m_flVelocityModifier, 1.0);	// remove the freaking sticky damage feedback.
+		set_pdata_float(iVictim, m_flVelocityModifier, 0.9);	// nerf the freaking sticky damage feedback.
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
