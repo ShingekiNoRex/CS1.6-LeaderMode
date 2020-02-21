@@ -57,8 +57,8 @@ TR:
 (被動：血量越低枪械伤害越高)	(UNDONE)
 疯狂科学家
 (優惠G18C、ANACONDA和煙霧彈，允許KSG、PM9和MP7)
-(發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向)	(LUNA預定)
-(被動：煙霧彈更換為毒氣彈、遭受的AP傷害以電擊形式雙倍返還)
+(發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向) ✔ (LUNA)
+(被動：煙霧彈更換為毒氣彈、遭受的AP傷害以電擊形式雙倍返還) ✔ (LUNA)
 刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
 (消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
@@ -971,15 +971,6 @@ public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirect
 	if (!is_user_connected(iVictim))
 		return;
 	
-	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// catcha!!!
-	{
-		Assassin_TerminateSkill(iVictim);
-		client_cmd(iVictim, "spk %s", ASSASSIN_DISCOVERED_SFX);
-		
-		if (is_user_connected(iAttacker))
-			client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
-	}
-	
 	if (g_rgPlayerRole[iVictim] == Role_MadScientist)
 	{
 		engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
@@ -1081,7 +1072,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	if (!is_user_connected(iVictim) || !is_user_connected(iAttacker))
 		return;
 	
-	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// UNDONE, UNTESTED. can this triggered by HE or other blasts?
+	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// cacha !!!
 	{
 		Assassin_TerminateSkill(iVictim);
 		client_cmd(iVictim, "spk %s", ASSASSIN_DISCOVERED_SFX);
