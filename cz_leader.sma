@@ -28,7 +28,7 @@ CT:
 指挥官	(1)
 (半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
-(被動：HP 1000，可以发动空袭) (UNDONE: 空袭)
+(被動：HP 1000，可以販賣繳獲的武器) ✔ (LUNA)
 S.W.A.T.
 (優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
 (立即填充所有手榴彈、彈藥和護甲，15秒内轉移50%傷害至護甲)	✔ (LUNA)
@@ -56,7 +56,7 @@ TR:
 (5秒内最低维持1血，5秒后若血量不超过1则死亡)	✔ (REX)
 (被動：血量越低枪械伤害越高)	✔ (REX)
 疯狂科学家
-(優惠G18C、ANACONDA和煙霧彈，允許KSG、PM9和MP7)
+(優惠G18C、ANACONDA，允許KSG和UMP45，煙霧彈帶有懲罰)
 (發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向) ✔ (LUNA)
 (被動：煙霧彈更換為毒氣彈、遭受的AP傷害以電擊形式雙倍返還) ✔ (LUNA)
 刺客
@@ -64,7 +64,7 @@ TR:
 (消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
 (被動：消音武器有1%的概率暴擊) ✔ (LUNA)
 纵火犯
-(優惠霰彈槍和手榴彈，允許衝鋒槍、突擊步槍)
+(優惠霰彈槍，允許M4A1、SCAR-L，手榴彈帶有懲罰)
 (火焰弹药，燃烧伤害附带减速效果) ✔ (REX)
 (被動：燃烧手雷，免疫燃烧伤害) ✔ (REX)
 
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13.2"
+#define VERSION	"1.13.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -262,7 +262,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 {
 	"",
 	
-	"",
+	"[E]出售繳獲的武器",
 	"[被動]周圍角色緩慢補充護甲",
 	"[被动]霰彈槍使用爆炸彈頭",
 	"[被动]冰冻手雷",
@@ -272,7 +272,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[被动]血量越低伤害越高",
 	"[被動]煙霧彈內有神經毒氣、護甲帶電",
 	"[被动]消音武器有1%%%%的概率暴擊",
-	"[被动]燃烧手雷，免疫燃烧伤害"
+	"[被动]燃烧手雷、免疫燃烧伤害"
 };
 
 stock g_rgSkillDuration[ROLE_COUNT] =
@@ -436,7 +436,7 @@ stock const g_rgiWeaponDefaultSlot[] = { -1, 1, -1, 0, 3, 0, 4, 0, 0, 3, 1, 1, 0
 stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 {
 //					      0                                  5                                  10                                 15                                 20                                 25                                 30
-//					      NONE   ANACO  UNUSED M200   HE     M1014  C4     PM9    ACR    S_GR   P99    FN57   UMP45  M14    CM901  QBZ95  USP    G18C   AWP    MP5    MK46   KSG    M4A1   MP7A1  SVD    FBang  DEAGLE SG552  AK74   KNIFE  P90
+//					      NONE   ANACO  UNUSED M200   HE     M1014  C4     PM9    ACR    S_GR   P99    FN57   UMP45  M14    CM901  QBZ95  USP    G18C   AWP    MP5    MK46   KSG    M4A1   MP7A1  SVD    FBang  DEAGLE SCARL  AK74   KNIFE  P90
 /*Role_UNASSIGNED*/		{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
 
 /*Role_Commander = 1*/	{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
@@ -447,9 +447,9 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
-/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_P, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_P, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
+/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
 /*Role_Assassin*/		{ WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
-/*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_P, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_A, WPN_F, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A }
+/*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_P, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F }
 };
 
 stock const g_rgiPistolsId[] = { CSW_GLOCK18, CSW_USP, CSW_ANACONDA, CSW_DEAGLE, CSW_FIVESEVEN, CSW_P99 };
@@ -502,7 +502,7 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 stock g_rgszPlayerDefaultModel[][] = { "urban", "urban", "terror", "leet", "arctic", "gsg9", "gign", "sas", "guerilla", "vip", "militia", "spetsnaz" };
 
 new g_fwBotForwardRegister;
-new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4], g_rgbitsPlayerRebuy[33];
+new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4], g_rgbitsPlayerRebuy[33], bool:g_rgbFullBotsTeam[4];
 new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink;
 new TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes, Float:g_flNextMWDThink;
@@ -892,8 +892,8 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 		return;
 	
 	// remove DOTs
-	g_rgflPlayerPoisoned[victim] = 1.0;	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
-	g_rgflPlayerElectrified[victim] = 1.0;
+	g_rgflPlayerPoisoned[victim] = floatmin(g_rgflPlayerPoisoned[victim], 1.0);	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
+	g_rgflPlayerElectrified[victim] = floatmin(g_rgflPlayerElectrified[victim], 1.0);
 
 	iTeam = get_pdata_int(victim, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
@@ -1087,7 +1087,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 			Sharpshooter_GetFrozen(iVictim);
 	}
 	
-	if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN | DMG_SHOCK | DMG_NERVEGAS))
+	if (bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS))
 		set_pdata_float(iVictim, m_flVelocityModifier, 0.9);	// nerf the freaking sticky damage feedback.
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
@@ -1338,6 +1338,17 @@ public HamF_Weaponbox_Touch(iEntity, iPlayer)
 		new iId = get_pdata_int(iWeapon, m_iId, 4);
 		if (g_rgRoleWeaponsAccessibility[g_rgPlayerRole[iPlayer]][iId] == WPN_F)
 			return HAM_SUPERCEDE;
+		
+		if (g_rgPlayerRole[iPlayer] == Role_Commander &&		// sell weapon.
+			(pev(iPlayer, pev_button) & IN_USE || Commander_CheckWeaponSell(iPlayer, iId)) )
+		{
+			UTIL_AddAccount(iPlayer, g_rgiWeaponDefaultCost[iId] / 2);
+			UTIL_ColorfulPrintChat(iPlayer, "/g繳獲的武器/t%s/g已賣得/t%d/g$", BLUECHAT, g_rgszWeaponName[iId], g_rgiWeaponDefaultCost[iId] / 2);
+			engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, SFX_REFUND_GUNS, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			
+			set_pev(iEntity, pev_nextthink, get_gametime());
+			return HAM_SUPERCEDE;
+		}
 	}
 	
 	return HAM_IGNORED;
@@ -1620,7 +1631,9 @@ public fw_StartFrame_Post()
 				g_rgPlayerRole[i] = Role_UNASSIGNED;
 			}
 		}
+		
 TAG_SKIP_NEW_PLAYER_SCAN:
+		UpdateTeamStatus();	// scan whether the entire team is consisted of bots.
 	}
 	
 	if (g_flStopResurrectingThink <= fCurTime)
@@ -1917,7 +1930,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
 		return;
 	
-	if (is_user_alive(pPlayer) && g_rgPlayerRole[pPlayer] != Role_UNASSIGNED)
+	if (is_user_alive(pPlayer) && g_rgPlayerRole[pPlayer] != Role_UNASSIGNED)	// sell improper weapons
 	{
 		new iId = get_pdata_int(get_pdata_cbase(pPlayer, m_pActiveItem), m_iId, 4);
 		if (g_rgRoleWeaponsAccessibility[g_rgPlayerRole[pPlayer]][iId] == WPN_F && iId != CSW_KNIFE)
@@ -1936,8 +1949,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		}
 	}
 	
-	// HUD
-	if (!is_user_bot(pPlayer) && g_rgflHUDThink[pPlayer] < get_gametime())
+	if (!is_user_bot(pPlayer) && g_rgflHUDThink[pPlayer] < get_gametime())	// HUD
 	{
 		new rgColor[3] = { 255, 255, 0 };
 		new Float:flCoordinate[2] = { -1.0, 0.90 };
@@ -2085,15 +2097,43 @@ public fw_PlayerPostThink_Post(pPlayer)
 		}
 	}
 	
+	if (is_user_bot(pPlayer) && get_pdata_int(pPlayer, m_signals[1]) & SIGNAL_BUY)	// BOTs: weapon support.
+	{
+		if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[1])) != 2)	// have no primary weapon
+		{
+			switch (g_rgPlayerRole[pPlayer])
+			{
+				case Role_SWAT, Role_Medic:
+					fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_MP5NAVY]);
+				case Role_Blaster, Role_Arsonist:
+					fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_KSG12]);
+				case Role_Sharpshooter:
+					fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_M200]);
+				case Role_Assassin:
+					fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_MP7A1]);
+				case Role_MadScientist:
+					fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_UMP45]);
+				default:
+					fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_CM901]);
+			}
+		}
+	}
+	
 	// role custom think
 	if (iTeam == TEAM_CT)
 	{
 		Commander_SkillThink(pPlayer);
 		SWAT_SkillThink(pPlayer);
+		
+		if (pPlayer == THE_COMMANDER && is_user_bot(pPlayer))
+			Commander_BotThink(pPlayer);
 	}
 	else if (iTeam == TEAM_TERRORIST)
 	{
 		Godfather_HealingThink(pPlayer);
+		
+		if (pPlayer == THE_GODFATHER && is_user_bot(pPlayer))
+			Godfather_BotThink(pPlayer);
 	}
 }
 
@@ -2243,7 +2283,7 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 		if (is_user_connected(iVictim))
 		{
 			if (g_rgflPlayerElectrified[iVictim] <= 0.0)	// never overlap
-				engfunc(EngFunc_EmitSound, iVictim, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+				engfunc(EngFunc_EmitSound, iVictim, CHAN_ITEM, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 			
 			MadScientist_DragPlayer(iVictim, vecStart);
 			g_rgflPlayerElectrified[iVictim] = get_gametime() + get_pcvar_float(cvar_msElectrobltDur);
@@ -2946,8 +2986,10 @@ public Command_Autobuy(pPlayer)
 				AttemptPurchase(pPlayer, CSW_KSG12);
 			case Role_Sharpshooter:
 				AttemptPurchase(pPlayer, CSW_M200);
-			case Role_MadScientist, Role_Assassin:
+			case Role_Assassin:
 				AttemptPurchase(pPlayer, CSW_MP7A1);
+			case Role_MadScientist:
+				AttemptPurchase(pPlayer, CSW_UMP45);
 			default:
 				AttemptPurchase(pPlayer, CSW_CM901);
 		}
@@ -3900,6 +3942,31 @@ stock get_aim_origin_vector(iPlayer, Float:forw, Float:right, Float:up, Float:vS
 	vStart[2] = vOrigin[2] + vForward[2] * forw + vRight[2] * right + vUp[2] * up
 }
 
+stock get_aiming_trace(pPlayer, Float:forw = 9999.0, bitsConditions = DONT_IGNORE_MONSTERS, bool:bNewTrace = false, Float:right = 0.0, Float:up = 0.0)
+{
+	new tr = 0;
+	if (bNewTrace)
+		tr = create_tr2();
+	
+	new Float:vOrigin[3], Float:vAngle[3], Float:vForward[3], Float:vRight[3], Float:vUp[3], Float:vStart[3];
+	
+	pev(pPlayer, pev_origin, vOrigin);
+	pev(pPlayer, pev_view_ofs, vUp);
+	xs_vec_add(vOrigin, vUp, vOrigin);
+	pev(pPlayer, pev_v_angle, vAngle);
+	
+	angle_vector(vAngle, ANGLEVECTOR_FORWARD, vForward);
+	angle_vector(vAngle, ANGLEVECTOR_RIGHT, vRight);
+	angle_vector(vAngle, ANGLEVECTOR_UP, vUp);
+	
+	vStart[0] = vOrigin[0] + vForward[0] * forw + vRight[0] * right + vUp[0] * up;
+	vStart[1] = vOrigin[1] + vForward[1] * forw + vRight[1] * right + vUp[1] * up;
+	vStart[2] = vOrigin[2] + vForward[2] * forw + vRight[2] * right + vUp[2] * up;
+	
+	engfunc(EngFunc_TraceLine, vOrigin, vStart, bitsConditions, pPlayer, tr);
+	return tr;
+}
+
 stock UTIL_GetAliasId(szAlias[])
 {
 	static Trie:tAliasesIds;
@@ -4079,6 +4146,13 @@ bool:AttemptPurchase(pPlayer, iId)
 		}
 	}
 	
+	if ( (pev(pPlayer, pev_weapons) & (1<<iId) && iId != CSW_FLASHBANG)
+		|| (iId == CSW_FLASHBANG && get_pdata_int(pPlayer, m_rgAmmo[11]) >= 2) )
+	{
+		print_chat_color(pPlayer, REDCHAT, "你已經有%s了!", g_rgszWeaponName[iId]);
+		return false;
+	}
+	
 	if (get_pdata_int(pPlayer, m_iAccount) < iCost)
 	{
 		print_chat_color(pPlayer, REDCHAT, "金錢不足!");
@@ -4092,6 +4166,20 @@ bool:AttemptPurchase(pPlayer, iId)
 	return true;
 }
 
+UpdateTeamStatus()
+{
+	g_rgbFullBotsTeam[TEAM_CT] = true;
+	g_rgbFullBotsTeam[TEAM_TERRORIST] = true;
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_connected(i))
+			continue;
+		
+		if (!is_user_bot(i))
+			g_rgbFullBotsTeam[get_pdata_int(i, m_iTeam)] = false;
+	}
+}
 
 
 

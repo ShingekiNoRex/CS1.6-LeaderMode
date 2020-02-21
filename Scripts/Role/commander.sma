@@ -175,3 +175,48 @@ public Commander_TerminateSkill()
 	remove_task(COMMANDER_TASK);
 	Commander_RevokeSkill(COMMANDER_TASK);
 }
+
+new Float:g_flCommanderBotThink = 0.0;	// there is only one THE_COMMANDER
+
+public Commander_BotThink(pPlayer)
+{
+	// the goal of BOT commander:
+	// never sell weapons on the ground. (players may needs it). unless the entire CT-team is bot team.
+	// use skill only when firing at someone. unless one of the CTs is the player.
+	
+	if (g_flCommanderBotThink > get_gametime())
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+		return;
+	
+	g_flCommanderBotThink = get_gametime() + 1.0;
+	
+	if (g_rgbFullBotsTeam[TEAM_CT])
+	{
+		get_aiming_trace(pPlayer);
+		
+		new iTarget = get_tr2(0, TR_pHit);
+		if (is_user_alive(iTarget) && get_pdata_int(iTarget, m_iTeam) == TEAM_TERRORIST)
+		{
+			Commander_ExecuteSkill(pPlayer);
+			g_rgbAllowSkill[pPlayer] = false;	// we need to set this value manually, since we bypass fw_CmdStart().
+		}
+	}
+	else
+	{
+		Commander_ExecuteSkill(pPlayer);	// if there is a player in the team, commander should keep his skill running ASAP.
+		g_rgbAllowSkill[pPlayer] = false;
+	}
+}
+
+public bool:Commander_CheckWeaponSell(pPlayer, iId)
+{
+	if (!g_rgbFullBotsTeam[TEAM_CT])
+		return false;
+	
+	if (pev_valid(get_pdata_cbase(pPlayer, m_rgpPlayerItems[g_rgiWeaponDefaultSlot[iId] + 1])) != 2)	// don't have a weapon in the slot yet.
+		return false;
+	
+	return !!is_user_bot(pPlayer);
+}

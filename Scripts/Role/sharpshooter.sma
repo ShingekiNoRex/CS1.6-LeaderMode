@@ -1,5 +1,6 @@
 /**
 
+sub_10083560: CGrenade::ShootTimed2()
 **/
 
 #define SHARPSHOOTER_TEXT	g_rgszRoleNames[Role_Sharpshooter]

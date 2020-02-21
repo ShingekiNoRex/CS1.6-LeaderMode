@@ -203,3 +203,54 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 		UTIL_ScreenFade(iPlayer, 0.2, 0.1, FFADE_IN, 179, 217, 255, 30);
 	}
 }
+
+new Float:g_flGodfatherBotThink = 0.0;	// there is only one THE_GODFATHER
+
+public Godfather_BotThink(pPlayer)
+{
+	// the goal of BOT godfather:
+	// call the skill when no more than 2 teammates around.
+	// call the skill when fighting against someone, even if no one around.
+	
+	if (g_flGodfatherBotThink > get_gametime())
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+		return;
+	
+	g_flGodfatherBotThink = get_gametime() + 1.0;
+	
+	static Float:vecOrigin[3];
+	pev(pPlayer, pev_origin,vecOrigin);
+	
+	new iEntity = -1, iPlayerCount = 0;
+	while ((iEntity = engfunc(EngFunc_FindEntityInSphere, iEntity, vecOrigin, get_pcvar_float(cvar_godfatherRadius))) > 0)
+	{
+		if (!is_user_alive(iEntity) || !is_user_connected(iEntity))
+			continue;
+		
+		if (iEntity == pPlayer)
+			continue;
+		
+		if (get_pdata_int(iEntity, m_iTeam) != TEAM_TERRORIST)
+			continue;
+		
+		iPlayerCount++;
+	}
+
+	if (iPlayerCount > 0 && iPlayerCount <= 2)
+	{
+		Godfather_ExecuteSkill(pPlayer);
+		g_rgbAllowSkill[pPlayer] = false;	// we need to set this value manually, since we bypass fw_CmdStart().
+		return;
+	}
+	
+	get_aiming_trace(pPlayer);
+	iEntity = get_tr2(0, TR_pHit);
+	
+	if (!iPlayerCount && is_user_alive(iEntity) && get_pdata_int(iEntity, m_iTeam) == TEAM_CT)	// don't use this skill when too many people around. it's dangerous.
+	{
+		Godfather_ExecuteSkill(pPlayer);
+		g_rgbAllowSkill[pPlayer] = false;
+	}
+}

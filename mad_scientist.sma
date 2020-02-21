@@ -1,5 +1,6 @@
 /**
 
+sub_10083E20: CGrenade::ShootSmokeGrenade()
 **/
 
 #define MADSCIENTIST_TASK	136874
@@ -59,7 +60,7 @@ public Command_Electrify(pPlayer)
 	read_argv(1, szCommand, charsmax(szCommand));
 	
 	g_rgflPlayerElectrified[pPlayer] = get_gametime() + str_to_float(szCommand);
-	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_ITEM, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	return PLUGIN_HANDLED;
 }
 
@@ -101,7 +102,7 @@ public MadScientist_SkillThink(pPlayer)	// apply on victims
 		UTIL_ScreenFade(pPlayer, 0.3, 0.2, FFADE_IN, random_num(0, 255), random_num(0, 255), random_num(0, 255), random_num(60, 100));
 		ResetMaxSpeed(pPlayer);
 		g_rgflPlayerElectrified[pPlayer] = -1.0;
-		engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+		engfunc(EngFunc_EmitSound, pPlayer, CHAN_ITEM, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
 		
 		return;
 	}
