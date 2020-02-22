@@ -554,7 +554,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #include "Scripts/Role/sharpshooter.sma"
 #include "Scripts/Role/SWAT.sma"
 #include "Scripts/Role/arsonist.sma"
-#include "mad_scientist.sma"
+#include "Scripts/Role/mad_scientist.sma"
 #if defined AIR_SUPPORT_ENABLE
 #include "Scripts/UTIL/commander_airsupport.sma"
 #endif
