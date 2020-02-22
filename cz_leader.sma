@@ -44,7 +44,7 @@ S.W.A.T.
 医疗兵
 (優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (包含自己在内恢复周圍非隊長角色的HP)
-(被動：大威力手槍射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害，Overhealing機制)
+(被動：大威力手槍射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害，Overhealing機制)	✔ (LUNA)
 
 TR:
 教父	(1)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14 alpha"
+#define VERSION	"1.14 beta"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -266,7 +266,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[被動]周圍角色緩慢補充護甲",
 	"[被动]霰彈槍使用爆炸彈頭",
 	"[被动]冰冻手雷",
-	"[被動]煙霧彈具有治療效果",
+	"[被動]療傷煙霧彈、大口徑手槍可發射治療子彈",
 	
 	"[被动]周围友军缓慢恢复生命",
 	"[被动]血量越低伤害越高",
@@ -3114,6 +3114,14 @@ public Command_Autobuy(pPlayer)
 
 	if (iMoney > 8000)
 		AttemptPurchase(pPlayer, CSW_FLASHBANG);
+	
+	if (g_rgPlayerRole[pPlayer] == Role_Medic)	// the medic have to got himself a ANACONDA in order to use his passive skill.
+	{
+		new iEntity = get_pdata_cbase(pPlayer, m_rgpPlayerItems[2]);
+		
+		if (pev_valid(iEntity) == 2 && !( (1<<get_pdata_int(iEntity, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) ) )
+			AttemptPurchase(pPlayer, CSW_DEAGLE);
+	}
 	
 	return PLUGIN_HANDLED;
 }
