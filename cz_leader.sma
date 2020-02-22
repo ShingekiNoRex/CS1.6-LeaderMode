@@ -56,7 +56,7 @@ TR:
 (5秒内最低维持1血，5秒后若血量不超过1则死亡)	✔ (REX)
 (被動：血量越低枪械伤害越高)	✔ (REX)
 疯狂科学家
-(優惠G18C、ANACONDA，允許KSG和UMP45，煙霧彈帶有懲罰)
+(允許KSG和UMP45，煙霧彈帶有懲罰，禁止G18C、雙持P99)
 (發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向) ✔ (LUNA)
 (被動：煙霧彈更換為毒氣彈、遭受的AP傷害以電擊形式雙倍返還) ✔ (LUNA)
 刺客
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14 beta"
+#define VERSION	"1.14"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -248,7 +248,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"[T]立即填充所有物資並於15秒內轉移90%%%%傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
-	"[T]狙擊槍或大口徑手槍強制命中頭部，並令目標失明",
+	"[T]狙擊槍或大口徑手槍強制命中頭部並令目標失明",
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
@@ -265,7 +265,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[E]出售繳獲的武器",
 	"[被動]周圍角色緩慢補充護甲",
 	"[被动]霰彈槍使用爆炸彈頭",
-	"[被动]冰冻手雷",
+	"[被动]長弓寒冰手榴彈",
 	"[被動]療傷煙霧彈、大口徑手槍可發射治療子彈",
 	
 	"[被动]周围友军缓慢恢复生命",
@@ -447,7 +447,7 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
-/*Role_MadScientist*/	{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
+/*Role_MadScientist*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
 /*Role_Assassin*/		{ WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
 /*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_P, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F }
 };
@@ -577,6 +577,7 @@ public plugin_init()
 	RegisterHam(Ham_Touch, "weaponbox", "HamF_Weaponbox_Touch");
 	RegisterHam(Ham_Touch, "item_kevlar", "HamF_Armour_Touch_Post", 1);
 	RegisterHam(Ham_Touch, "item_assaultsuit", "HamF_Armour_Touch_Post", 1);
+	RegisterHam(Ham_IsInWorld, "grenade", "HamF_IsInWorld");
 	
 	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
@@ -821,7 +822,7 @@ public HamF_Killed(iVictim, iAttacker, bShouldGib)
 		Sharpshooter_SetFree(iVictim);
 	}
 	
-	// save rebuy info.
+	// save rebuy info. do it in PRE, or all the weapons would be removed from player during CBasePlayer::Killed()
 	g_rgbitsPlayerRebuy[iVictim] = pev(iVictim, pev_weapons);
 	
 	if (!is_user_connected(iAttacker))
@@ -1409,6 +1410,12 @@ public HamF_Armour_Touch_Post(iEntity, iPlayer)
 		set_pev(iPlayer, pev_armorvalue, get_pcvar_float(cvar_swatArmourMax));
 }
 
+public HamF_IsInWorld(iEntity)	// an extremely high velocity would cause entity disappear. this is the criminal.
+{
+	SetHamReturnInteger(1);	// 1 == TRUE;
+	return HAM_SUPERCEDE;
+}
+
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
 	if (!is_user_connected(iHost))
@@ -1621,10 +1628,18 @@ public fw_SetModel(iEntity, szModel[])
 			write_byte(200) // brightness
 			message_end()
 			
-			new Float:vecOrigin[3];
+			new Float:vecAimingAt[3];
 			get_aiming_trace(iPlayer);
-			get_tr2(0, TR_vecEndPos, vecOrigin);
-			engfunc(EngFunc_SetOrigin, iEntity, vecOrigin);
+			get_tr2(0, TR_vecEndPos, vecAimingAt);
+			
+			new Float:vecOrigin[3];
+			pev(iEntity, pev_origin, vecOrigin);
+			
+			new Float:vecVelocity[3];
+			xs_vec_sub(vecAimingAt, vecOrigin, vecVelocity);
+			xs_vec_normalize(vecVelocity, vecVelocity);
+			xs_vec_mul_scalar(vecVelocity, 9000.0, vecVelocity);
+			set_pev(iEntity, pev_velocity, vecVelocity);
 		}
 		else if (g_rgPlayerRole[iPlayer] == Role_Arsonist)
 		{
@@ -1961,6 +1976,7 @@ TAG_SKIP_NEW_PLAYER_SCAN:
 	
 	// custom global think
 	Assassin_SkillThink();
+	CommanderOH_Think();
 }
 
 public fw_PlayerPreThink_Post(pPlayer)
@@ -3039,8 +3055,9 @@ public Command_Buy3(pPlayer)
 		menu_additem(hMenu, szBuffer, szCommand);
 	}
 
-	menu_additem(hMenu, "自動購買", szCommand);
-	menu_additem(hMenu, "重新購買", szCommand);
+	menu_additem(hMenu, "重新購買", szCommand);	// 6
+	menu_additem(hMenu, "自動購買", szCommand);	// 7
+	menu_additem(hMenu, "手動保存重新購買", szCommand);	// 8
 	
 	//menu_setprop(hMenu, MPROP_SHOWPAGE, false);	// FIXME: it will be avaliable in AMXMODX 1.9.0 update.
 	menu_setprop(hMenu, MPROP_BACKNAME, "上一頁");
@@ -3105,6 +3122,14 @@ public Command_Autobuy(pPlayer)
 		}
 	}
 
+	if (g_rgPlayerRole[pPlayer] == Role_Medic)	// the medic have to got himself a ANACONDA in order to use his passive skill.
+	{
+		new iEntity = get_pdata_cbase(pPlayer, m_rgpPlayerItems[2]);
+		
+		if (pev_valid(iEntity) == 2 && !( (1<<get_pdata_int(iEntity, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) ) )
+			AttemptPurchase(pPlayer, CSW_DEAGLE);	// do this before purchasing ammunition.
+	}
+	
 	engclient_cmd(pPlayer, "primammo");
 	engclient_cmd(pPlayer, "secammo");
 
@@ -3123,14 +3148,6 @@ public Command_Autobuy(pPlayer)
 
 	if (iMoney > 8000)
 		AttemptPurchase(pPlayer, CSW_FLASHBANG);
-	
-	if (g_rgPlayerRole[pPlayer] == Role_Medic)	// the medic have to got himself a ANACONDA in order to use his passive skill.
-	{
-		new iEntity = get_pdata_cbase(pPlayer, m_rgpPlayerItems[2]);
-		
-		if (pev_valid(iEntity) == 2 && !( (1<<get_pdata_int(iEntity, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) ) )
-			AttemptPurchase(pPlayer, CSW_DEAGLE);
-	}
 	
 	return PLUGIN_HANDLED;
 }
@@ -3466,13 +3483,17 @@ public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 			AddMenuWeaponItem(iRoleIndex, CSW_HEGRENADE,	hNextMenu, iMoney);
 			AddMenuWeaponItem(iRoleIndex, CSW_SMOKEGRENADE,	hNextMenu, iMoney);
 		}
-		case 6:	// auto buy
+		case 6: // rebuy
+		{
+			Command_Rebuy(pPlayer);
+		}
+		case 7:	// auto buy
 		{
 			Command_Autobuy(pPlayer);
 		}
-		case 7: // rebuy
+		case 8:	// manually save rebuy
 		{
-			Command_Rebuy(pPlayer);
+			g_rgbitsPlayerRebuy[pPlayer] = pev(pPlayer, pev_weapons);
 		}
 		default:
 		{

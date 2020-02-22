@@ -1,5 +1,7 @@
 /**
 
+TEMP hp to commander.
+negative effect would be cancel when stay in the smoke
 **/
 
 #define MEDIC_TASK	5687361
@@ -18,6 +20,7 @@
 new cvar_medicHGAmount, cvar_medicHGInterval, cvar_medicOHLimit, cvar_medicOHDecayInv, cvar_medicOHDecayAmt;
 new Float:g_rgflOverhealingThink[33];
 new bool:g_rgbShootingHealingDart[33];
+new Float:g_flCommanderOHThink, Float:g_flCommanderOriginalHP;
 new g_idHealingSpr;
 
 public Medic_Initialize()
@@ -46,6 +49,20 @@ public Medic_Precache()
 	g_idHealingSpr = precache_model(HEALING_VFX);
 }
 
+public Command_DamageOther(pPlayer)
+{
+	if (!get_pcvar_num(cvar_DebugMode))
+		return PLUGIN_CONTINUE;
+
+	get_aiming_trace(pPlayer);
+	
+	new iEntity = get_tr2(0, TR_pHit);
+	if (is_user_alive(iEntity))
+		set_pev(iEntity, pev_health, 50.0);
+	
+	return PLUGIN_HANDLED;
+}
+
 public HealingGrenade_Think(iEntity)
 {
 	static Float:flTimeRemove;
@@ -60,6 +77,9 @@ public HealingGrenade_Think(iEntity)
 	static Float:vecOrigin[3];
 	pev(iEntity, pev_origin, vecOrigin);
 	
+	static iMedicPlayer;
+	iMedicPlayer = pev(iEntity, pev_iuser4);
+	
 	new pPlayer = -1, Float:vecVictimOrigin[3], Float:flHealth, Float:flMaxHealth;
 	while ((pPlayer = engfunc(EngFunc_FindEntityInSphere, pPlayer, vecOrigin, 280.0)) > 0)
 	{
@@ -70,47 +90,62 @@ public HealingGrenade_Think(iEntity)
 		if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
 			continue;
 		
-		if (pPlayer == THE_GODFATHER || pPlayer == THE_COMMANDER)	// never heal these two.
+		if (pPlayer == THE_GODFATHER)	// never heal the godfather.
 			continue;
 		
 		pev(pPlayer, pev_health, flHealth);
 		pev(pPlayer, pev_max_health, flMaxHealth);
 		
+		if (pPlayer == THE_COMMANDER)	// but we can overheal commander.
+		{
+			if (g_flCommanderOHThink <= 0.0)
+				g_flCommanderOriginalHP = flHealth;
+			
+			g_flCommanderOHThink = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv) + get_pcvar_float(cvar_medicHGInterval);
+			
+			new Float:flLastHealth = flHealth;
+			flHealth += get_pcvar_float(cvar_medicHGAmount);
+			set_pev(pPlayer, pev_health, flHealth);
+			HealingGrenade_SFX(pPlayer);
+			
+			client_cmd(iMedicPlayer, "spk %s", SFX_TSD_GBD);
+			UTIL_AddAccount(iMedicPlayer, floatround(flHealth - flLastHealth) / 2);
+			
+			continue;
+		}
+		
 		if (flHealth >= flMaxHealth)	// reach the default maxium health.
 		{
 			if (flHealth < get_pcvar_float(cvar_medicOHLimit))	// continue overhealing.
 			{
+				new Float:flLastHealth = flHealth;
 				flHealth = floatmin(flHealth + get_pcvar_float(cvar_medicHGAmount), get_pcvar_float(cvar_medicOHLimit));
 				set_pev(pPlayer, pev_health, flHealth);
 				
+				client_cmd(iMedicPlayer, "spk %s", SFX_TSD_GBD);
+				UTIL_AddAccount(iMedicPlayer, floatround(flHealth - flLastHealth) / 2);	// only give half of money if the medic is overhealing player.
 				g_rgflOverhealingThink[pPlayer] = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv) + get_pcvar_float(cvar_medicHGInterval);	// prevents player both add and reduce health in healing smoke.
 				
 				if (flHealth >= get_pcvar_float(cvar_medicOHLimit))
 					engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, HEALING_FULL_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 				else
-				{
-					new szHealingSFX[48];
-					formatex(szHealingSFX, charsmax(szHealingSFX), HEALING_SFX, random_num(1, 10));
-					client_cmd(pPlayer, "spk %s", szHealingSFX);
-				}
-				// UNDONE: overhealing FX
+					HealingGrenade_SFX(pPlayer);
 			}
 		}
-		else
+		else	// normal healing
 		{
+			new Float:flLastHealth = flHealth;
 			flHealth = floatmin(flHealth + get_pcvar_float(cvar_medicHGAmount), flMaxHealth);
 			set_pev(pPlayer, pev_health, flHealth);
 			
 			Healing_VFX(pPlayer);
+			client_cmd(iMedicPlayer, "spk %s", SFX_TSD_GBD);
+			UTIL_AddAccount(iMedicPlayer, floatround(flHealth - flLastHealth));
 			
 			if (flHealth >= flMaxHealth)
 				engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, HEALING_FULL_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 			else
-			{
-				new szHealingSFX[48];
-				formatex(szHealingSFX, charsmax(szHealingSFX), HEALING_SFX, random_num(1, 10));
-				client_cmd(pPlayer, "spk %s", szHealingSFX);
-			}
+				HealingGrenade_SFX(pPlayer);
 		}
 	}
 	
@@ -141,10 +176,40 @@ public Overhealing_Think(pPlayer)
 	set_pev(pPlayer, pev_health, flHealth);
 	
 	client_cmd(pPlayer, "spk %s", OVERHEALING_DECAY_SFX);
-	// UNDONE: overhealing decay FX
 }
 
-public Healing_VFX(pPlayer)
+public CommanderOH_Think()
+{
+	if (!is_user_alive(THE_COMMANDER))	// new round bugfix.
+	{
+		g_flCommanderOHThink = 0.0;
+		return;
+	}
+	
+	if (g_flCommanderOHThink <= 0.0)
+		return;
+	
+	if (g_flCommanderOHThink > get_gametime())
+		return;
+		
+	static Float:flHealth;
+	pev(THE_COMMANDER, pev_health, flHealth);
+	
+	if (flHealth <= g_flCommanderOriginalHP)
+	{
+		g_flCommanderOHThink = 0.0;
+		return;
+	}
+	
+	g_flCommanderOHThink = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv);
+	
+	flHealth -= get_pcvar_float(cvar_medicOHDecayAmt);
+	set_pev(THE_COMMANDER, pev_health, flHealth);
+	
+	client_cmd(THE_COMMANDER, "spk %s", OVERHEALING_DECAY_SFX);
+}
+
+Healing_VFX(pPlayer)
 {
 	static Float:vecOrigin[3];
 	pev(pPlayer, pev_origin, vecOrigin);
@@ -160,8 +225,15 @@ public Healing_VFX(pPlayer)
 	message_end();
 }
 
-public ShotHeal_FX(pPlayer)
+ShotHeal_FX(pPlayer)
 {
 	Healing_VFX(pPlayer);
 	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, HEALINGSHOT_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+}
+
+HealingGrenade_SFX(pPlayer)
+{
+	new szHealingSFX[48];
+	formatex(szHealingSFX, charsmax(szHealingSFX), HEALING_SFX, random_num(1, 10));
+	client_cmd(pPlayer, "spk %s", szHealingSFX);
 }

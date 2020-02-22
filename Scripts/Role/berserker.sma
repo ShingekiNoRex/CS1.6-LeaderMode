@@ -1,5 +1,7 @@
 /**
 
+HP reaches 0 would force velocity to 0.
+-2 menpower when resurrect?
 **/
 
 #define BERSERKER_TEXT	g_rgszRoleNames[Role_Berserker]

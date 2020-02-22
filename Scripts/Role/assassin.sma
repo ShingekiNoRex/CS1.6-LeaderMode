@@ -1,5 +1,8 @@
 /**
 
+touch anything would reveal.
+translucent?
+will be reveal by HG
 **/
 
 #define ASSASSIN_TEXT		g_rgszRoleNames[Role_Assassin]
