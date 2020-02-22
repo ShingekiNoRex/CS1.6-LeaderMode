@@ -38,13 +38,13 @@ S.W.A.T.
 (10秒内无限高爆手雷，爆炸伤害+50%，所有武器擁有爆炸彈藥)	✔ (REX)
 (被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (LUNA)
 神射手
-(優惠M200、手榴彈、ANACONDA和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
+(優惠M200、手榴彈、ANACONDA、DEAGLE和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：冰凍手榴彈) ✔ (REX)
 医疗兵
 (優惠G18C、ANACONDA、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (包含自己在内恢复周圍非隊長角色的HP)
-(被動：副武器射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害)
+(被動：副武器射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害，Overhealing機制)
 
 TR:
 教父	(1)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.13.4"
+#define VERSION	"1.14 alpha"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -248,7 +248,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"[T]立即填充所有物資並於15秒內轉移90%%%%傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
-	"[T]狙擊槍強制命中頭部，並造成目標失明",
+	"[T]狙擊槍或大口徑手槍強制命中頭部，並造成目標失明",
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
@@ -442,7 +442,7 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 /*Role_Commander = 1*/	{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_SWAT*/			{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D },
 /*Role_Blaster*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
-/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_A, WPN_P, WPN_P, WPN_F, WPN_F },
+/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_D, WPN_P, WPN_P, WPN_F, WPN_F },
 /*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D },
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
@@ -555,6 +555,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #include "Scripts/Role/SWAT.sma"
 #include "Scripts/Role/arsonist.sma"
 #include "Scripts/Role/mad_scientist.sma"
+
 #if defined AIR_SUPPORT_ENABLE
 #include "Scripts/UTIL/commander_airsupport.sma"
 #endif
@@ -953,7 +954,7 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 	}
 	
 	if (g_rgPlayerRole[iAttacker] == Role_Sharpshooter && g_rgbUsingSkill[iAttacker] &&
-		(iId == CSW_AWP || iId == CSW_M200 || iId == CSW_M14EBR || iId == CSW_SVD) )	// skill only avaliable when using a sniper rifle.
+		(iId == CSW_AWP || iId == CSW_M200 || iId == CSW_M14EBR || iId == CSW_SVD || iId == CSW_DEAGLE || iId == CSW_ANACONDA) )	// skill only avaliable when using a sniper rifle or ANACONDA and DEAGLE.
 	{
 		new Float:vecOrigin[3];
 		get_tr2(tr, TR_vecEndPos, vecOrigin);
@@ -2335,31 +2336,58 @@ public fw_EmitSound_Post(iGrenade, iChannel, const szSample[], Float:flVolume, F
 		return;
 	
 	new pPlayer = pev(iGrenade, pev_owner);
-	if (g_rgPlayerRole[pPlayer] != Role_MadScientist)
-		return;
-	
-	new Float:vecOrigin[3];
-	pev(iGrenade, pev_origin, vecOrigin);
-	
-	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
-	set_pev(iEntity, pev_origin, vecOrigin);
-	set_pev(iEntity, pev_weapons, MADSCIENTIST_TASK);
-	set_pev(iEntity, pev_nextthink, get_gametime() + 0.01);
-	set_pev(iEntity, pev_fuser1, get_gametime() + 25.5);
-	set_pev(iEntity, pev_iuser4, pPlayer);
-	
-	engfunc(EngFunc_MessageBegin, MSG_ALL, SVC_TEMPENTITY, vecOrigin, 0);
-	write_byte(TE_DLIGHT);
-	engfunc(EngFunc_WriteCoord, vecOrigin[0]);
-	engfunc(EngFunc_WriteCoord, vecOrigin[1]);
-	engfunc(EngFunc_WriteCoord, vecOrigin[2]);
-	write_byte(27);		// range: 275 ?
-	write_byte(128);
-	write_byte(255);
-	write_byte(128);
-	write_byte(255);	// time: original CS smokegrenade lasts 25 sec.
-	write_byte(0);
-	message_end();
+	if (g_rgPlayerRole[pPlayer] == Role_MadScientist)
+	{
+		new Float:vecOrigin[3];
+		pev(iGrenade, pev_origin, vecOrigin);
+		
+		new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
+		set_pev(iEntity, pev_classname, GAS_GRENADE_ENTITY);
+		set_pev(iEntity, pev_origin, vecOrigin);
+		set_pev(iEntity, pev_weapons, MADSCIENTIST_TASK);
+		set_pev(iEntity, pev_nextthink, get_gametime() + 0.01);
+		set_pev(iEntity, pev_fuser1, get_gametime() + 25.5);
+		set_pev(iEntity, pev_iuser4, pPlayer);
+		
+		engfunc(EngFunc_MessageBegin, MSG_ALL, SVC_TEMPENTITY, vecOrigin, 0);
+		write_byte(TE_DLIGHT);
+		engfunc(EngFunc_WriteCoord, vecOrigin[0]);
+		engfunc(EngFunc_WriteCoord, vecOrigin[1]);
+		engfunc(EngFunc_WriteCoord, vecOrigin[2]);
+		write_byte(27);		// range: 275 ?
+		write_byte(128);
+		write_byte(255);
+		write_byte(128);
+		write_byte(255);	// time: original CS smokegrenade lasts 25 sec.
+		write_byte(0);
+		message_end();
+	}
+	else if (g_rgPlayerRole[pPlayer] == Role_Medic)
+	{
+		new Float:vecOrigin[3];
+		pev(iGrenade, pev_origin, vecOrigin);
+		
+		new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
+		set_pev(iEntity, pev_classname, HEALING_GRENADE_ENTITY);
+		set_pev(iEntity, pev_origin, vecOrigin);
+		set_pev(iEntity, pev_weapons, MEDIC_TASK);
+		set_pev(iEntity, pev_nextthink, get_gametime() + 0.01);
+		set_pev(iEntity, pev_fuser1, get_gametime() + 25.5);
+		set_pev(iEntity, pev_iuser4, pPlayer);
+		
+		engfunc(EngFunc_MessageBegin, MSG_ALL, SVC_TEMPENTITY, vecOrigin, 0);
+		write_byte(TE_DLIGHT);
+		engfunc(EngFunc_WriteCoord, vecOrigin[0]);
+		engfunc(EngFunc_WriteCoord, vecOrigin[1]);
+		engfunc(EngFunc_WriteCoord, vecOrigin[2]);
+		write_byte(27);		// range: 275 ?
+		write_byte(51);
+		write_byte(204);
+		write_byte(255);
+		write_byte(255);	// time: original CS smokegrenade lasts 25 sec.
+		write_byte(0);
+		message_end();
+	}
 }
 
 public Task_PlayerResurrection(iPlayer)
@@ -2475,11 +2503,13 @@ public Event_HLTV()
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
 	
-	for (new i = 0; i < 33; i++)
+	for (new i = 0; i < 33; i++)	// terminate DOTs here.
 	{
 		g_rgbResurrecting[i] = false;
 		g_rgiConfidenceMotionVotes[i] = DISCARD;
 		g_rgflFrozenNextthink[i] = 0.0
+		g_rgflPlayerPoisoned[i] = floatmin(g_rgflPlayerPoisoned[i], 1.0);	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
+		g_rgflPlayerElectrified[i] = floatmin(g_rgflPlayerElectrified[i], 1.0);
 	}
 	
 	g_bRoundStarted = false;
@@ -2529,7 +2559,15 @@ public Event_HLTV()
 			Command_DeclareRole(i);
 	}
 	
-	client_cmd(0, "stopsound");	// stop music
+	// remove customized entities
+	// UNDONE: REX, what about yours?
+	new iEntity = -1;
+	while ((iEntity = engfunc(EngFunc_FindEntityByString, iEntity, "classname", GAS_GRENADE_ENTITY)) > 0)
+	{
+		set_pev(iEntity, pev_fuser1, get_gametime());	// remove it via customized function.
+	}
+	
+	client_cmd(0, "stopsound");	// stop sfx
 	client_cmd(0, "mp3 stop");	// stop music
 }
 

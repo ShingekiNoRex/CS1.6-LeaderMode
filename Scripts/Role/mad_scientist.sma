@@ -12,6 +12,8 @@ sub_10083E20: CGrenade::ShootSmokeGrenade()
 #define BREATHE_SFX			"leadermode/breathe1.wav"
 #define COUGH_SFX			"leadermode/cough%d.wav"
 
+#define GAS_GRENADE_ENTITY	"gas_grenade"
+
 new cvar_msRevengeRatio;
 new cvar_msGravityGunCD, cvar_msGravityGunDur, cvar_msGravityGunDragSpd;
 new cvar_msElectrobltDur, cvar_msElectrobltSpdLim;
