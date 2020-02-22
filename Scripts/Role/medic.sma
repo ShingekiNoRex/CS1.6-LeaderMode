@@ -80,7 +80,7 @@ public HealingGrenade_Think(iEntity)
 		{
 			if (flHealth < get_pcvar_float(cvar_medicOHLimit))	// continue overhealing.
 			{
-				flHealth = floatclamp(flHealth + get_pcvar_float(cvar_medicHGAmount), 0.0, get_pcvar_float(cvar_medicOHLimit));
+				flHealth = floatmin(flHealth + get_pcvar_float(cvar_medicHGAmount), get_pcvar_float(cvar_medicOHLimit));
 				set_pev(pPlayer, pev_health, flHealth);
 				
 				g_rgflOverhealingThink[pPlayer] = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv) + get_pcvar_float(cvar_medicHGInterval);	// prevents player both add and reduce health in healing smoke.

@@ -968,6 +968,31 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 		return HAM_HANDLED;
 	}
 	
+	if (g_rgbShootingHealingDart[iAttacker])	// medic passive skill
+	{
+		if (is_user_alive(iVictim) && fm_is_user_same_team(iAttacker, iVictim) && iVictim != THE_COMMANDER)
+		{
+			new Float:vecOrigin[3];
+			get_tr2(tr, TR_vecEndPos, vecOrigin);
+			
+			ShotHeal_FX(iVictim);
+			UTIL_BeamEntPoint(iAttacker|0x1000, vecOrigin, g_idFireTrace, 1, 10, 1, 6, 0, 51, 204, 255, 128, 10);
+			
+			new Float:flHealth, Float:flMaxHealth;
+			pev(iVictim, pev_health, flHealth);
+			pev(iVictim, pev_max_health, flMaxHealth);
+			
+			flHealth = floatmin(flHealth + flDamage, get_pcvar_float(cvar_medicOHLimit));
+			set_pev(iVictim, pev_health, flHealth);
+			
+			if (flHealth > flMaxHealth)
+				g_rgflOverhealingThink[iVictim] = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv);
+
+			SetHamParamFloat(3, 0.0);	// it won't do any damage no nomatter what mp_friendfire says.
+			return HAM_HANDLED;
+		}
+	}
+	
 	return HAM_IGNORED;
 }
 
@@ -2346,15 +2371,6 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 		static Float:vecOrigin[3];
 		get_tr2(tr, TR_vecEndPos, vecOrigin);
 		Arsonist_CreateTrace(iSkipEntity, vecOrigin);
-	}
-	
-	if (g_rgbShootingHealingDart[iSkipEntity])
-	{
-		new iTarget = get_tr2(tr, TR_pHit);
-		if (is_user_alive(iTarget) && fm_is_user_same_team(iSkipEntity, iTarget))
-		{
-			ShotHeal_FX(iTarget);
-		}
 	}
 }
 
