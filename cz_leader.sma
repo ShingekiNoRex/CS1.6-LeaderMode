@@ -39,12 +39,12 @@ S.W.A.T.
 (被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (LUNA)
 神射手
 (優惠M200、手榴彈、ANACONDA、DEAGLE和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
-(10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
+(狙擊槍和大威力手槍10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：冰凍手榴彈) ✔ (REX)
 医疗兵
-(優惠G18C、ANACONDA、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
+(優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (包含自己在内恢复周圍非隊長角色的HP)
-(被動：副武器射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害，Overhealing機制)
+(被動：大威力手槍射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害，Overhealing機制)
 
 TR:
 教父	(1)
@@ -266,7 +266,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[被動]周圍角色緩慢補充護甲",
 	"[被动]霰彈槍使用爆炸彈頭",
 	"[被动]冰冻手雷",
-	"",
+	"[被動]煙霧彈具有治療效果",
 	
 	"[被动]周围友军缓慢恢复生命",
 	"[被动]血量越低伤害越高",
@@ -443,7 +443,7 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 /*Role_SWAT*/			{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D },
 /*Role_Blaster*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
 /*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_D, WPN_P, WPN_P, WPN_F, WPN_F },
-/*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D },
+/*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_D },
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
@@ -555,6 +555,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #include "Scripts/Role/SWAT.sma"
 #include "Scripts/Role/arsonist.sma"
 #include "Scripts/Role/mad_scientist.sma"
+#include "Scripts/Role/medic.sma"
 
 #if defined AIR_SUPPORT_ENABLE
 #include "Scripts/UTIL/commander_airsupport.sma"
@@ -670,6 +671,7 @@ public plugin_init()
 	SWAT_Initialize();
 	MadScientist_Initialize();
 	Arsonist_Initialize();
+	Medic_Initialize();
 	
 	// bot support
 	g_fwBotForwardRegister = register_forward(FM_PlayerPostThink, "fw_BotForwardRegister_Post", 1);
@@ -750,6 +752,8 @@ public plugin_precache()
 	SWAT_Precache();
 	MadScientist_Precache();
 	Arsonist_Precache();
+	Medic_Precache();
+	
 	g_ptrBeamSprite = engfunc(EngFunc_PrecacheModel, "sprites/lgtning.spr");
 }
 
@@ -1084,7 +1088,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	}
 	
 	if (bitsDamageTypes & (DMG_SHOCK | DMG_NERVEGAS))
-		set_pdata_float(iVictim, m_flVelocityModifier, 0.9);	// nerf the freaking sticky damage feedback.
+		set_pdata_float(iVictim, m_flVelocityModifier, get_pcvar_float(cvar_msPoisonVelMod));
 
 	if (m_bitsDamageType & (DMG_BURN | DMG_SLOWBURN))
 	{
@@ -1148,6 +1152,12 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 		g_rgbArsonistFiring[iPlayer] = true;	// LUNA: don't worry, REX. the code won't reach here if the clip is <= 0. check the first line of this function.
 	}
 
+	if (g_rgPlayerRole[iPlayer] == Role_Medic &&
+		(iId == CSW_ANACONDA || iId == CSW_DEAGLE) )
+	{
+		g_rgbShootingHealingDart[iPlayer] = true;
+	}
+
 	return HAM_IGNORED;
 }
 
@@ -1167,6 +1177,9 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 
 	if (g_rgbArsonistFiring[iPlayer])
 		g_rgbArsonistFiring[iPlayer] = false;
+	
+	if (g_rgbShootingHealingDart[iPlayer])
+		g_rgbShootingHealingDart[iPlayer] = false;
 }
 
 #if defined AIR_SUPPORT_ENABLE
@@ -1455,6 +1468,11 @@ public fw_Think(iEntity)
 	if (pev(iEntity, pev_weapons) == MADSCIENTIST_TASK)
 	{
 		GasGrenade_Think(iEntity);
+		return FMRES_IGNORED;
+	}
+	else if (pev(iEntity, pev_weapons) == MEDIC_TASK)
+	{
+		HealingGrenade_Think(iEntity);
 		return FMRES_IGNORED;
 	}
 	
@@ -1916,6 +1934,7 @@ public fw_PlayerPreThink_Post(pPlayer)
 	Sharpshooter_IceThink(pPlayer);
 	MadScientist_SkillThink(pPlayer);
 	GasGrenade_VictimThink(pPlayer);
+	Overhealing_Think(pPlayer);
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -2327,6 +2346,15 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 		static Float:vecOrigin[3];
 		get_tr2(tr, TR_vecEndPos, vecOrigin);
 		Arsonist_CreateTrace(iSkipEntity, vecOrigin);
+	}
+	
+	if (g_rgbShootingHealingDart[iSkipEntity])
+	{
+		new iTarget = get_tr2(tr, TR_pHit);
+		if (is_user_alive(iTarget) && fm_is_user_same_team(iSkipEntity, iTarget))
+		{
+			ShotHeal_FX(iTarget);
+		}
 	}
 }
 
@@ -2832,9 +2860,6 @@ public Command_DeclareRole(pPlayer)
 	for (new Role_e:i = iStart; i <= iEnd; i++)
 	{
 		if (!rgbRolesAvaliable[i])
-			continue;
-		
-		if (i == Role_Medic)	// UNDONE & FIXME this is the code of skipping unfinished roles.
 			continue;
 		
 		formatex(szInfo, charsmax(szInfo), "%d", i);

@@ -17,7 +17,7 @@ sub_10083E20: CGrenade::ShootSmokeGrenade()
 new cvar_msRevengeRatio;
 new cvar_msGravityGunCD, cvar_msGravityGunDur, cvar_msGravityGunDragSpd;
 new cvar_msElectrobltDur, cvar_msElectrobltSpdLim;
-new cvar_msPoisonLast, cvar_msPoisonDmg, cvar_msPoisonDmgInv;
+new cvar_msPoisonLast, cvar_msPoisonDmg, cvar_msPoisonDmgInv, cvar_msPoisonVelMod;
 new Float:g_rgflPlayerElectrified[33], Float:g_rgflElectrifiedScreenFade[33], Float:g_rgflElectrifiedPunch[33], Float:g_rgflElectrifyingSFX[33], Float:g_rgflElectrifyingVFX[33];
 new bool:g_rgbShootingElectrobullets[33], Float:g_rgvecElectrobulletsHitsOfs[33][3];
 
@@ -31,6 +31,7 @@ public MadScientist_Initialize()
 	cvar_msPoisonDmg		= register_cvar("lm_ms_poison_damage",			"7.0");
 	cvar_msPoisonLast		= register_cvar("lm_ms_poison_lasting",			"5.0");
 	cvar_msPoisonDmgInv		= register_cvar("lm_ms_poison_damage_interval",	"1.0");
+	cvar_msPoisonVelMod		= register_cvar("lm_ms_poison_dmg_vel_modifier","0.8");	// nerf the freaking sticky damage feedback.
 	cvar_msRevengeRatio		= register_cvar("lm_ms_revenge_ratio",			"0.1");
 	
 	g_rgSkillDuration[Role_MadScientist] = cvar_msGravityGunDur;

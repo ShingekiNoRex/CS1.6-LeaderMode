@@ -195,7 +195,7 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 	{
 		flCurHealth += get_pcvar_float(cvar_godfatherHealingAmount);
 		if (flCurHealth > 100.0)
-			flCurHealth = 100.0
+			flCurHealth = 100.0;
 
 		set_pev(iPlayer, pev_health, flCurHealth);
 		
