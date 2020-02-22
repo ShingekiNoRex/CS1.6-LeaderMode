@@ -982,8 +982,12 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 			pev(iVictim, pev_health, flHealth);
 			pev(iVictim, pev_max_health, flMaxHealth);
 			
+			new Float:flLastHealth = flHealth;
 			flHealth = floatmin(flHealth + flDamage, get_pcvar_float(cvar_medicOHLimit));
 			set_pev(iVictim, pev_health, flHealth);
+			
+			UTIL_AddAccount(iAttacker, floatround(flHealth - flLastHealth));
+			client_cmd(iAttacker, "spk %s", SFX_TSD_GBD);
 			
 			if (flHealth > flMaxHealth)
 				g_rgflOverhealingThink[iVictim] = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv);
