@@ -11,7 +11,7 @@ new cvar_berserkerDuration, cvar_berserkerCooldown, cvar_berserkerDashSpeed;
 
 public Berserker_Initialize()
 {
-	cvar_berserkerDuration	= register_cvar("lm_berserker_duration",	"6.0");
+	cvar_berserkerDuration	= register_cvar("lm_berserker_duration",	"5.0");
 	cvar_berserkerCooldown	= register_cvar("lm_berserker_cooldown",	"30.0");
 	cvar_berserkerDashSpeed	= register_cvar("lm_berserker_dashspeed",	"300.0");
 

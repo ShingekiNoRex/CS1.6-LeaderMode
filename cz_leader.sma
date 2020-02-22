@@ -248,7 +248,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]標記教父位置，自身射速加倍&受傷減半",
 	"[T]立即填充所有物資並於15秒內轉移90%%%%傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
-	"[T]狙擊槍或大口徑手槍強制命中頭部，並造成目標失明",
+	"[T]狙擊槍或大口徑手槍強制命中頭部，並令目標失明",
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
@@ -1620,6 +1620,11 @@ public fw_SetModel(iEntity, szModel[])
 			write_byte(200) // b
 			write_byte(200) // brightness
 			message_end()
+			
+			new Float:vecOrigin[3];
+			get_aiming_trace(iPlayer);
+			get_tr2(0, TR_vecEndPos, vecOrigin);
+			engfunc(EngFunc_SetOrigin, iEntity, vecOrigin);
 		}
 		else if (g_rgPlayerRole[iPlayer] == Role_Arsonist)
 		{
