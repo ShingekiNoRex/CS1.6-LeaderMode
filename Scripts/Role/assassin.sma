@@ -1,6 +1,5 @@
 /**
 
-touch anything would reveal.
 translucent?
 will be reveal by HG
 **/
@@ -171,4 +170,18 @@ public Assassin_TerminateSkill(pPlayer)
 {
 	remove_task(ASSASSIN_TASK + pPlayer);
 	Assassin_RevokeSkill(ASSASSIN_TASK + pPlayer);
+}
+
+public Assassin_Revealed(pPlayer, iAttacker)	// cacha !!!
+{
+	Assassin_TerminateSkill(pPlayer);
+	
+	UTIL_ScreenFade(pPlayer, 0.3, 0.1, FFADE_IN, 10, 10, 255, 60);
+	client_cmd(pPlayer, "stopsound");
+	client_cmd(pPlayer, "spk %s", ASSASSIN_DISCOVERED_SFX);
+	
+	print_chat_color(pPlayer, REDCHAT, "你被發現了!");
+	
+	if (is_user_connected(iAttacker) && !is_user_bot(iAttacker))
+		client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
 }

@@ -1,8 +1,5 @@
 /**
 
-!should be remake.
-armor recharge when not getting hit.
-health regen when armor is full.
 **/
 
 #define SWAT_TASK	2867926
@@ -10,12 +7,13 @@ health regen when armor is full.
 #define SWAT_GRAND_SFX		"leadermode/merge_army_fleet.wav"
 #define SWAT_REVOKE_SFX		"leadermode/illegal_move.wav"
 #define SWAT_PASSIVE_SFX	"leadermode/select_army.wav"
+#define SWAT_REGEN_SFX		"leadermode/society_rank_up_01.wav"
 
 new cvar_swatBulletproofCD, cvar_swatBulletproofLast;
 new cvar_swatArmourMax, cvar_swatBulletproofRatio;
 new cvar_swatArmourRegenInv, cvar_swatArmourRegenAmt, cvar_swatArmourRegenRad;
 
-new Float:g_rgflSWATArmourRegenThink[33];
+new Float:g_rgflSWATArmourRegenThink[33], Float:g_rgflSWATNextSelfArmorRegen[33], bool:g_rgbSWATShouldPlaySelfRegenSFX[33];
 
 public SWAT_Initialize()
 {
@@ -90,6 +88,39 @@ public SWAT_SkillThink(pPlayer)	// place at PlayerPostThink()
 {
 	if (g_rgPlayerRole[pPlayer] != Role_SWAT)
 		return;
+	
+	if (g_rgflSWATNextSelfArmorRegen[pPlayer] <= get_gametime())
+	{
+		new Float:flArmourValue;
+		pev(pPlayer, pev_armorvalue, flArmourValue);
+		
+		if (flArmourValue <= 0.0)
+			set_pdata_int(pPlayer, m_iKevlar, 1);
+		
+		if (flArmourValue > 100.0 && get_pdata_int(pPlayer, m_iKevlar) != 2)
+		{
+			set_pdata_int(pPlayer, m_iKevlar, 2);	// upgrade armor after 100.
+			
+			emessage_begin(MSG_ONE, get_user_msgid("ItemPickup"), _, pPlayer);
+			ewrite_string("item_assaultsuit");
+			emessage_end();
+			
+			emessage_begin(MSG_ONE, get_user_msgid("ArmorType"), _, pPlayer);
+			ewrite_byte(1);
+			emessage_end();
+		}
+		
+		if (g_rgbSWATShouldPlaySelfRegenSFX[pPlayer])
+		{
+			g_rgbSWATShouldPlaySelfRegenSFX[pPlayer] = false;
+			client_cmd(pPlayer, "spk %s", SWAT_REGEN_SFX);
+		}
+		
+		flArmourValue = floatmin(flArmourValue + 1.0, get_pcvar_float(cvar_swatArmourMax));
+		set_pev(pPlayer, pev_armorvalue, flArmourValue);
+		
+		g_rgflSWATNextSelfArmorRegen[pPlayer] = get_gametime() + 0.5;
+	}
 	
 	if (g_rgflSWATArmourRegenThink[pPlayer] > get_gametime())
 		return;

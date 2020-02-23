@@ -31,7 +31,7 @@ CT:
 (被動：HP 1000，可以販賣繳獲的武器) ✔ (LUNA)
 S.W.A.T.
 (優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
-(立即填充所有手榴彈、彈藥和護甲，15秒内轉移50%傷害至護甲)	✔ (LUNA)
+(立即填充所有手榴彈、彈藥和護甲，15秒内轉移所有傷害至護甲)	✔ (LUNA)
 (被動：AP 200，周围友军缓慢恢复护甲)	✔ (LUNA)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
@@ -61,7 +61,7 @@ TR:
 (被動：煙霧彈更換為毒氣彈、擁有完全護甲時遭受傷害的15%以電擊形式返還) ✔ (LUNA)
 刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
-(消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
+(消音武器，標記敌方指挥官位置；隱身10秒，接觸其他角色會被發現) ✔ (LUNA)
 (被動：消音武器有1%的概率暴擊) ✔ (LUNA)
 纵火犯
 (優惠霰彈槍，允許M4A1、SCAR-L，手榴彈帶有懲罰)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.1"
+#define VERSION	"1.14.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -246,16 +246,16 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"先輩たちから習って下さい！",
 	
 	"[T]標記教父位置，自身射速加倍&受傷減半",
-	"[T]立即填充所有物資並於15秒內轉移90%%%%傷害至護甲",
+	"[T]填充所有物資並於15秒內轉移所有傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
 	"[T]狙擊槍或大口徑手槍強制命中頭部並令目標失明",
 	"",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
 	"[T]提升移速，承受致命伤不会立刻死亡",
-	"[T]立即填裝電擊子彈。被命中者將失去角色控制。",
-	"[T]標記指揮官位置並隱身",
-	"[T]火焰弹药，燃烧伤害附带减速效果"
+	"[T]立即填裝電擊子彈。被命中者將失去角色控制",
+	"[T]標記指揮官位置並隱身10秒",
+	"[T]立即填裝火焰弹药並令燃烧伤害附带减速效果"
 };
 
 stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
@@ -778,6 +778,7 @@ public client_putinserver(pPlayer)
 	g_rgbitsPlayerRebuy[pPlayer] = 0;
 	g_rgflPlayerElectrified[pPlayer] = 0.0;
 	g_rgflPlayerPoisoned[pPlayer] = 0.0;
+	g_rgbSWATShouldPlaySelfRegenSFX[pPlayer] = true;
 }
 
 public client_connect(pPlayer)
@@ -1054,7 +1055,7 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 				engfunc(EngFunc_SetClientMaxspeed, iVictim, get_pcvar_float(cvar_berserkerDyingSpeed));	// dying speed applied.
 				set_pev(iVictim, pev_maxspeed, get_pcvar_float(cvar_berserkerDyingSpeed));
 				
-				return FMRES_SUPERCEDE;
+				return HAM_SUPERCEDE;
 			}
 		}
 		else if (g_rgPlayerRole[iVictim] == Role_SWAT)
@@ -1064,11 +1065,17 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 			
 			if (flArmorValue > 0.0)
 			{
-				flArmorValue -= flDamage * get_pcvar_float(cvar_swatBulletproofRatio);
-				flDamageMultiplier *= 1.0 - get_pcvar_float(cvar_swatBulletproofRatio);
+				flDamage *= get_pcvar_float(cvar_swatBulletproofRatio);
+				flArmorValue = floatmax(flArmorValue - flDamage, 0.0);
+
+				set_pev(iVictim, pev_armorvalue, flArmorValue);	// LUNA: HOW CAN I FUCKING FORGOT THIS LINE???
+
+				// deals no health damage.
+				return HAM_SUPERCEDE;
 			}
 			
-			set_pev(iVictim, pev_armorvalue, flArmorValue);	// LUNA: HOW CAN I FUCKING FORGOT THIS LINE???
+			g_rgbSWATShouldPlaySelfRegenSFX[iVictim] = true;
+			g_rgflSWATNextSelfArmorRegen[iVictim] = get_gametime() + get_pcvar_float(cvar_swatArmourRegenInv);
 		}
 	}
 	else if (is_user_alive(iVictim))
@@ -1076,7 +1083,12 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 		if (g_rgPlayerRole[iVictim] == Role_Blaster && bitsDamageTypes & ((1<<24) | DMG_BLAST))		// blaster is resist to grenade damage.
 			flDamageMultiplier -= 0.75;
 		else if(g_rgPlayerRole[iVictim] == Role_Arsonist && bitsDamageTypes & (DMG_BURN | DMG_SLOWBURN))		// arsonist is immune to burn damage.
-			return FMRES_SUPERCEDE;
+			return HAM_SUPERCEDE;
+		else if (g_rgPlayerRole[iVictim] == Role_SWAT)
+		{
+			g_rgbSWATShouldPlaySelfRegenSFX[iVictim] = true;
+			g_rgflSWATNextSelfArmorRegen[iVictim] = get_gametime() + get_pcvar_float(cvar_swatArmourRegenInv);
+		}
 	}
 
 	if (is_user_connected(iAttacker))
@@ -1110,13 +1122,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 		return;
 	
 	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// cacha !!!
-	{
-		Assassin_TerminateSkill(iVictim);
-		client_cmd(iVictim, "spk %s", ASSASSIN_DISCOVERED_SFX);
-		
-		if (is_user_connected(iAttacker))
-			client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
-	}
+		Assassin_Revealed(iVictim, iAttacker);
 	
 	if (is_user_alive(iVictim))
 	{
@@ -1473,8 +1479,15 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 
 public fw_Touch_Post(iEntity, iOther)
 {
-	if (!pev_valid(iEntity))
+	if (pev_valid(iEntity) != 2)
 		return;
+	
+	// assassin would be revealed if touch by other players.
+	if (is_user_connected(iEntity) && g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity] && is_user_alive(iOther))
+	{
+		Assassin_Revealed(iEntity, iOther);
+		return;
+	}
 
 	static szClassName[33];
 	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
@@ -3530,6 +3543,24 @@ public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 		case 8:	// manually save rebuy
 		{
 			g_rgbitsPlayerRebuy[pPlayer] = pev(pPlayer, pev_weapons);
+			
+			new szItems[192];
+			formatex(szItems, charsmax(szItems), "/y已保存的購買清單: ");
+			
+			for (new i = 1; i <= CSW_P90; i++)
+			{
+				if (i == CSW_KNIFE || i == CSW_RADIO)	// you don't need to buy that...
+					continue;
+				
+				if (g_rgbitsPlayerRebuy[pPlayer] & (1<<i))
+				{
+					strcat(szItems, "/g[/t", charsmax(szItems));
+					strcat(szItems, g_rgszWeaponName[i], charsmax(szItems));
+					strcat(szItems, "/g] ", charsmax(szItems));
+				}
+			}
+			
+			UTIL_ColorfulPrintChat(pPlayer, szItems);
 		}
 		default:
 		{
