@@ -1,7 +1,5 @@
 /**
 
-HP reaches 0 would force velocity to 0.
--2 menpower when resurrect?
 **/
 
 #define BERSERKER_TEXT	g_rgszRoleNames[Role_Berserker]
@@ -9,13 +7,14 @@ HP reaches 0 would force velocity to 0.
 
 #define BERSERKER_GRAND_SFX	"leadermode/war_declared.wav"
 
-new cvar_berserkerDuration, cvar_berserkerCooldown, cvar_berserkerDashSpeed;
+new cvar_berserkerDuration, cvar_berserkerCooldown, cvar_berserkerDashSpeed, cvar_berserkerDyingSpeed;
 
 public Berserker_Initialize()
 {
-	cvar_berserkerDuration	= register_cvar("lm_berserker_duration",	"5.0");
-	cvar_berserkerCooldown	= register_cvar("lm_berserker_cooldown",	"30.0");
+	cvar_berserkerDuration	= register_cvar("lm_berserker_duration",	"6.0");
+	cvar_berserkerCooldown	= register_cvar("lm_berserker_cooldown",	"40.0");
 	cvar_berserkerDashSpeed	= register_cvar("lm_berserker_dashspeed",	"300.0");
+	cvar_berserkerDyingSpeed= register_cvar("lm_berserker_dyingspeed",	"10.0");
 
 	g_rgSkillDuration[Role_Berserker] = cvar_berserkerDuration;
 	g_rgSkillCooldown[Role_Berserker] = cvar_berserkerCooldown;

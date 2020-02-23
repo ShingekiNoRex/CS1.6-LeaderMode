@@ -44,7 +44,7 @@ S.W.A.T.
 医疗兵
 (優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (包含自己在内恢复周圍非隊長角色的HP)
-(被動：大威力手槍射出治疗弹，煙霧彈具有治療、转化毒雾效果，免疫毒伤害，Overhealing機制)	✔ (LUNA)
+(被動：大威力手槍射出治疗弹，煙霧彈具有治療效果，能為指揮官Overhealing)	✔ (LUNA)
 
 TR:
 教父	(1)
@@ -53,12 +53,12 @@ TR:
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 狂战士
 (優惠輕機槍、自動步槍、衝鋒槍、霰彈槍)
-(5秒内最低维持1血，5秒后若血量不超过1则死亡)	✔ (REX)
-(被動：血量越低枪械伤害越高)	✔ (REX)
+(5秒内最低维持1血，5秒后若血量不超过1则死亡；移動速度提升，但瀕死狀態速度為0)	✔ (REX)
+(被動：血量越低枪械伤害越高，復活需要雙倍人力)	✔ (REX)
 疯狂科学家
 (允許KSG和UMP45，煙霧彈帶有懲罰，禁止G18C、雙持P99)
 (發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向) ✔ (LUNA)
-(被動：煙霧彈更換為毒氣彈、遭受的AP傷害以電擊形式雙倍返還) ✔ (LUNA)
+(被動：煙霧彈更換為毒氣彈、擁有完全護甲時遭受傷害的15%以電擊形式返還) ✔ (LUNA)
 刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
 (消音武器，標記敌方指挥官位置，隱身10秒) ✔ (LUNA)
@@ -79,7 +79,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14"
+#define VERSION	"1.14.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -681,6 +681,9 @@ public plugin_init()
 	g_pfn_RadiusFlash = OrpheuGetFunction("RadiusFlash");
 	g_pfn_CBasePlayer_ResetMaxSpeed = OrpheuGetFunctionFromClass("player", "ResetMaxSpeed", "CBasePlayer");
 	
+	// orpheu hooks
+	OrpheuRegisterHook(g_pfn_CBasePlayer_ResetMaxSpeed, "OrpheuF_Player_ResetMaxSpeed");
+	
 	// airsupport
 	#if defined AIR_SUPPORT_ENABLE
 	RegisterHam(Ham_Item_Deploy, g_rgszWeaponEntity[CSW_KNIFE], "HamF_Item_Deploy_Post", 1);
@@ -1006,7 +1009,7 @@ public HamF_TraceAttack_Post(iVictim, iAttacker, Float:flDamage, Float:vecDirect
 	if (!is_user_connected(iVictim))
 		return;
 	
-	if (g_rgPlayerRole[iVictim] == Role_MadScientist)
+	if (g_rgPlayerRole[iVictim] == Role_MadScientist && get_pdata_int(iVictim, m_iKevlar) == 2)	// only full armor would trigger this passive skill.
 	{
 		engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
 		write_byte(TE_BEAMENTS);
@@ -1047,6 +1050,10 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 			if (flCurHealth - flDamage < 1.0)
 			{
 				set_pev(iVictim, pev_health, 1.0);
+				
+				engfunc(EngFunc_SetClientMaxspeed, iVictim, get_pcvar_float(cvar_berserkerDyingSpeed));	// dying speed applied.
+				set_pev(iVictim, pev_maxspeed, get_pcvar_float(cvar_berserkerDyingSpeed));
+				
 				return FMRES_SUPERCEDE;
 			}
 		}
@@ -2459,6 +2466,32 @@ public fw_EmitSound_Post(iGrenade, iChannel, const szSample[], Float:flVolume, F
 	}
 }
 
+public OrpheuF_Player_ResetMaxSpeed(pPlayer)
+{
+	if (g_rgPlayerRole[pPlayer] == Role_Berserker && g_rgbUsingSkill[pPlayer])
+	{
+		new Float:flHealth;
+		pev(pPlayer, pev_health, flHealth);
+		
+		if (flHealth <= 1.0)	// under dying punishment.
+		{
+			engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_berserkerDyingSpeed));
+			set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_berserkerDyingSpeed));
+			
+			return _:OrpheuSupercede;
+		}
+		else	// normal dash speed.
+		{
+			engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_berserkerDashSpeed));
+			set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_berserkerDashSpeed));
+			
+			return _:OrpheuSupercede;
+		}
+	}
+	
+	return _:OrpheuIgnored;
+}
+
 public Task_PlayerResurrection(iPlayer)
 {
 	if (!is_user_connected(iPlayer))
@@ -2481,6 +2514,9 @@ public Task_PlayerResurrection(iPlayer)
 	ExecuteHamB(Ham_CS_RoundRespawn, iPlayer);
 	g_rgbResurrecting[iPlayer] = false;
 	g_rgiTeamMenPower[iTeam] --;
+	
+	if (g_rgPlayerRole[iPlayer] == Role_Berserker)
+		g_rgiTeamMenPower[iTeam] --;	// berserker has a doubled consumption.
 	
 	if (!g_rgiTeamMenPower[iTeam])
 	{

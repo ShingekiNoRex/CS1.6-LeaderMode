@@ -1,6 +1,5 @@
 /**
 
-TEMP hp to commander.
 negative effect would be cancel when stay in the smoke
 **/
 

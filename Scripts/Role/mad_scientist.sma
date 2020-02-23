@@ -23,7 +23,7 @@ new bool:g_rgbShootingElectrobullets[33], Float:g_rgvecElectrobulletsHitsOfs[33]
 
 public MadScientist_Initialize()
 {
-	cvar_msGravityGunCD		= register_cvar("lm_ms_gravity_gun_cd",			"50.0");
+	cvar_msGravityGunCD		= register_cvar("lm_ms_gravity_gun_cd",			"75.0");
 	cvar_msGravityGunDur	= register_cvar("lm_ms_gravity_gun_dur",		"14.0");
 	cvar_msGravityGunDragSpd= register_cvar("lm_ms_gravity_gun_drag_speed",	"900.0");
 	cvar_msElectrobltDur	= register_cvar("lm_ms_electrobullets_lasting",	"3.0");
@@ -32,7 +32,7 @@ public MadScientist_Initialize()
 	cvar_msPoisonLast		= register_cvar("lm_ms_poison_lasting",			"5.0");
 	cvar_msPoisonDmgInv		= register_cvar("lm_ms_poison_damage_interval",	"1.0");
 	cvar_msPoisonVelMod		= register_cvar("lm_ms_poison_dmg_vel_modifier","0.8");	// nerf the freaking sticky damage feedback.
-	cvar_msRevengeRatio		= register_cvar("lm_ms_revenge_ratio",			"0.1");
+	cvar_msRevengeRatio		= register_cvar("lm_ms_revenge_ratio",			"0.15");
 	
 	g_rgSkillDuration[Role_MadScientist] = cvar_msGravityGunDur;
 	g_rgSkillCooldown[Role_MadScientist] = cvar_msGravityGunCD;

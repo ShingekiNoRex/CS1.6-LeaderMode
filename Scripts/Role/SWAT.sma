@@ -1,8 +1,9 @@
 /**
 
+!should be remake.
+armor recharge when not getting hit.
+health regen when armor is full.
 **/
-
-
 
 #define SWAT_TASK	2867926
 
