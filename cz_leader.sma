@@ -25,48 +25,58 @@
 叮噹貓：什麼都可以買。
 
 CT:
-指挥官	(1)
+指挥官
 (半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (標記黑手位置，自身射速加倍&受傷減半)	✔ (LUNA)
 (被動：HP 1000，可以販賣繳獲的武器) ✔ (LUNA)
+(角色針對性互動: 教父死亡後可以標記餘下敵人)	✔ (LUNA)
 S.W.A.T.
 (優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
 (立即填充所有手榴彈、彈藥和護甲，15秒内轉移所有傷害至護甲)	✔ (LUNA)
 (被動：AP 200，周围友军缓慢恢复护甲)	✔ (LUNA)
+(角色針對性互動: 使用主動技能時：為爆破手填充霰彈槍子彈、為神射手填充狙擊槍子彈、為軍醫填充大口徑手槍子彈)	✔ (LUNA: UNTESTED)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
 (10秒内无限高爆手雷，爆炸伤害+50%，所有武器擁有爆炸彈藥)	✔ (REX)
 (被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (LUNA)
+(角色針對性互動: 使用主動技能時：為神射手填充冰凍手榴彈、為軍醫填充治療煙霧彈)
 神射手
 (優惠M200、手榴彈、ANACONDA、DEAGLE和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (狙擊槍和大威力手槍10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
-(被動：冰凍手榴彈) ✔ (REX)
-医疗兵
+(被動：長弓冰凍手榴彈) ✔ (REX)
+(角色針對性互動: 使用主動技能時：若為原始爆頭則強制擊殺狂戰士，可以看見刺客。冰凍手榴彈: 解除毒氣彈與火焰手榴彈的作用。被冰凍的角色不受電擊的影響。)
+軍醫
 (優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (包含自己在内恢复周圍非隊長角色的HP)
 (被動：大威力手槍射出治疗弹，煙霧彈具有治療效果，能為指揮官Overhealing)	✔ (LUNA)
+(角色針對性互動: 可以用治療煙霧彈Overheal指揮官。治療煙霧彈可以: 解凍角色、強制中斷絕唱但不予擊殺、範圍內不會中毒與觸電、令刺客顯形。治療飛鏢可以: 強制中斷絕唱但不予擊殺，解除凍結、燃燒、中毒與觸電狀態)
 
 TR:
-教父	(1)
+教父
 (優惠手槍，半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
+(角色針對性互動: 教子關係存續間: 狂戰士不得絕唱(如已開始則中斷之)、刺客不得隱形(如已經隱形則令其現身))
 狂战士
 (優惠輕機槍、自動步槍、衝鋒槍、霰彈槍)
 (5秒内最低维持1血，5秒后若血量不超过1则死亡；移動速度提升，但瀕死狀態速度為0)	✔ (REX)
 (被動：血量越低枪械伤害越高，復活需要雙倍人力)	✔ (REX)
+(角色針對性互動: 無)
 疯狂科学家
 (允許KSG和UMP45，煙霧彈帶有懲罰，禁止G18C、雙持P99)
 (發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向) ✔ (LUNA)
 (被動：煙霧彈更換為毒氣彈、擁有完全護甲時遭受傷害的15%以電擊形式返還) ✔ (LUNA)
+(角色針對性互動: 毒氣令刺客顯形)
 刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
 (消音武器，標記敌方指挥官位置；隱身10秒，接觸其他角色會被發現) ✔ (LUNA)
 (被動：消音武器有1%的概率暴擊) ✔ (LUNA)
+(角色針對性互動: 指揮官死亡後可以標記餘下敵人)
 纵火犯
 (優惠霰彈槍，允許M4A1、SCAR-L，手榴彈帶有懲罰)
 (火焰弹药，燃烧伤害附带减速效果) ✔ (REX)
 (被動：燃烧手雷，免疫燃烧伤害) ✔ (REX)
+(角色針對性互動: 燃燒彈可以: 解除冰凍、令刺客顯形、移除治療煙霧彈、引爆毒氣)
 
 **/
 
@@ -79,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.2"
+#define VERSION	"1.14.3"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -263,13 +273,13 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"",
 	
 	"[E]出售繳獲的武器",
-	"[被動]周圍角色緩慢補充護甲",
+	"[被動]自己與周圍角色緩慢補充護甲",
 	"[被动]霰彈槍使用爆炸彈頭",
 	"[被动]長弓寒冰手榴彈",
 	"[被動]療傷煙霧彈、大口徑手槍可發射治療子彈",
 	
 	"[被动]周围友军缓慢恢复生命",
-	"[被动]血量越低伤害越高",
+	"[被动]血量越低伤害越高、復活需要雙倍人力",
 	"[被動]煙霧彈內有神經毒氣、護甲帶電",
 	"[被动]消音武器有1%%%%的概率暴擊",
 	"[被动]燃烧手雷、免疫燃烧伤害"
@@ -533,6 +543,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #define SFX_VONC_REJECTED		"leadermode/peaceconference01.wav"
 #define SFX_RADAR_BEEP			"leadermode/nes_8bit_alien3_radar_beep1.wav"
 #define SFX_REFUND_GUNS			"leadermode/money_out.wav"
+#define SFX_RADAR_TRACE_DOWN	"leadermode/sfx_event_duel_win_01.wav"
 
 #if defined AIR_SUPPORT_ENABLE
 #define SFX_RADIO_DRAW			"weapons/radio_draw.wav"
@@ -716,6 +727,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_WON);
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
 	engfunc(EngFunc_PrecacheSound, SFX_REFUND_GUNS);
+	engfunc(EngFunc_PrecacheSound, SFX_RADAR_TRACE_DOWN);
 	
 	// Radio
 	#if defined AIR_SUPPORT_ENABLE
@@ -900,6 +912,24 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 
 	if (!is_user_connected(victim))
 		return;
+	
+	if (victim == g_iCommanderTracing && victim != THE_GODFATHER)	// notify the minor trace result.
+	{
+		new szNetname[32];
+		pev(victim, pev_netname, szNetname, charsmax(szNetname));
+		
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_connected(i) || is_user_bot(i))
+				continue;
+			
+			if (get_pdata_int(i, m_iTeam) != TEAM_CT)
+				continue;
+			
+			client_cmd(i, "spk %s", SFX_RADAR_TRACE_DOWN);
+			UTIL_ColorfulPrintChat(i, "/g被%s追蹤的/t%s%s/g已被擊斃", REDCHAT, COMMANDER_TEXT, g_rgszRoleNames[g_rgPlayerRole[victim]], szNetname);
+		}
+	}
 	
 	// remove DOTs
 	g_rgflPlayerPoisoned[victim] = floatmin(g_rgflPlayerPoisoned[victim], 1.0);	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
@@ -1423,7 +1453,7 @@ public HamF_Armour_Touch_Post(iEntity, iPlayer)
 		set_pev(iPlayer, pev_armorvalue, get_pcvar_float(cvar_swatArmourMax));
 }
 
-public HamF_IsInWorld(iEntity)	// an extremely high velocity would cause entity disappear. this is the criminal.
+public HamF_IsInWorld(iEntity)	// an extremely high velocity would cause entity disappear. this is the one who is responsible.
 {
 	SetHamReturnInteger(1);	// 1 == TRUE;
 	return HAM_SUPERCEDE;
@@ -2005,6 +2035,11 @@ public fw_PlayerPreThink_Post(pPlayer)
 	MadScientist_SkillThink(pPlayer);
 	GasGrenade_VictimThink(pPlayer);
 	Overhealing_Think(pPlayer);
+	
+	if (g_rgPlayerRole[pPlayer] == Role_Assassin)
+	{
+		client_print(pPlayer, print_chat, is_user_alive2(pPlayer) ? "alive" : "dead");
+	}
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -2278,7 +2313,7 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		}
 		case Role_Commander:
 		{
-			Commander_ExecuteSkill(iPlayer);
+			Commander_ExecuteSkill();
 		}
 		case Role_Assassin:
 		{
@@ -4141,16 +4176,17 @@ stock get_aiming_trace(pPlayer, Float:forw = 9999.0, bitsConditions = DONT_IGNOR
 	if (bNewTrace)
 		tr = create_tr2();
 	
-	new Float:vOrigin[3], Float:vAngle[3], Float:vForward[3], Float:vRight[3], Float:vUp[3], Float:vStart[3];
+	static Float:vOrigin[3], Float:vAngle[3], Float:vForward[3], Float:vRight[3], Float:vUp[3], Float:vStart[3];
 	
 	pev(pPlayer, pev_origin, vOrigin);
 	pev(pPlayer, pev_view_ofs, vUp);
 	xs_vec_add(vOrigin, vUp, vOrigin);
-	pev(pPlayer, pev_v_angle, vAngle);
 	
-	angle_vector(vAngle, ANGLEVECTOR_FORWARD, vForward);
-	angle_vector(vAngle, ANGLEVECTOR_RIGHT, vRight);
-	angle_vector(vAngle, ANGLEVECTOR_UP, vUp);
+	pev(pPlayer, pev_v_angle, vAngle);
+	engfunc(EngFunc_MakeVectors, vAngle);
+	global_get(glb_v_forward, vForward);
+	global_get(glb_v_right, vRight);
+	global_get(glb_v_up, vUp);
 	
 	vStart[0] = vOrigin[0] + vForward[0] * forw + vRight[0] * right + vUp[0] * up;
 	vStart[1] = vOrigin[1] + vForward[1] * forw + vRight[1] * right + vUp[1] * up;
@@ -4374,6 +4410,21 @@ UpdateTeamStatus()
 	}
 }
 
+bool:is_user_alive2(pPlayer)	// designed for assassin.
+{
+	if (!is_user_connected(pPlayer))
+		return false;
+	
+	if (g_rgPlayerRole[pPlayer] == Role_Assassin && !is_user_alive(pPlayer))
+	{
+		new Float:flHealth;
+		pev(pPlayer, pev_health, flHealth);
+		
+		return !!(flHealth > 0.0 && g_rgbUsingSkill[pPlayer]);
+	}
+	
+	return !!is_user_alive(pPlayer);
+}
 
 
 

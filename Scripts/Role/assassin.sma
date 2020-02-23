@@ -185,3 +185,4 @@ public Assassin_Revealed(pPlayer, iAttacker)	// cacha !!!
 	if (is_user_connected(iAttacker) && !is_user_bot(iAttacker))
 		client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
 }
+

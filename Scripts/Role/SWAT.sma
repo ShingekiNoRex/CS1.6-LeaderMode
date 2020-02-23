@@ -60,6 +60,48 @@ public SWAT_ExecuteSkill(pPlayer)
 		ExecuteHamB(Ham_GiveAmmo, pPlayer, 240, g_rgszAmmoNameByIndex[get_pdata_int(iSecondaryWeapon, m_iPrimaryAmmoType, 4)], 240);
 	}
 	
+	new Float:vecOrigin[3];
+	pev(pPlayer, pev_origin,vecOrigin);
+	
+	new iEntity = -1;
+	while ((iEntity = engfunc(EngFunc_FindEntityInSphere, iEntity, vecOrigin, get_pcvar_float(cvar_swatArmourRegenRad))) > 0)
+	{
+		if (!is_user_alive2(iEntity))
+			continue;
+		
+		if (iEntity == pPlayer)
+			continue;
+		
+		iPrimaryWeapon = get_pdata_cbase(iEntity, m_rgpPlayerItems[1]);
+		iSecondaryWeapon = get_pdata_cbase(iEntity, m_rgpPlayerItems[2]);
+
+		switch (g_rgPlayerRole[pPlayer])
+		{
+			case Role_Blaster:
+			{
+				if ( (1<<get_pdata_int(iPrimaryWeapon, m_iId, 4)) & ((1<<CSW_KSG12)|(1<<CSW_STRIKER)) )
+					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iPrimaryWeapon, m_iPrimaryAmmoType, 4)], 240);
+			}
+			
+			case Role_Sharpshooter:
+			{
+				if ( (1<<get_pdata_int(iPrimaryWeapon, m_iId, 4)) & ((1<<CSW_M200)|(1<<CSW_M14EBR)|(1<<CSW_AWP)|(1<<CSW_SVD)) )
+					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iPrimaryWeapon, m_iPrimaryAmmoType, 4)], 240);
+					
+				if ( (1<<get_pdata_int(iSecondaryWeapon, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) )
+					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iSecondaryWeapon, m_iPrimaryAmmoType, 4)], 240);
+			}
+			
+			case Role_Medic:
+			{
+				if ( (1<<get_pdata_int(iSecondaryWeapon, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) )
+					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iSecondaryWeapon, m_iPrimaryAmmoType, 4)], 240);
+			}
+			
+			default: { }
+		}
+	}
+	
 	ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));	// just some feeling stuff.
 	UTIL_ScreenFade(pPlayer, 0.5, get_pcvar_float(cvar_swatBulletproofLast), FFADE_IN, 179, 217, 255, 60);
 	client_cmd(pPlayer, "spk %s", SWAT_GRAND_SFX);
@@ -82,6 +124,7 @@ public SWAT_TerminateSkill(pPlayer)
 {
 	remove_task(SWAT_TASK + pPlayer);
 	SWAT_RevokeSkill(SWAT_TASK + pPlayer);
+	UTIL_ScreenFade(pPlayer, 0.4, 0.1, FFADE_IN, 179, 217, 255, 60);
 }
 
 public SWAT_SkillThink(pPlayer)	// place at PlayerPostThink()

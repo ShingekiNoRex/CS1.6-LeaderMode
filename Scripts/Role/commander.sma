@@ -15,7 +15,7 @@
 
 new cvar_commanderMarkingDur, cvar_commanderCooldown;
 new gmsgHostagePos, gmsgHostageK;
-new Float:g_flCommanderRadarThink;
+new Float:g_flCommanderRadarThink, g_iCommanderTracing;
 
 public Commander_Initialize()
 {
@@ -81,13 +81,37 @@ public Commander_Assign(pPlayer)
 	emessage_end();
 }
 
-public Commander_ExecuteSkill(pPlayer)
+public Commander_ExecuteSkill()
 {
-	if (!is_user_alive(THE_GODFATHER) || g_rgbUsingSkill[THE_COMMANDER])
+	if (g_rgbUsingSkill[THE_COMMANDER])
 		return;
 	
+	if (!is_user_alive(THE_GODFATHER))	// then pick a random guy.
+	{
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_alive2(i))
+				continue;
+			
+			if (get_pdata_int(i, m_iTeam) != TEAM_TERRORIST)
+				continue;
+			
+			g_iCommanderTracing = i;
+			break;
+		}
+	}
+	else
+		g_iCommanderTracing = THE_GODFATHER;
+	
+	// nobody to trace.
+	if (!is_user_alive2(g_iCommanderTracing))
+	{
+		print_chat_color(THE_COMMANDER, REDCHAT, "沒有可以追蹤的目標!");
+		return;
+	}
+	
 	new Float:vecOrigin[3];
-	pev(THE_GODFATHER, pev_origin, vecOrigin);
+	pev(g_iCommanderTracing, pev_origin, vecOrigin);
 	
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
@@ -108,7 +132,16 @@ public Commander_ExecuteSkill(pPlayer)
 		client_cmd(i, "spk %s", COMMANDER_GRAND_SFX);
 	}
 	
-	UTIL_ColorfulPrintChat(0, "/g%s執行了無人機低空掃描, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, COMMANDER_TEXT, GODFATHER_TEXT, g_szLeaderNetname[TEAM_TERRORIST - 1]);
+	if (g_iCommanderTracing == THE_GODFATHER)
+		UTIL_ColorfulPrintChat(0, "/g%s執行了無人機低空掃描, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, COMMANDER_TEXT, GODFATHER_TEXT, g_szLeaderNetname[TEAM_TERRORIST - 1]);
+	else
+	{
+		new szNetnames[32];
+		pev(g_iCommanderTracing, pev_netname, szNetnames, charsmax(szNetnames));
+		
+		UTIL_ColorfulPrintChat(0, "/g%s執行了無人機低空掃描, /t%s%s/g的實時位置已標記於雷達上!", REDCHAT, COMMANDER_TEXT, g_rgszRoleNames[g_rgPlayerRole[g_iCommanderTracing]], szNetnames);
+	}
+	
 	set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
 }
 
@@ -124,10 +157,13 @@ public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()
 	if (is_user_bot(pPlayer))
 		return;
 	
+	if (!is_user_alive2(g_iCommanderTracing))	// never tracing the dead.
+		return;
+
 	g_flCommanderRadarThink = 2.0 + get_gametime();
 
 	static Float:vecOrigin[3];
-	pev(THE_GODFATHER, pev_origin, vecOrigin);
+	pev(g_iCommanderTracing, pev_origin, vecOrigin);
 	
 	message_begin(MSG_ONE, gmsgHostagePos, _, pPlayer);
 	write_byte(0);	// flags
@@ -199,14 +235,14 @@ public Commander_BotThink(pPlayer)
 		new iTarget = get_tr2(0, TR_pHit);
 		if (is_user_alive(iTarget) && get_pdata_int(iTarget, m_iTeam) == TEAM_TERRORIST)
 		{
-			Commander_ExecuteSkill(pPlayer);
+			Commander_ExecuteSkill();
 			g_rgbUsingSkill[pPlayer] = true;
 			g_rgbAllowSkill[pPlayer] = false;	// we need to set this value manually, since we bypass fw_CmdStart().
 		}
 	}
 	else
 	{
-		Commander_ExecuteSkill(pPlayer);	// if there is a player in the team, commander should keep his skill running ASAP.
+		Commander_ExecuteSkill();	// if there is a player in the team, commander should keep his skill running ASAP.
 		g_rgbUsingSkill[pPlayer] = true;
 		g_rgbAllowSkill[pPlayer] = false;
 	}
