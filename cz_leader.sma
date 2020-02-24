@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.4"
+#define VERSION	"1.14.5"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -928,6 +928,23 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 			
 			client_cmd(i, "spk %s", SFX_RADAR_TRACE_DOWN);
 			UTIL_ColorfulPrintChat(i, "/g被%s追蹤的/t%s%s/g已被擊斃", REDCHAT, COMMANDER_TEXT, g_rgszRoleNames[g_rgPlayerRole[victim]], szNetname);
+		}
+	}
+	else if (victim == g_iAssassinTracing && victim != THE_COMMANDER)
+	{
+		new szNetname[32];
+		pev(victim, pev_netname, szNetname, charsmax(szNetname));
+		
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_connected(i) || is_user_bot(i))
+				continue;
+			
+			if (get_pdata_int(i, m_iTeam) != TEAM_TERRORIST)
+				continue;
+			
+			client_cmd(i, "spk %s", SFX_RADAR_TRACE_DOWN);
+			UTIL_ColorfulPrintChat(i, "/g被%s追蹤的/t%s%s/g已被殺死", BLUECHAT, ASSASSIN_TEXT, g_rgszRoleNames[g_rgPlayerRole[victim]], szNetname);
 		}
 	}
 	
@@ -2699,6 +2716,9 @@ public Event_HLTV()
 	formatex(g_szLeaderNetname[0], charsmax(g_szLeaderNetname[]), "未揭示");
 	formatex(g_szLeaderNetname[1], charsmax(g_szLeaderNetname[]), "未揭示");
 	
+	g_iAssassinTracing = -1;
+	g_iCommanderTracing = -1;
+	
 	for (new i = 0; i < 33; i++)	// terminate DOTs here.
 	{
 		g_rgbResurrecting[i] = false;
@@ -2761,6 +2781,11 @@ public Event_HLTV()
 	while ((iEntity = engfunc(EngFunc_FindEntityByString, iEntity, "classname", GAS_GRENADE_ENTITY)) > 0)
 	{
 		set_pev(iEntity, pev_fuser1, get_gametime());	// remove it via customized function.
+	}
+	
+	while ((iEntity = engfunc(EngFunc_FindEntityByString, iEntity, "classname", ICEGRE_VFX_MODEL)) > 0)
+	{
+		set_pev(iEntity, pev_flags, FL_KILLME);
 	}
 	
 	client_cmd(0, "stopsound");	// stop sfx

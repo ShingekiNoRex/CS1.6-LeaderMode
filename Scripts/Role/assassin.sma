@@ -91,18 +91,17 @@ public bool:Assassin_ExecuteSkill(pPlayer)
 			continue;
 		
 		if (g_iAssassinTracing == THE_COMMANDER)
-		{
-			UTIL_ColorfulPrintChat(i, "/g%s/y已竊取敵方作戰計畫, 並將/t%s%s/y的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
 			UTIL_ColorfulPrintChat(i, "/t%s/y的作戰計畫是: /g%s/y, 人力資源剩餘: %d", BLUECHAT, g_rgszTeamName[TEAM_CT], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[TEAM_CT]], g_rgiTeamMenPower[TEAM_CT]);
-		}
 		else
 		{
 			new szNetnames[32];
 			pev(g_iAssassinTracing, pev_netname, szNetnames, charsmax(szNetnames));
 			
-			UTIL_ColorfulPrintChat(0, "/g%s/y已潛入敵方殘部, 並將/t%s%s/y的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, g_rgszRoleNames[g_rgPlayerRole[g_iAssassinTracing]], szNetnames);
+			UTIL_ColorfulPrintChat(i, "/g%s/y已潛入敵方殘部, 並將/t%s%s/y的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, g_rgszRoleNames[g_rgPlayerRole[g_iAssassinTracing]], szNetnames);
 		}
 	}
+	if (g_iAssassinTracing == THE_COMMANDER)
+		UTIL_ColorfulPrintChat(0, "/g%s/y已竊取敵方作戰計畫, 並將/t%s%s/y的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
 
 	set_task(get_pcvar_float(cvar_assassinInvisibleDur), "Assassin_RevokeSkill", ASSASSIN_TASK + pPlayer);
 	return true;

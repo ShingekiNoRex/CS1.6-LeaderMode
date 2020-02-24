@@ -245,10 +245,6 @@ public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(
 {
 	if (get_cd(hCD, CD_DeadFlag) != DEAD_NO)
 		return;
-
-	new iId = get_cd(hCD, CD_ID);
-	if (!cvar_accuracy[iId])
-		return;
 	
 	static iEntity;
 	iEntity = get_pdata_cbase(iPlayer, m_pActiveItem);
@@ -259,9 +255,9 @@ public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(
 	if (flAccuracy != 1.0 && flAccuracy > 0.0)
 		set_cd(hCD, CD_iUser3, 0);
 	
-	if ( (iId == CSW_XM1014 && get_pcvar_num(cvar_clip[CSW_XM1014]) > 0)
-		|| (iId == CSW_M3 && get_pcvar_num(cvar_clip[CSW_M3]) > 0) )
-		set_cd(hCD, CD_ID, 0);
+	//if ( (iId == CSW_XM1014 && get_pcvar_num(cvar_clip[CSW_XM1014]) > 0)
+	//	|| (iId == CSW_M3 && get_pcvar_num(cvar_clip[CSW_M3]) > 0) )
+	set_cd(hCD, CD_ID, 0);	// remove the entire client weapon predict system.
 }
 
 public HamF_WeaponSpawn_Post(iEntity)
@@ -552,7 +548,7 @@ public HamF_Item_PrimaryAmmoIndex_Post(iEntity)
 //public HamF_Weapon_SendWeaponAnim(iEntity, iAnim, bSkipLocal, iBody)	// bugged until AMXMODX 1.9.0
 public OrpheuF_SendWeaponAnim(iEntity, iAnim, bSkipLocal)
 {
-	if (!IsWeaponFromOriginalCS(iEntity))
+	if (!IsWeaponFromOriginalCS(iEntity)/* || !( (1<<get_pdata_int(iEntity, m_iId, 4)) & ((1<<CSW_M3)|(1<<CSW_XM1014)) ) */)
 		return _:OrpheuIgnored;
 	
 	OrpheuSetParam(3, 0);	// 0 == FALSE;

@@ -8,9 +8,11 @@ sub_10083560: CGrenade::ShootTimed2()
 
 #define SHARPSHOOTER_GRAND_SFX				"leadermode/agent_recruited.wav"
 #define SHARPSHOOTER_REVOKE_SFX				"leadermode/attack_out_of_range_01.wav"
-#define SHARPSHOOTER_ICEGRE_NOVA_SFX		"weapons/frostnova.wav"
-#define SHARPSHOOTER_ICEGRE_FLESH_SFX		"weapons/impalehit.wav"
-#define SHARPSHOOTER_ICEGRE_BREAKOUT_SFX	"weapons/impalelaunch1.wav"
+#define ICEGRE_NOVA_SFX			"weapons/frostnova.wav"
+#define ICEGRE_FLESH_SFX		"weapons/impalehit.wav"
+#define ICEGRE_BREAKOUT_SFX		"weapons/impalelaunch1.wav"
+#define ICEGRE_VFX_CLASSNAME	"frost_gr_vfx"
+#define ICEGRE_VFX_MODEL		"models/leadermode/ice_cube.mdl"
 
 #define ICE_GRENADE_KEY		317465
 
@@ -18,7 +20,7 @@ new cvar_sharpshooterDeathMarkDur, cvar_sharpshooterCooldown;
 new cvar_icegrenade_time, cvar_icegrenade_damage, cvar_icegrenade_range;
 new g_idShockwaveSprite, g_idGlassModel;
 
-new Float:g_rgflFrozenNextthink[33], Float:g_rgvecFrozenAngles[33][3], Float:g_rgflFrozenFrame[33], Float:g_rgvecFrozenVAngle[33][3];
+new Float:g_rgflFrozenNextthink[33], Float:g_rgvecFrozenAngles[33][3], Float:g_rgflFrozenFrame[33], Float:g_rgvecFrozenVAngle[33][3], g_rgiIceCubeEntity[33];
 
 public Sharpshooter_Initialize()
 {
@@ -37,12 +39,13 @@ public Sharpshooter_Precache()
 {
 	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_GRAND_SFX);
 	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_REVOKE_SFX);
-	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_ICEGRE_NOVA_SFX);
-	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_ICEGRE_FLESH_SFX);
-	engfunc(EngFunc_PrecacheSound, SHARPSHOOTER_ICEGRE_BREAKOUT_SFX);
+	engfunc(EngFunc_PrecacheSound, ICEGRE_NOVA_SFX);
+	engfunc(EngFunc_PrecacheSound, ICEGRE_FLESH_SFX);
+	engfunc(EngFunc_PrecacheSound, ICEGRE_BREAKOUT_SFX);
 
-	g_idShockwaveSprite = engfunc(EngFunc_PrecacheModel, "sprites/shockwave.spr")
-	g_idGlassModel = engfunc(EngFunc_PrecacheModel, "models/glassgibs.mdl")
+	g_idShockwaveSprite = engfunc(EngFunc_PrecacheModel, "sprites/shockwave.spr");
+	g_idGlassModel = engfunc(EngFunc_PrecacheModel, "models/glassgibs.mdl");
+	engfunc(EngFunc_PrecacheModel, ICEGRE_VFX_MODEL);
 }
 
 public bool:Sharpshooter_ExecuteSkill(pPlayer)
@@ -145,7 +148,7 @@ public Sharpshooter_IceExplode(iEntity)
 	message_end()
 	
 	new i = -1;
-	while((i = engfunc(EngFunc_FindEntityInSphere, i, vecOrigin, get_pcvar_float(cvar_icegrenade_range))) > 0)
+	while ((i = engfunc(EngFunc_FindEntityInSphere, i, vecOrigin, get_pcvar_float(cvar_icegrenade_range))) > 0)
 	{
 		if (!pev_valid(i) || iEntity == i)
 			continue;
@@ -165,7 +168,8 @@ public Sharpshooter_IceExplode(iEntity)
 		if (is_user_alive2(i))
 		{
 			NvgScreen(i, 0, 50, 200, 100);
-			engfunc(EngFunc_EmitSound, i, CHAN_AUTO, SHARPSHOOTER_ICEGRE_FLESH_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			FrostGrenade_CreateIceCube(i);
+			engfunc(EngFunc_EmitSound, i, CHAN_AUTO, ICEGRE_FLESH_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 			
 			g_rgflFrozenNextthink[i] = get_gametime() + get_pcvar_float(cvar_icegrenade_time);
 			set_pev(i, pev_flags, (pev(i, pev_flags) | FL_FROZEN));
@@ -173,7 +177,7 @@ public Sharpshooter_IceExplode(iEntity)
 		}
 	}
 	
-	engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, SHARPSHOOTER_ICEGRE_NOVA_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, ICEGRE_NOVA_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	set_pev(iEntity, pev_flags, FL_KILLME);
 }
 
@@ -212,7 +216,10 @@ public Sharpshooter_SetFree(iPlayer)
 	if (is_user_alive2(iPlayer))
 		UTIL_ScreenFade(iPlayer, 0.9, 0.1, FFADE_IN, 0, 50, 200, 100);
 	
-	engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, SHARPSHOOTER_ICEGRE_BREAKOUT_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ICEGRE_BREAKOUT_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	
+	if (pev_valid(g_rgiIceCubeEntity[iPlayer]) == 2)
+		set_pev(g_rgiIceCubeEntity[iPlayer], pev_flags, FL_KILLME);
 
 	if(g_rgflFrozenNextthink[iPlayer] <= 0.0)
 		return;
@@ -229,6 +236,7 @@ public Sharpshooter_IceBroken(iPlayer)
 	origin2[2] += 36.0;
 	
 	GetVelocityFromOrigin(origin2, vecOrigin, 50.0, velocity);
+	
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecOrigin, 0);
 	write_byte(TE_BREAKMODEL);
 	engfunc(EngFunc_WriteCoord, vecOrigin[0]);
@@ -246,4 +254,25 @@ public Sharpshooter_IceBroken(iPlayer)
 	write_byte(25);
 	write_byte(0x01);
 	message_end();
+}
+
+public FrostGrenade_CreateIceCube(pPlayer)
+{
+	new Float:vecOrigin[3];
+	pev(pPlayer, pev_origin, vecOrigin);
+	vecOrigin[2] -= 36.0;	// the origin of this model is on the ground.
+	
+	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
+	engfunc(EngFunc_SetModel, iEntity, ICEGRE_VFX_MODEL);
+	engfunc(EngFunc_SetOrigin, iEntity, vecOrigin);
+	engfunc(EngFunc_SetSize, iEntity, Float:{-25.0, -20.0, -4.0}, Float:{32.0, 32.0, 80.0});
+	set_pev(iEntity, pev_classname, ICEGRE_VFX_CLASSNAME);
+	set_pev(iEntity, pev_solid, SOLID_BBOX);
+	
+	set_pev(iEntity, pev_renderfx, kRenderFxNone);
+	set_pev(iEntity, pev_rendercolor, Float:{255.0, 255.0, 255.0} );
+	set_pev(iEntity, pev_rendermode, kRenderTransAdd);
+	set_pev(iEntity, pev_renderamt, 255.0);
+	
+	g_rgiIceCubeEntity[pPlayer] = iEntity;
 }
