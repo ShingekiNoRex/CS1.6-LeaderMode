@@ -8,9 +8,24 @@
 #include <orpheu>
 
 #define PLUGIN_NAME		"Weapon Stats Configuration"
-#define PLUGIN_VERSION	"1.5 beta (11 in 1)"
+#define PLUGIN_VERSION	"1.5 (11 in 1)"
 #define PLUGIN_AUTHOR	"Luna the Reborn"
 
+
+enum PLAYER_ANIM
+{
+	PLAYER_IDLE,
+	PLAYER_WALK,
+	PLAYER_JUMP,
+	PLAYER_SUPERJUMP,
+	PLAYER_DIE,
+	PLAYER_ATTACK1,
+	PLAYER_ATTACK2,
+	PLAYER_FLINCH,
+	PLAYER_LARGE_FLINCH,
+	PLAYER_RELOAD,
+	PLAYER_HOLDBOMB
+};
 
 stock const g_rgszWeaponEntity[][] =
 {
@@ -90,11 +105,12 @@ new cvar_clip[CSW_P90+1];														//use ham spawn & reload & item post fram
 new cvar_damage[CSW_P90+1], cvar_knock[CSW_P90+1], cvar_maxdist[CSW_P90+1];		//use ham trace attack
 new cvar_accuracy[CSW_P90+1];													//use fm playback event | UpdateClientData | trace line
 new cvar_ammomax[15], cvar_ammoperbox[15];										// HAM_GiveAmmo
+new cvar_start_reload[CSW_P90+1], cvar_after_reload[CSW_P90+1], cvar_chamberadd[CSW_P90+1];	// these are Shotgun vars.
 
 new g_fwBotForwardRegister;
 new g_bFabricateBPAmmoData = false;
 new bool:g_reloadbug[33], bool:g_shooting[33], g_activewpn[33], bool:g_canthit[33], g_iAmmoBuffer[15], bool:g_bAmmoBufferFix[15], bool:g_bPickingAmmo[33];
-new OrpheuFunction:g_pfn_CBPW_SendWeaponAnim[CSW_P90+1];
+new OrpheuFunction:g_pfn_CBPW_SendWeaponAnim[CSW_P90+1], OrpheuFunction:g_pfn_CBP_SetAnimation, OrpheuFunction:g_pfn_CBPW_ReloadSound;
 
 public plugin_init()
 {
@@ -148,10 +164,14 @@ public plugin_init()
 		RegisterHam(Ham_Item_Deploy, g_rgszWeaponEntity[i], "HamF_Item_Deploy_Post", 1);
 		RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[i], "HamF_Weapon_PrimaryAttack");
 		RegisterHam(Ham_Weapon_PrimaryAttack, g_rgszWeaponEntity[i], "HamF_Weapon_PrimaryAttack_Post", 1);
-		RegisterHam(Ham_Weapon_Reload, g_rgszWeaponEntity[i], "HamF_Weapon_Reload");
-		RegisterHam(Ham_Weapon_Reload, g_rgszWeaponEntity[i], "HamF_Weapon_Reload_Post", 1);
 		RegisterHam(Ham_Item_PostFrame, g_rgszWeaponEntity[i], "HamF_Item_PostFrame");
 		RegisterHam(Ham_Item_PrimaryAmmoIndex, g_rgszWeaponEntity[i], "HamF_Item_PrimaryAmmoIndex_Post", 1);
+		
+		if (i != CSW_M3 && i != CSW_XM1014)
+		{
+			RegisterHam(Ham_Weapon_Reload, g_rgszWeaponEntity[i], "HamF_Weapon_Reload");
+			RegisterHam(Ham_Weapon_Reload, g_rgszWeaponEntity[i], "HamF_Weapon_Reload_Post", 1);
+		}
 		
 		g_pfn_CBPW_SendWeaponAnim[i] = OrpheuGetFunctionFromClass(g_rgszWeaponEntity[i], "SendWeaponAnim", "CBasePlayerWeapon");
 		OrpheuRegisterHook(g_pfn_CBPW_SendWeaponAnim[i], "OrpheuF_SendWeaponAnim");
@@ -184,10 +204,29 @@ public plugin_init()
 	
 	register_message(get_user_msgid("WeaponList"), "Message_WeaponList");
 	
+	// shotgun support.
+	RegisterHam(Ham_Weapon_Reload, g_rgszWeaponEntity[CSW_M3], "HamF_Shotgun_Weapon_Reload");
+	RegisterHam(Ham_Item_PostFrame, g_rgszWeaponEntity[CSW_M3], "HamF_Shotgun_Item_PostFrame");
+	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_M3], "HamF_Shotgun_WeaponIdle");
+	RegisterHam(Ham_Item_Holster, g_rgszWeaponEntity[CSW_M3], "HamF_Shotgun_Holster_Post", 1);
+	
 	RegisterHam(Ham_Weapon_Reload, g_rgszWeaponEntity[CSW_XM1014], "HamF_Shotgun_Weapon_Reload");
 	RegisterHam(Ham_Item_PostFrame, g_rgszWeaponEntity[CSW_XM1014], "HamF_Shotgun_Item_PostFrame");
 	RegisterHam(Ham_Weapon_WeaponIdle, g_rgszWeaponEntity[CSW_XM1014], "HamF_Shotgun_WeaponIdle");
 	RegisterHam(Ham_Item_Holster, g_rgszWeaponEntity[CSW_XM1014], "HamF_Shotgun_Holster_Post", 1);
+	
+	set_pcvar_float(cvar_reload[CSW_M3], 0.4412);	// inserting animation length.
+	cvar_start_reload[CSW_M3]	= register_cvar("weap_m3_start_reload_time",	"0.5");
+	cvar_after_reload[CSW_M3]	= register_cvar("weap_m3_after_reload_time",	"‭0.8421");
+	cvar_chamberadd[CSW_M3]		= register_cvar("weap_m3_chamber_add_cycle",	"0.1846");
+	
+	set_pcvar_float(cvar_reload[CSW_XM1014], 0.4);	// inserting animation length.
+	cvar_start_reload[CSW_XM1014]	= register_cvar("weap_xm1014_start_reload_time",	"0.7");
+	cvar_after_reload[CSW_XM1014]	= register_cvar("weap_xm1014_after_reload_time",	"‭0.4333");
+	cvar_chamberadd[CSW_XM1014]		= register_cvar("weap_xm1014_chamber_add_cycle",	"0.2");
+	
+	g_pfn_CBP_SetAnimation = OrpheuGetFunction("SetAnimation", "CBasePlayer");
+	g_pfn_CBPW_ReloadSound = OrpheuGetFunction("ReloadSound", "CBasePlayerWeapon");
 }
 
 public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(a.k.a. Martin)
@@ -538,8 +577,8 @@ public HamF_Shotgun_Item_PostFrame(iEntity)
 		if (get_pdata_float(iEntity, m_flNextInsertAnim, 4) <= fCurTime && ICLIP < iMaxClip && AMMO_BUCKSHOT > 0)
 		{
 			native_playanim(pPlayer, SHOTGUN_INSERT);
-
-			// TODO: Player anim; General 3rd personal reloading sound; shell inserting sound
+			SetAnimation(pPlayer, PLAYER_RELOAD);
+			ReloadSound(iEntity);
 
 			set_pdata_float(iEntity, m_flNextInsertAnim, fCurTime + SHOTGUN_INSERT_DUR, 4);
 			
@@ -559,7 +598,6 @@ public HamF_Shotgun_Item_PostFrame(iEntity)
 		if ( ( (ICLIP >= iMaxClip || AMMO_BUCKSHOT <= 0) && get_pdata_float(iEntity, m_flNextInsertAnim, 4) <= fCurTime)
 			|| pev(pPlayer, pev_button) & (IN_ATTACK|IN_ATTACK2) )
 		{
-			client_print(pPlayer, print_chat, "SHOTGUN_AFTERRELOAD");
 			native_playanim(pPlayer, SHOTGUN_AFTERRELOAD);
 
 			set_pdata_int(iEntity, m_fInSpecialReload, 0, 4);
@@ -825,3 +863,15 @@ public fw_BotForwardRegister_Post(iPlayer)
 	RegisterHamFromEntity(Ham_TraceAttack, iPlayer, "HAM_TraceAttack");
 	RegisterHamFromEntity(Ham_GiveAmmo, iPlayer, "HAM_GiveAmmo");
 }
+
+SetAnimation(pPlayer, PLAYER_ANIM:iAnim)
+{
+	if (is_user_connected(pPlayer))
+		OrpheuCallSuper(g_pfn_CBP_SetAnimation, pPlayer, iAnim);
+}
+
+ReloadSound(iWeapon)
+{
+	OrpheuCallSuper(g_pfn_CBPW_ReloadSound, iWeapon);
+}
+

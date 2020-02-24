@@ -1,0 +1,21 @@
+{
+    "name"      : "SetAnimation",
+	"class"     : "CBasePlayer",
+    "library"   : "mod",
+    "arguments" :
+    [
+		{
+            "type"  : "int",
+            "info"  : "PLAYER_ANIM playerAnim"
+        }
+    ],
+    "identifiers":
+    [
+        {
+            "os"    : "windows",
+            "mod"   : "cstrike",
+            "value" : [0x90,0x83,0xEC,0x4C,0x53,0x55,0x8B,0xE9,0x56,0x57,0x8B,0x4D,0x04,0x8B,0x81,0xB4,0x00,0x00,0x00,0x85],
+            "displacement" : 1
+        }
+    ]
+}
