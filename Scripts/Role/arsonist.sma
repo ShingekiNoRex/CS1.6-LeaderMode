@@ -8,16 +8,18 @@
 #define FIRE_GRENADE_OPEN	183496
 #define FIRE_GRENADE_CLOSED	817724
 
-#define ARSONIST_GRAND_SFX	"leadermode/war_declared.wav"
+#define ARSONIST_GRAND_SFX	"leadermode/burn_colony.wav"
+#define ARSONIST_REVOKE_SFX	"leadermode/engage_enemy_02.wav"
 #define FIREGRENADE_SFX_A	"leadermode/molotov_detonate_3.wav"
 #define FIREGRENADE_SFX_B	"leadermode/fire_loop_1.wav.wav"
 #define FIREGRENADE_SFX_C	"leadermode/fire_loop_fadeout_01.wav"
+#define BURING_SCREAM_SFX	"leadermode/burning_scream_0%d.wav"
 
 new cvar_arsonistDuration, cvar_arsonistCooldown;
 new cvar_firegrenade_range, cvar_firegrenade_dmgtime, cvar_firegrenade_dmg, cvar_firegrenade_interval;
 
 new g_idFireSprite, g_idFireTrace, g_idFireHit;
-new bool:g_rgbArsonistFiring[33];
+new bool:g_rgbArsonistFiring[33], Float:g_rgflNextBurningScream[33];
 
 public Arsonist_Initialize()
 {
@@ -36,12 +38,21 @@ public Arsonist_Initialize()
 public Arsonist_Precache()
 {
 	engfunc(EngFunc_PrecacheSound, ARSONIST_GRAND_SFX);
+	engfunc(EngFunc_PrecacheSound, ARSONIST_REVOKE_SFX);
 	engfunc(EngFunc_PrecacheSound, FIREGRENADE_SFX_A);
 	engfunc(EngFunc_PrecacheSound, FIREGRENADE_SFX_B);
 	engfunc(EngFunc_PrecacheSound, FIREGRENADE_SFX_C);
+	
 	g_idFireSprite = engfunc(EngFunc_PrecacheModel, "sprites/leadermode/flame.spr");
-	g_idFireTrace = engfunc(EngFunc_PrecacheModel, "sprites/leadermode/FireSmoke.spr")
-	g_idFireHit = engfunc(EngFunc_PrecacheModel, "sprites/xspark4.spr")
+	g_idFireTrace = engfunc(EngFunc_PrecacheModel, "sprites/leadermode/FireSmoke.spr");
+	g_idFireHit = engfunc(EngFunc_PrecacheModel, "sprites/xspark4.spr");
+	
+	static szBurningScreamSFX[48];
+	for (new i = 1; i <= 5; i++)
+	{
+		formatex(szBurningScreamSFX, charsmax(szBurningScreamSFX), BURING_SCREAM_SFX, i);
+		precache_sound(szBurningScreamSFX);
+	}
 }
 
 public bool:Arsonist_ExecuteSkill(pPlayer)
@@ -66,6 +77,7 @@ public Arsonist_RevokeSkill(iTaskId)
 	g_rgbUsingSkill[pPlayer] = false;
 	g_rgflSkillCooldown[pPlayer] = get_gametime() + get_pcvar_float(cvar_arsonistCooldown);
 	print_chat_color(pPlayer, REDCHAT, "技能已结束！");
+	client_cmd(pPlayer, "spk %s", ARSONIST_REVOKE_SFX);
 }
 
 public Arsonist_MakeFlames(const Float:origin[3])

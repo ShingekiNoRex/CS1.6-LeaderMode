@@ -183,6 +183,9 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 
 	if (!is_user_alive(THE_GODFATHER) || iPlayer == THE_GODFATHER)
 		return;
+	
+	if (g_rgPlayerRole[iPlayer] == Role_Assassin && g_rgbUsingSkill[iPlayer])	// assassin cannot be heal when he is using skill.
+		return;
 
 	static Float:fCurTime;
 	global_get(glb_time, fCurTime);
@@ -210,6 +213,10 @@ public Godfather_HealingThink(iPlayer)		// place at PlayerPostThink()
 		
 		client_cmd(iPlayer, "spk %s", GODFATHER_PASSIVE_SFX);
 		UTIL_ScreenFade(iPlayer, 0.2, 0.1, FFADE_IN, 179, 217, 255, 30);
+		
+		// if the berserker accepts heal, his skill would be terminated.
+		if (g_rgPlayerRole[iPlayer] == Role_Berserker && g_rgbUsingSkill[iPlayer])
+			Berserker_TerminateSkill(iPlayer);
 	}
 }
 

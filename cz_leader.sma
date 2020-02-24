@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.5"
+#define VERSION	"1.14.6"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -1656,6 +1656,15 @@ public fw_Think(iEntity)
 			
 			if (is_user_alive2(i) && g_rgPlayerRole[i] == Role_Assassin && g_rgbUsingSkill[i])
 				Assassin_Revealed(i, pev(iEntity, pev_owner));
+			
+			if (is_user_alive2(i) && g_rgflNextBurningScream[i] < get_gametime())
+			{
+				new szBurningScreamSFX[48];
+				formatex(szBurningScreamSFX, charsmax(szBurningScreamSFX), BURING_SCREAM_SFX, random_num(1, 5));
+				
+				engfunc(EngFunc_EmitSound, iEntity, CHAN_VOICE, szBurningScreamSFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+				g_rgflNextBurningScream[i] = get_gametime() + random_float(2.5, 3.0);
+			}
 			
 			new Float:fDistance = get_distance_f(fOrigin, origin);
 			new Float:range = get_pcvar_float(cvar_firegrenade_range);
