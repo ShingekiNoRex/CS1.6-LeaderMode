@@ -8,9 +8,14 @@
 #include <orpheu>
 
 #define PLUGIN_NAME		"Weapon Stats Configuration"
-#define PLUGIN_VERSION	"1.5.1 (11 in 1)"
+#define PLUGIN_VERSION	"1.5.2 (11 in 1)"
 #define PLUGIN_AUTHOR	"Luna the Reborn"
 
+#define ITEM_FLAG_SELECTONEMPTY		1
+#define ITEM_FLAG_NOAUTORELOAD		2
+#define ITEM_FLAG_NOAUTOSWITCHEMPTY	4
+#define ITEM_FLAG_LIMITINWORLD		8
+#define ITEM_FLAG_EXHAUSTIBLE		16	// A player can totally exhaust their ammo supply and lose this weapon.
 
 enum PLAYER_ANIM
 {
@@ -102,14 +107,14 @@ new cvar_rate[CSW_P90+1], cvar_recoil[CSW_P90+1];								//use ham pri attack
 new cvar_deploy[CSW_P90+1], cvar_reload[CSW_P90+1];								//use ham deploy | reload | add to player
 new cvar_walkspeed[CSW_P90 + 1], cvar_zoomingwalkspeed[CSW_P90 + 1];			// HamF_CS_Item_GetMaxSpeed
 new cvar_clip[CSW_P90+1];														//use ham spawn & reload & item post frame
-new cvar_damage[CSW_P90+1], cvar_knock[CSW_P90+1], cvar_maxdist[CSW_P90+1];		//use ham trace attack
+new cvar_damageMul[CSW_P90+1], cvar_damageAdd[CSW_P90+1], cvar_knock[CSW_P90+1], cvar_maxdist[CSW_P90+1];		//use ham trace attack
 new cvar_accuracy[CSW_P90+1];													//use fm playback event | UpdateClientData | trace line
 new cvar_ammomax[15], cvar_ammoperbox[15];										// HAM_GiveAmmo
 new cvar_start_reload[CSW_P90+1], cvar_after_reload[CSW_P90+1], cvar_chamberadd[CSW_P90+1];	// these are Shotgun vars.
 
 new g_fwBotForwardRegister;
 new g_bFabricateBPAmmoData = false;
-new bool:g_reloadbug[33], bool:g_shooting[33], g_activewpn[33], bool:g_canthit[33], g_iAmmoBuffer[15], bool:g_bAmmoBufferFix[15], bool:g_bPickingAmmo[33];
+new bool:g_rgbReloadBugTrigger[33], bool:g_rgbShooting[33], g_rgiIdActiveWeapon[33], g_iAmmoBuffer[15], bool:g_bAmmoBufferFix[15], bool:g_bPickingAmmo[33];
 new OrpheuFunction:g_pfn_CBPW_SendWeaponAnim[CSW_P90+1], OrpheuFunction:g_pfn_CBP_SetAnimation, OrpheuFunction:g_pfn_CBPW_ReloadSound;
 
 public plugin_init()
@@ -153,8 +158,11 @@ public plugin_init()
 		formatex(szCvarName, charsmax(szCvarName), "weap_%s_maxclip", g_rgszWeaponName[i]);
 		cvar_clip[i] = register_cvar(szCvarName, "0");
 		
-		formatex(szCvarName, charsmax(szCvarName), "weap_%s_damage", g_rgszWeaponName[i]);
-		cvar_damage[i] = register_cvar(szCvarName, "-1.0");
+		formatex(szCvarName, charsmax(szCvarName), "weap_%s_damagemul", g_rgszWeaponName[i]);
+		cvar_damageMul[i] = register_cvar(szCvarName, "1.0");
+		
+		formatex(szCvarName, charsmax(szCvarName), "weap_%s_damageadd", g_rgszWeaponName[i]);
+		cvar_damageAdd[i] = register_cvar(szCvarName, "0.0");
 		
 		formatex(szCvarName, charsmax(szCvarName), "weap_%s_knock", g_rgszWeaponName[i]);
 		cvar_knock[i] = register_cvar(szCvarName, "-1.0");
@@ -247,8 +255,8 @@ public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(
 	if (pev_valid(iEntity) == 2 && !IsWeaponFromOriginalCS(iEntity))
 		return;
 	
-	new Float:fAccuracy = get_pcvar_float(cvar_accuracy[iId]);
-	if (fAccuracy != 1.0 && fAccuracy > 0.0)
+	new Float:flAccuracy = get_pcvar_float(cvar_accuracy[iId]);
+	if (flAccuracy != 1.0 && flAccuracy > 0.0)
 		set_cd(hCD, CD_iUser3, 0);
 	
 	if ( (iId == CSW_XM1014 && get_pcvar_num(cvar_clip[CSW_XM1014]) > 0)
@@ -277,13 +285,13 @@ public HAM_Ammo_Touch(iEntity, pPlayer)
 	return HAM_IGNORED;
 }
 
-public HamF_Item_AddToPlayer_Post(pEntity, pPlayer)
+public HamF_Item_AddToPlayer_Post(iEntity, pPlayer)
 {
 	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
-	new iId = get_pdata_int(pEntity, m_iId, 4);
-	new iMaxAmmo = get_pcvar_num(cvar_ammomax[get_pdata_int(pEntity, m_iPrimaryAmmoType, 4)]);
+	new iId = get_pdata_int(iEntity, m_iId, 4);
+	new iMaxAmmo = get_pcvar_num(cvar_ammomax[get_pdata_int(iEntity, m_iPrimaryAmmoType, 4)]);
 	
 	if (iMaxAmmo <= 0 || iMaxAmmo > 254)
 		return;
@@ -326,13 +334,10 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
-	new Float:fAccuracy = get_pcvar_float(cvar_accuracy[get_pdata_int(iEntity, m_iId, 4)])
-	if (fAccuracy == 1.0 || fAccuracy < 0.0)
-		return;
-	
 	new id = get_pdata_cbase(iEntity, m_pPlayer, 4);
-	g_shooting[id] = true;
-	g_activewpn[id] = get_pdata_int(iEntity, m_iId, 4);
+
+	g_rgbShooting[id] = true;
+	g_rgiIdActiveWeapon[id] = get_pdata_int(iEntity, m_iId, 4);
 }
 
 public fw_TraceLine(Float:vecStart[3], Float:vecEnd[3], iConditions, id, iTrace)	// credits to Nagist(a.k.a. Martin)
@@ -340,10 +345,14 @@ public fw_TraceLine(Float:vecStart[3], Float:vecEnd[3], iConditions, id, iTrace)
 	if (!is_user_connected(id))
 		return FMRES_IGNORED;
 
-	if (!g_shooting[id])
+	if (!g_rgbShooting[id])
 		return FMRES_IGNORED;
 
-	new Float:vecTemp[3], Float:vecDir[3], Float:fAccuracy = get_pcvar_float(cvar_accuracy[g_activewpn[id]]);
+	new Float:flAccuracy = get_pcvar_float(cvar_accuracy[g_rgiIdActiveWeapon[id]]);
+	if (flAccuracy < 0.0 || flAccuracy == 1.0)
+		return FMRES_IGNORED;
+	
+	new Float:vecTemp[3], Float:vecDir[3];
 	xs_vec_sub(vecEnd, vecStart, vecDir);
 
 	vecDir[0] /= 8192.0;
@@ -352,7 +361,7 @@ public fw_TraceLine(Float:vecStart[3], Float:vecEnd[3], iConditions, id, iTrace)
 
 	global_get(glb_v_forward, vecTemp);
 	xs_vec_sub(vecDir, vecTemp, vecDir);
-	xs_vec_mul_scalar(vecDir, fAccuracy, vecDir);
+	xs_vec_mul_scalar(vecDir, flAccuracy, vecDir);
 	xs_vec_add(vecDir, vecTemp, vecDir);
 	xs_vec_mul_scalar(vecDir, 8192.0, vecDir);
 	xs_vec_add(vecDir, vecStart, vecEnd);
@@ -363,20 +372,12 @@ public fw_TraceLine(Float:vecStart[3], Float:vecEnd[3], iConditions, id, iTrace)
 
 public fw_PlaybackEvent(iFlags, id, iEvent, Float:fDelay, Float:vecOrigin[3], Float:vecAngle[3], Float:flParam1, Float:flParam2, iParam1, iParam2, bParam1, bParam2)	// credits to Nagist(a.k.a. Martin)
 {
-	if (!g_shooting[id])
+	if (!g_rgbShooting[id])
 		return FMRES_IGNORED;
 
-	new Float:fAccuracy = get_pcvar_float(cvar_accuracy[g_activewpn[id]]);
-	new Float:fEnd1 = 0.0, Float:fEnd2 = 0.0;
+	new Float:flAccuracy = get_pcvar_float(cvar_accuracy[g_rgiIdActiveWeapon[id]]);
 	
-	if (!g_canthit[id])
-	{
-		fEnd1 = flParam1 * fAccuracy;
-		fEnd2 = flParam2 * fAccuracy;
-	}
-	
-	engfunc(EngFunc_PlaybackEvent, FEV_GLOBAL, id, iEvent, fDelay, vecOrigin, vecAngle, fEnd1, fEnd2, iParam1, iParam2, bParam1, bParam2);
-	g_canthit[id] = false;
+	engfunc(EngFunc_PlaybackEvent, FEV_GLOBAL, id, iEvent, fDelay, vecOrigin, vecAngle, flParam1 * flAccuracy, flParam2 * flAccuracy, iParam1, iParam2, bParam1, bParam2);
 	
 	return FMRES_SUPERCEDE;
 }
@@ -388,20 +389,24 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 	
 	new iId = get_pdata_int(iEntity, m_iId, 4), id = get_pdata_cbase(iEntity, m_pPlayer, 4);
 	
-	if (get_pcvar_float(cvar_rate[iId]) > 0.0)
+	new Float:flInterval = get_pcvar_float(cvar_rate[iId]);
+	if (flInterval > 0.0)
 	{
-		set_pdata_float(iEntity, m_flNextPrimaryAttack, get_pcvar_float(cvar_rate[iId]), 4);
+		if (flInterval > 10.0)	// consider this is a RPM value.
+			flInterval = 60.0 / get_pcvar_float(cvar_rate[iId]);
+		
+		set_pdata_float(iEntity, m_flNextPrimaryAttack, flInterval, 4);
 	}
 	
 	if (get_pcvar_float(cvar_recoil[iId]) >= 0.0)
 	{
-		new Float:fPunchAngle[3];
-		pev(id, pev_punchangle, fPunchAngle);
-		xs_vec_mul_scalar(fPunchAngle, get_pcvar_float(cvar_recoil[iId]), fPunchAngle);
-		set_pev(id, pev_punchangle, fPunchAngle);
+		new Float:vecPunchAngle[3];
+		pev(id, pev_punchangle, vecPunchAngle);
+		xs_vec_mul_scalar(vecPunchAngle, get_pcvar_float(cvar_recoil[iId]), vecPunchAngle);
+		set_pev(id, pev_punchangle, vecPunchAngle);
 	}
 	
-	g_shooting[id] = false;
+	g_rgbShooting[id] = false;
 }
 
 public HamF_Weapon_Reload(iEntity)
@@ -418,7 +423,7 @@ public HamF_Weapon_Reload(iEntity)
 	if (get_pdata_int(iEntity, m_iClip, 4) == g_rgiDefaultMaxClip[iId])
 	{
 		set_pdata_int(iEntity, m_iClip, 0, 4);
-		g_reloadbug[get_pdata_cbase(iEntity, m_pPlayer, 4)] = true;
+		g_rgbReloadBugTrigger[get_pdata_cbase(iEntity, m_pPlayer, 4)] = true;
 	}
 }
 
@@ -437,9 +442,9 @@ public HamF_Weapon_Reload_Post(iEntity)
 		set_pdata_float(iEntity, m_flTimeWeaponIdle, fValue + 0.5, 4);
 	}
 	
-	if (g_reloadbug[id])
+	if (g_rgbReloadBugTrigger[id])
 	{
-		g_reloadbug[id] = false;
+		g_rgbReloadBugTrigger[id] = false;
 		set_pdata_int(iEntity, m_iClip, g_rgiDefaultMaxClip[iId], 4);
 	}
 }
@@ -560,10 +565,10 @@ public OrpheuF_SendWeaponAnim(iEntity, iAnim, bSkipLocal)
 #define SHOTGUN_INSERT		3
 #define SHOTGUN_AFTERRELOAD	4
 #define	SHOTGUN_STARTRELOAD	5
-#define SHOTGUN_INSERT_DUR		0.4
-#define SHOTGUN_AFTERRELOAD_DUR	0.6
-#define	SHOTGUN_STARTRELOAD_DUR	0.5
-#define	SHOTGUN_CHAMBERADD_TIME 0.11429
+#define SHOTGUN_INSERT_DUR		get_pcvar_float(cvar_reload[iId])
+#define SHOTGUN_AFTERRELOAD_DUR	get_pcvar_float(cvar_after_reload[iId])
+#define	SHOTGUN_STARTRELOAD_DUR	get_pcvar_float(cvar_start_reload[iId])
+#define	SHOTGUN_CHAMBERADD_TIME get_pcvar_float(cvar_chamberadd[iId])
 #define AMMOTYPE_BUCKSHOT	5
 #define AMMO_BUCKSHOT		get_pdata_int(pPlayer, m_rgAmmo[AMMOTYPE_BUCKSHOT])
 #define ICLIP				get_pdata_int(iEntity, m_iClip, 4)
@@ -664,38 +669,35 @@ public HamF_Shotgun_Holster_Post(iEntity)
 	set_pdata_int(iEntity, m_fInSpecialReload, 0, 4);
 }
 
-public HAM_TraceAttack(iVictim, id, Float:fDamage, Float:fDirection[3], iPtr, iDamageTypes)
+public HAM_TraceAttack(iVictim, id, Float:fDamage, Float:fDirection[3], tr, iDamageTypes)
 {
-	if (!is_user_alive(id) || !pev_valid(iVictim))
+	if (!is_user_alive(id) || pev_valid(iVictim) != 2)
 		return HAM_IGNORED;
 	
-	new iEntity = get_pdata_cbase(id, m_pActiveItem);
-	
-	if (!IsWeaponFromOriginalCS(iEntity))
+	if (!g_rgbShooting[id])
 		return HAM_IGNORED;
 	
-	new iId = get_pdata_int(iEntity, m_iId, 4);
-	
-	if (iId <= 0)
-		return HAM_IGNORED;
-	
-	new Float:fKnockMul = get_pcvar_float(cvar_knock[iId]), Float:fDamageMul = get_pcvar_float(cvar_damage[iId]), Float:fMaxShootDist = get_pcvar_float(cvar_maxdist[iId]);
+	new Float:fKnockMul = get_pcvar_float(cvar_knock[g_rgiIdActiveWeapon[id]]);
+	new Float:fDamageMul = get_pcvar_float(cvar_damageMul[g_rgiIdActiveWeapon[id]]);
+	new Float:flDamageAdd = get_pcvar_float(cvar_damageAdd[g_rgiIdActiveWeapon[id]]);
+	new Float:fMaxShootDist = get_pcvar_float(cvar_maxdist[g_rgiIdActiveWeapon[id]]);
 	
 	if (fMaxShootDist > 0.0)
 	{
-		new Float:fOrigin[3], Float:fOrigin2[3];
-		pev(id, pev_origin, fOrigin); pev(iVictim, pev_origin, fOrigin2);
-		if (get_distance_f(fOrigin, fOrigin2) > fMaxShootDist)
+		new Float:vecOrigin[3], Float:vecOrigin2[3];
+		pev(id, pev_origin, vecOrigin);
+		pev(id, pev_view_ofs, vecOrigin2);
+		xs_vec_add(vecOrigin, vecOrigin2, vecOrigin);
+		get_tr2(tr, TR_vecEndPos, vecOrigin2);
+		
+		if (get_distance_f(vecOrigin, vecOrigin2) > fMaxShootDist)
 		{
 			fDamageMul = 0.0;
-			g_canthit[id] = true;
+			flDamageAdd = 0.0;
 		}
 	}
 	
-	if (fDamageMul >= 0.0)
-	{
-		SetHamParamFloat(3, fDamage*fDamageMul);
-	}
+	SetHamParamFloat(3, fDamage * fDamageMul + flDamageAdd);
 	
 	if (fKnockMul >= 0.0)
 	{
@@ -823,21 +825,21 @@ stock native_playanim(id, iAnim)
 
 stock native_GiveNamedItem(pPlayer, const pszName[])
 {
-	new pEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, pszName));
+	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, pszName));
 
-	if (pev_valid(pEntity))
+	if (pev_valid(iEntity))
 		return 0;
 
 	new Float:vecOrigin[3];
 	pev(pPlayer, pev_origin, vecOrigin);
-	set_pev(pEntity, pev_origin, vecOrigin);
+	set_pev(iEntity, pev_origin, vecOrigin);
 
-	set_pev(pEntity, pev_spawnflags, pev(pEntity, pev_spawnflags)|SF_NORESPAWN);
+	set_pev(iEntity, pev_spawnflags, pev(iEntity, pev_spawnflags)|SF_NORESPAWN);
 
-	dllfunc(DLLFunc_Spawn, pEntity);
-	dllfunc(DLLFunc_Touch, pEntity, pPlayer);
+	dllfunc(DLLFunc_Spawn, iEntity);
+	dllfunc(DLLFunc_Touch, iEntity, pPlayer);
 
-	return pEntity;
+	return iEntity;
 }
 
 stock UTIL_MsgWeaponList(iPlayer, iId, const szHud[], iMaxAmmo = -1, iSlot = -1, iList = -1)
