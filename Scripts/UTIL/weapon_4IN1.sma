@@ -8,7 +8,7 @@
 #include <orpheu>
 
 #define PLUGIN_NAME		"Weapon Stats Configuration"
-#define PLUGIN_VERSION	"1.5 (11 in 1)"
+#define PLUGIN_VERSION	"1.5.1 (11 in 1)"
 #define PLUGIN_AUTHOR	"Luna the Reborn"
 
 
@@ -116,6 +116,13 @@ public plugin_init()
 {
 	register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	
+	// put orpheu before everything.
+	// why? that's because if the user haven't install orpheu module, this two line would stop the entire plugin initiation.
+	// thus, it can protect the user from a game which aggravates further.
+	g_pfn_CBP_SetAnimation = OrpheuGetFunction("SetAnimation", "CBasePlayer");
+	g_pfn_CBPW_ReloadSound = OrpheuGetFunction("ReloadSound", "CBasePlayerWeapon");
+	
+	// weapon HAM hook reg.
 	new szCvarName[64];
 	for (new i = 0; i < sizeof g_rgszWeaponEntity; i++)
 	{
@@ -224,9 +231,6 @@ public plugin_init()
 	cvar_start_reload[CSW_XM1014]	= register_cvar("weap_xm1014_start_reload_time",	"0.7");
 	cvar_after_reload[CSW_XM1014]	= register_cvar("weap_xm1014_after_reload_time",	"‭0.4333");
 	cvar_chamberadd[CSW_XM1014]		= register_cvar("weap_xm1014_chamber_add_cycle",	"0.2");
-	
-	g_pfn_CBP_SetAnimation = OrpheuGetFunction("SetAnimation", "CBasePlayer");
-	g_pfn_CBPW_ReloadSound = OrpheuGetFunction("ReloadSound", "CBasePlayerWeapon");
 }
 
 public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(a.k.a. Martin)
@@ -236,6 +240,11 @@ public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(
 
 	new iId = get_cd(hCD, CD_ID);
 	if (!cvar_accuracy[iId])
+		return;
+	
+	static iEntity;
+	iEntity = get_pdata_cbase(iPlayer, m_pActiveItem);
+	if (pev_valid(iEntity) == 2 && !IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new Float:fAccuracy = get_pcvar_float(cvar_accuracy[iId]);
@@ -249,7 +258,7 @@ public fw_UpdateClientData_Post(iPlayer, iSendWeapon, hCD)	// credits to Nagist(
 
 public HamF_WeaponSpawn_Post(iEntity)
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new iClip = get_pcvar_num(cvar_clip[get_pdata_int(iEntity, m_iId, 4)])
@@ -270,7 +279,7 @@ public HAM_Ammo_Touch(iEntity, pPlayer)
 
 public HamF_Item_AddToPlayer_Post(pEntity, pPlayer)
 {
-	if (pev(pEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new iId = get_pdata_int(pEntity, m_iId, 4);
@@ -284,7 +293,7 @@ public HamF_Item_AddToPlayer_Post(pEntity, pPlayer)
 
 public HamF_CS_Item_GetMaxSpeed(iEntity)	// credits to No_Name
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return HAM_IGNORED;
 	
 	new iId = get_pdata_int(iEntity, m_iId, 4);
@@ -301,7 +310,7 @@ public HamF_CS_Item_GetMaxSpeed(iEntity)	// credits to No_Name
 
 public HamF_Item_Deploy_Post(iEntity)
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new iId = get_pdata_int(iEntity, m_iId, 4);
@@ -314,7 +323,7 @@ public HamF_Item_Deploy_Post(iEntity)
 
 public HamF_Weapon_PrimaryAttack(iEntity)
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new Float:fAccuracy = get_pcvar_float(cvar_accuracy[get_pdata_int(iEntity, m_iId, 4)])
@@ -374,7 +383,7 @@ public fw_PlaybackEvent(iFlags, id, iEvent, Float:fDelay, Float:vecOrigin[3], Fl
 
 public HamF_Weapon_PrimaryAttack_Post(iEntity)
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new iId = get_pdata_int(iEntity, m_iId, 4), id = get_pdata_cbase(iEntity, m_pPlayer, 4);
@@ -397,7 +406,7 @@ public HamF_Weapon_PrimaryAttack_Post(iEntity)
 
 public HamF_Weapon_Reload(iEntity)
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 
 	new iId = get_pdata_int(iEntity, m_iId, 4);
@@ -415,7 +424,7 @@ public HamF_Weapon_Reload(iEntity)
 
 public HamF_Weapon_Reload_Post(iEntity)
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	new iId = get_pdata_int(iEntity, m_iId, 4);
@@ -437,7 +446,7 @@ public HamF_Weapon_Reload_Post(iEntity)
 
 public HamF_Item_PostFrame(iEntity)	// credits to ConnorMcLeod
 {
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	static iId ; iId = get_pdata_int(iEntity, m_iId, 4);
@@ -489,7 +498,7 @@ public HamF_Item_PrimaryAmmoIndex_Post(iEntity)
 	if (!g_bFabricateBPAmmoData)	// this function will be called in ItemPostFrame() after you shoot your last bullet.
 		return;
 	
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return;
 	
 	/**
@@ -536,10 +545,13 @@ public HamF_Item_PrimaryAmmoIndex_Post(iEntity)
 }
 
 //public HamF_Weapon_SendWeaponAnim(iEntity, iAnim, bSkipLocal, iBody)	// bugged until AMXMODX 1.9.0
-public OrpheuHookReturn:OrpheuF_SendWeaponAnim(iEntity, iAnim, bSkipLocal)
+public OrpheuF_SendWeaponAnim(iEntity, iAnim, bSkipLocal)
 {
+	if (!IsWeaponFromOriginalCS(iEntity))
+		return _:OrpheuIgnored;
+	
 	OrpheuSetParam(3, 0);	// 0 == FALSE;
-	return OrpheuIgnored;
+	return _:OrpheuIgnored;
 }
 
 #define m_flNextInsertAnim	m_flStartThrow
@@ -558,7 +570,7 @@ public OrpheuHookReturn:OrpheuF_SendWeaponAnim(iEntity, iAnim, bSkipLocal)
 
 public HamF_Shotgun_Item_PostFrame(iEntity)
 {
-	if (pev(iEntity, pev_weapons))
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return HAM_IGNORED;
 	
 	static iId ; iId = get_pdata_int(iEntity, m_iId, 4);
@@ -615,7 +627,7 @@ public HamF_Shotgun_Item_PostFrame(iEntity)
 
 public HamF_Shotgun_Weapon_Reload(iEntity)
 {
-	if (pev(iEntity, pev_weapons))
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return HAM_IGNORED;
 	
 	static iId ; iId = get_pdata_int(iEntity, m_iId, 4);
@@ -659,7 +671,7 @@ public HAM_TraceAttack(iVictim, id, Float:fDamage, Float:fDirection[3], iPtr, iD
 	
 	new iEntity = get_pdata_cbase(id, m_pActiveItem);
 	
-	if (pev(iEntity, pev_weapons))	// avoided most scripted weapons.
+	if (!IsWeaponFromOriginalCS(iEntity))
 		return HAM_IGNORED;
 	
 	new iId = get_pdata_int(iEntity, m_iId, 4);
@@ -874,4 +886,15 @@ ReloadSound(iWeapon)
 {
 	OrpheuCallSuper(g_pfn_CBPW_ReloadSound, iWeapon);
 }
+
+bool:IsWeaponFromOriginalCS(iEntity)
+{
+	// pev_weapons - DSHGFHDS usually doing this.
+	// ammo_buckshot (OFS 11) - Fly's weapon template plugin.
+	
+	// Notify me if there're others.
+	
+	return !!(pev(iEntity, pev_weapons) == 0 && get_pdata_int(iEntity, 11, 4) == 0);
+}
+
 
