@@ -90,7 +90,7 @@ public Godfather_TerminateSkill()
 		g_rgbUsingSkill[THE_GODFATHER] = false;
 }
 
-public Godfather_ExecuteSkill(pPlayer)
+public bool:Godfather_ExecuteSkill(pPlayer)
 {
 	// UNDONE: check skill usage status.
 	
@@ -111,6 +111,11 @@ public Godfather_ExecuteSkill(pPlayer)
 		
 		if (iGodchild == pPlayer)
 			continue;
+		
+		if (g_rgPlayerRole[iGodchild] == Role_Berserker && g_rgbUsingSkill[iGodchild])	// these two would not allow to be both godchildren and crazy freaking monster.
+			Berserker_TerminateSkill(iGodchild);
+		else if (g_rgPlayerRole[iGodchild] == Role_Assassin && g_rgbUsingSkill[iGodchild])
+			Assassin_Revealed(iGodchild, 0);
 		
 		g_iGodchildrenCount++;	// thus, the indexes are started from 1 and end with its exact number.
 		g_rgiGodchildren[g_iGodchildrenCount] = iGodchild;
@@ -135,6 +140,7 @@ public Godfather_ExecuteSkill(pPlayer)
 	}
 	
 	set_task(get_pcvar_float(cvar_godfatherDuration), "Godfather_RevokeSkill", GODFATHER_TASK);
+	return true;
 }
 
 public Godfather_RevokeSkill(iTaskId)
@@ -142,11 +148,14 @@ public Godfather_RevokeSkill(iTaskId)
 	// the death of godchildren will NOT stop the HP payback. this is the rule. intended.
 	for (new i = 1; i <= g_iGodchildrenCount; i++)
 	{
-		if (is_user_alive(g_rgiGodchildren[i]))
+		if (is_user_alive2(g_rgiGodchildren[i]))
 		{
 			set_pev(g_rgiGodchildren[i], pev_health, g_rgflGodchildrenSavedHP[g_rgiGodchildren[i]]);
 			client_cmd(g_rgiGodchildren[i], "spk %s", GODFATHER_REVOKE_SFX);
 		}
+		
+		// still dead? NVM.
+		g_rgflGodchildrenSavedHP[g_rgiGodchildren[i]] = -1.0;	// this is the marker of not affected by baptism skill.
 	}
 	
 	g_rgbUsingSkill[THE_GODFATHER] = false;

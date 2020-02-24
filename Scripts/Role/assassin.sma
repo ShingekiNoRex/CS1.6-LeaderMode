@@ -14,7 +14,7 @@ will be reveal by HG
 
 new cvar_assassinInvisibleDur, cvar_assassinCooldown, cvar_assassinUgDist, cvar_assassinUgInv, cvar_assassinSpeed, cvar_assassinGravity;
 new gmsgBombDrop, gmsgBombPickup;
-new Float:g_flAssassinRadarThink, Float:g_vecCommanderLastOrigin[3];
+new Float:g_flAssassinRadarThink, Float:g_vecTracedLastOrigin[3], g_iAssassinTracing;
 new g_rgiViewModelBuffer[33];
 
 public Assassin_Initialize()
@@ -40,10 +40,15 @@ public Assassin_Precache()
 	engfunc(EngFunc_PrecacheSound, ASSASSIN_CRITICAL_SFX);
 }
 
-public Assassin_ExecuteSkill(pPlayer)
+public bool:Assassin_ExecuteSkill(pPlayer)
 {
+	if (g_rgflGodchildrenSavedHP[pPlayer] > 0.0)
+	{
+		UTIL_ColorfulPrintChat(pPlayer, "/t受/g%s/t的/g洗禮/t約束期間，/g幻影/t技能無法使用!", REDCHAT, GODFATHER_TEXT);
+		return false;
+	}
+	
 	set_pev(pPlayer, pev_deadflag, DEAD_RESPAWNABLE);	// avoid BOT chasing.
-	set_pev(pPlayer, pev_effects, pev(pPlayer, pev_effects) | EF_NODRAW);
 	
 	set_pev(pPlayer, pev_gravity, get_pcvar_float(cvar_assassinGravity));
 	engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_assassinSpeed));
@@ -56,6 +61,27 @@ public Assassin_ExecuteSkill(pPlayer)
 	UTIL_ScreenFade(pPlayer, 0.3, get_pcvar_float(cvar_assassinInvisibleDur), FFADE_IN, 10, 10, 255, 60);
 	client_cmd(pPlayer, "spk %s", ASSASSIN_GRAND_SFX);
 	
+	if (!is_user_alive(THE_COMMANDER))	// then pick a random guy.
+	{
+		for (new i = 1; i <= global_get(glb_maxClients); i++)
+		{
+			if (!is_user_alive2(i))
+				continue;
+			
+			if (get_pdata_int(i, m_iTeam) != TEAM_CT)
+				continue;
+			
+			g_iAssassinTracing = i;
+			break;
+		}
+	}
+	else
+		g_iAssassinTracing = THE_COMMANDER;
+	
+	// nobody to trace. but the assassin may still use the invisible skill.
+	if (!is_user_alive2(g_iAssassinTracing))
+		print_chat_color(pPlayer, GREYCHAT, "沒有可以追蹤的目標!");
+
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
 		if (!is_user_connected(i) || is_user_bot(i))
@@ -64,16 +90,27 @@ public Assassin_ExecuteSkill(pPlayer)
 		if (get_pdata_int(i, m_iTeam) != TEAM_TERRORIST)
 			continue;
 		
-		UTIL_ColorfulPrintChat(i, "/y%s/g已竊取敵方作戰計畫, 並將/t%s%s/g的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
-		UTIL_ColorfulPrintChat(i, "/t%s/y的作戰計畫是: /g%s/y, 人力資源剩餘: %d", BLUECHAT, g_rgszTeamName[TEAM_CT], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[TEAM_CT]], g_rgiTeamMenPower[TEAM_CT]);
+		if (g_iAssassinTracing == THE_COMMANDER)
+		{
+			UTIL_ColorfulPrintChat(i, "/g%s/y已竊取敵方作戰計畫, 並將/t%s%s/y的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, COMMANDER_TEXT, g_szLeaderNetname[TEAM_CT - 1]);
+			UTIL_ColorfulPrintChat(i, "/t%s/y的作戰計畫是: /g%s/y, 人力資源剩餘: %d", BLUECHAT, g_rgszTeamName[TEAM_CT], g_rgszTacticalSchemeNames[g_rgTeamTacticalScheme[TEAM_CT]], g_rgiTeamMenPower[TEAM_CT]);
+		}
+		else
+		{
+			new szNetnames[32];
+			pev(g_iAssassinTracing, pev_netname, szNetnames, charsmax(szNetnames));
+			
+			UTIL_ColorfulPrintChat(0, "/g%s/y已潛入敵方殘部, 並將/t%s%s/y的大致位置標記於雷達上!", BLUECHAT, ASSASSIN_TEXT, g_rgszRoleNames[g_rgPlayerRole[g_iAssassinTracing]], szNetnames);
+		}
 	}
 
 	set_task(get_pcvar_float(cvar_assassinInvisibleDur), "Assassin_RevokeSkill", ASSASSIN_TASK + pPlayer);
+	return true;
 }
 
 public Assassin_SkillThink()	// place at StartFrame()
 {
-	if (!is_user_alive(THE_COMMANDER))
+	if (!is_user_alive(g_iAssassinTracing))
 		return;
 	
 	new bShouldThink = false;
@@ -90,16 +127,16 @@ public Assassin_SkillThink()	// place at StartFrame()
 		return;
 	
 	static Float:vecOrigin[3];
-	pev(THE_COMMANDER, pev_origin, vecOrigin);
+	pev(g_iAssassinTracing, pev_origin, vecOrigin);
 	
-	if (get_distance_f(vecOrigin, g_vecCommanderLastOrigin) < get_pcvar_float(cvar_assassinUgDist)
+	if (get_distance_f(vecOrigin, g_vecTracedLastOrigin) < get_pcvar_float(cvar_assassinUgDist)	// only update radar if the target is moved a certain distance.
 		&& g_flAssassinRadarThink > get_gametime() )
 	{
 		return;
 	}
 	
 	g_flAssassinRadarThink = get_gametime() + get_pcvar_float(cvar_assassinUgInv);
-	xs_vec_copy(vecOrigin, g_vecCommanderLastOrigin);
+	xs_vec_copy(vecOrigin, g_vecTracedLastOrigin);
 	
 	for (new i = 1; i <= global_get(glb_maxClients); i++)
 	{
@@ -116,9 +153,20 @@ public Assassin_SkillThink()	// place at StartFrame()
 		write_byte(0);
 		message_end();
 
-		if (g_rgPlayerRole[i] != Role_Assassin)
-			client_cmd(i, "spk %s", SFX_RADAR_BEEP);
+		client_cmd(i, "spk %s", SFX_RADAR_BEEP);
 	}
+}
+
+public Assassin_SelfThink(pPlayer)
+{
+	if (!is_user_alive2(pPlayer))
+		return;
+	
+	if (g_rgPlayerRole[pPlayer] != Role_Assassin)
+		return;
+	
+	if (g_rgbUsingSkill[pPlayer] && pev(pPlayer, pev_button) & IN_ATTACK)	// manually self-reveal.
+		Assassin_Revealed(pPlayer, 0);
 }
 
 public Assassin_RevokeSkill(iTaskId)
@@ -145,6 +193,11 @@ public Assassin_RevokeSkill(iTaskId)
 	if (!g_rgbUsingSkill[pPlayer])	// which means the assassin was killed when cooling down.
 		return;
 	
+	print_chat_color(pPlayer, REDCHAT, "技能已结束！");
+	
+	g_rgbUsingSkill[pPlayer] = false;
+	g_rgflSkillCooldown[pPlayer] = get_gametime() + get_pcvar_float(cvar_assassinCooldown);
+	
 	new Float:flHealth;
 	pev(pPlayer, pev_health, flHealth);
 	
@@ -152,24 +205,47 @@ public Assassin_RevokeSkill(iTaskId)
 	{
 		set_pev(pPlayer, pev_deadflag, DEAD_NO);
 		set_pev(pPlayer, pev_viewmodel, g_rgiViewModelBuffer[pPlayer]);
-		set_pev(pPlayer, pev_effects, pev(pPlayer, pev_effects) & ~EF_NODRAW);
 		set_pev(pPlayer, pev_gravity, 1.0);
 		
 		set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) & ~ASSASSIN_HIDEHUD);
 		ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));
 		ResetMaxSpeed(pPlayer);
 	}
-	
-	print_chat_color(pPlayer, REDCHAT, "技能已结束！");
-	
-	g_rgbUsingSkill[pPlayer] = false;
-	g_rgflSkillCooldown[pPlayer] = get_gametime() + get_pcvar_float(cvar_assassinCooldown);
 }
 
 public Assassin_TerminateSkill(pPlayer)
 {
 	remove_task(ASSASSIN_TASK + pPlayer);
-	Assassin_RevokeSkill(ASSASSIN_TASK + pPlayer);
+	
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_connected(i) || is_user_bot(i))
+			continue;
+		
+		if (get_pdata_int(i, m_iTeam) != TEAM_TERRORIST)
+			continue;
+		
+		message_begin(MSG_ONE, gmsgBombPickup, _, i);
+		message_end();
+	}
+	
+	if (!is_user_alive2(pPlayer))
+		return;
+	
+	new Float:flSkillUsedPercentage = (get_gametime() - g_rgflSkillExecutedTime[pPlayer]) / (get_pcvar_float(cvar_assassinInvisibleDur));
+	flSkillUsedPercentage = floatclamp(flSkillUsedPercentage, 0.0, 1.0);
+
+	g_rgbUsingSkill[pPlayer] = false;
+	g_rgflSkillCooldown[pPlayer] = get_gametime() + (get_pcvar_float(cvar_assassinCooldown) * flSkillUsedPercentage);	// if you manually reveal yourself, this bonus would be applied.
+	
+	set_pev(pPlayer, pev_deadflag, DEAD_NO);
+	set_pev(pPlayer, pev_viewmodel, g_rgiViewModelBuffer[pPlayer]);
+	set_pev(pPlayer, pev_gravity, 1.0);
+	
+	client_cmd(pPlayer, "stopsound");
+	set_pdata_int(pPlayer, m_iHideHUD, get_pdata_int(pPlayer, m_iHideHUD) & ~ASSASSIN_HIDEHUD);
+	ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));
+	ResetMaxSpeed(pPlayer);
 }
 
 public Assassin_Revealed(pPlayer, iAttacker)	// cacha !!!
@@ -177,10 +253,14 @@ public Assassin_Revealed(pPlayer, iAttacker)	// cacha !!!
 	Assassin_TerminateSkill(pPlayer);
 	
 	UTIL_ScreenFade(pPlayer, 0.3, 0.1, FFADE_IN, 10, 10, 255, 60);
-	client_cmd(pPlayer, "stopsound");
-	client_cmd(pPlayer, "spk %s", ASSASSIN_DISCOVERED_SFX);
 	
-	print_chat_color(pPlayer, REDCHAT, "你被發現了!");
+	if (is_user_alive2(iAttacker))
+	{
+		client_cmd(pPlayer, "spk %s", ASSASSIN_DISCOVERED_SFX);	// this SFX would be played only if the assassin is discovered by someone else.
+		g_rgflSkillCooldown[pPlayer] = get_gametime() + get_pcvar_float(cvar_assassinCooldown);	// and the full-CD punishment would be applied.
+	}
+	
+	print_chat_color(pPlayer, REDCHAT, is_user_alive2(iAttacker) ? "你被發現了!" : "技能已中斷!");
 	
 	if (is_user_connected(iAttacker) && !is_user_bot(iAttacker))
 		client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);

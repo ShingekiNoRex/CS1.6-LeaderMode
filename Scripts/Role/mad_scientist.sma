@@ -1,6 +1,7 @@
 /**
 
 sub_10083E20: CGrenade::ShootSmokeGrenade()
+better 3rd person poisoned VFX. some green smoke around player?
 **/
 
 #define MADSCIENTIST_TASK	136874
@@ -67,12 +68,14 @@ public Command_Electrify(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
-public MadScientist_ExecuteSkill(pPlayer)
+public bool:MadScientist_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_msGravityGunDur), "MadScientist_RevokeSkill", MADSCIENTIST_TASK + pPlayer);
 	
 	client_cmd(pPlayer, "spk %s", MADSCIENTIST_SFX);
 	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, STATIC_ELEC_SFX, 0.5, ATTN_NORM, 0, PITCH_NORM);
+	
+	return true;
 }
 
 public MadScientist_RevokeSkill(iTaskId)
@@ -251,12 +254,15 @@ public GasGrenade_Think(iEntity)
 	new pPlayer = -1, Float:vecVictimOrigin[3];
 	while ((pPlayer = engfunc(EngFunc_FindEntityInSphere, pPlayer, vecOrigin, 280.0)) > 0)
 	{
-		if (!is_user_connected(pPlayer))
+		if (!is_user_alive2(pPlayer))
 			continue;
 		
 		pev(pPlayer, pev_origin, vecVictimOrigin);
 		if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
 			continue;
+		
+		if (g_rgPlayerRole[pPlayer] == Role_Assassin && g_rgbUsingSkill[pPlayer])
+			Assassin_Revealed(pPlayer, iAttacker);
 		
 		g_rgflPlayerPoisoned[pPlayer] = get_gametime() + get_pcvar_float(cvar_msPoisonLast);
 		g_rgiPoisonedBy[pPlayer] = iAttacker;

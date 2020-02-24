@@ -36,7 +36,7 @@ public SWAT_Precache()
 	precache_sound(SWAT_PASSIVE_SFX);
 }
 
-public SWAT_ExecuteSkill(pPlayer)
+public bool:SWAT_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_swatBulletproofLast), "SWAT_RevokeSkill", SWAT_TASK + pPlayer);
 	
@@ -75,26 +75,26 @@ public SWAT_ExecuteSkill(pPlayer)
 		iPrimaryWeapon = get_pdata_cbase(iEntity, m_rgpPlayerItems[1]);
 		iSecondaryWeapon = get_pdata_cbase(iEntity, m_rgpPlayerItems[2]);
 
-		switch (g_rgPlayerRole[pPlayer])
+		switch (g_rgPlayerRole[iEntity])
 		{
 			case Role_Blaster:
 			{
-				if ( (1<<get_pdata_int(iPrimaryWeapon, m_iId, 4)) & ((1<<CSW_KSG12)|(1<<CSW_STRIKER)) )
+				if (pev_valid(iPrimaryWeapon) == 2 && (1<<get_pdata_int(iPrimaryWeapon, m_iId, 4)) & ((1<<CSW_KSG12)|(1<<CSW_STRIKER)) )
 					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iPrimaryWeapon, m_iPrimaryAmmoType, 4)], 240);
 			}
 			
 			case Role_Sharpshooter:
 			{
-				if ( (1<<get_pdata_int(iPrimaryWeapon, m_iId, 4)) & ((1<<CSW_M200)|(1<<CSW_M14EBR)|(1<<CSW_AWP)|(1<<CSW_SVD)) )
+				if (pev_valid(iPrimaryWeapon) == 2 && (1<<get_pdata_int(iPrimaryWeapon, m_iId, 4)) & ((1<<CSW_M200)|(1<<CSW_M14EBR)|(1<<CSW_AWP)|(1<<CSW_SVD)) )
 					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iPrimaryWeapon, m_iPrimaryAmmoType, 4)], 240);
 					
-				if ( (1<<get_pdata_int(iSecondaryWeapon, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) )
+				if (pev_valid(iSecondaryWeapon) == 2 && (1<<get_pdata_int(iSecondaryWeapon, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) )
 					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iSecondaryWeapon, m_iPrimaryAmmoType, 4)], 240);
 			}
 			
 			case Role_Medic:
 			{
-				if ( (1<<get_pdata_int(iSecondaryWeapon, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) )
+				if (pev_valid(iSecondaryWeapon) == 2 && (1<<get_pdata_int(iSecondaryWeapon, m_iId, 4)) & ((1<<CSW_ANACONDA)|(1<<CSW_DEAGLE)) )
 					ExecuteHamB(Ham_GiveAmmo, iEntity, 240, g_rgszAmmoNameByIndex[get_pdata_int(iSecondaryWeapon, m_iPrimaryAmmoType, 4)], 240);
 			}
 			
@@ -105,6 +105,7 @@ public SWAT_ExecuteSkill(pPlayer)
 	ExecuteHamB(Ham_Item_Deploy, get_pdata_cbase(pPlayer, m_pActiveItem));	// just some feeling stuff.
 	UTIL_ScreenFade(pPlayer, 0.5, get_pcvar_float(cvar_swatBulletproofLast), FFADE_IN, 179, 217, 255, 60);
 	client_cmd(pPlayer, "spk %s", SWAT_GRAND_SFX);
+	return true;
 }
 
 public SWAT_RevokeSkill(iTaskId)

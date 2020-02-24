@@ -45,11 +45,13 @@ public Sharpshooter_Precache()
 	g_idGlassModel = engfunc(EngFunc_PrecacheModel, "models/glassgibs.mdl")
 }
 
-public Sharpshooter_ExecuteSkill(pPlayer)
+public bool:Sharpshooter_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_sharpshooterDeathMarkDur), "Sharpshooter_RevokeSkill", SHARPSHOOTER_TASK + pPlayer);
 	
 	client_cmd(pPlayer, "spk %s", SHARPSHOOTER_GRAND_SFX);
+	
+	return true;
 }
 
 public Sharpshooter_RevokeSkill(iTaskId)
@@ -145,13 +147,13 @@ public Sharpshooter_IceExplode(iEntity)
 	new i = -1;
 	while((i = engfunc(EngFunc_FindEntityInSphere, i, vecOrigin, get_pcvar_float(cvar_icegrenade_range))) > 0)
 	{
-		if(!pev_valid(i) || iEntity == i)
+		if (!pev_valid(i) || iEntity == i)
 			continue;
 		
-		if(pev(i, pev_takedamage) == DAMAGE_NO)
+		if (pev(i, pev_takedamage) == DAMAGE_NO)
 			continue;
 		
-		if(is_user_alive(i))
+		if (is_user_alive2(i))
 		{
 			pev(i, pev_frame, g_rgflFrozenFrame[i]);
 			pev(i, pev_angles, g_rgvecFrozenAngles[i]);
@@ -160,10 +162,14 @@ public Sharpshooter_IceExplode(iEntity)
 		
 		ExecuteHamB(Ham_TakeDamage, i, iEntity, pev(iEntity, pev_owner), get_pcvar_float(cvar_icegrenade_damage), DMG_FREEZE);
 		
-		if (is_user_connected(i))
+		if (is_user_alive2(i))
 		{
 			NvgScreen(i, 0, 50, 200, 100);
-			engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, SHARPSHOOTER_ICEGRE_FLESH_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			engfunc(EngFunc_EmitSound, i, CHAN_AUTO, SHARPSHOOTER_ICEGRE_FLESH_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			
+			g_rgflFrozenNextthink[i] = get_gametime() + get_pcvar_float(cvar_icegrenade_time);
+			set_pev(i, pev_flags, (pev(i, pev_flags) | FL_FROZEN));
+			set_pdata_float(i, m_flNextAttack, 9999.0);
 		}
 	}
 	
@@ -173,13 +179,13 @@ public Sharpshooter_IceExplode(iEntity)
 
 public Sharpshooter_IceThink(iPlayer)
 {
-	if(pev(iPlayer, pev_deadflag) != DEAD_NO)
+	if (pev(iPlayer, pev_deadflag) != DEAD_NO)
 		return;
 	
-	if(g_rgflFrozenNextthink[iPlayer] == 0.0)
+	if (g_rgflFrozenNextthink[iPlayer] <= 0.0)
 		return;
 	
-	if(g_rgflFrozenNextthink[iPlayer] > get_gametime())
+	if (g_rgflFrozenNextthink[iPlayer] > get_gametime())
 	{
 		set_pev(iPlayer, pev_angles, g_rgvecFrozenAngles[iPlayer]);
 		set_pev(iPlayer, pev_frame, g_rgflFrozenFrame[iPlayer]);
@@ -196,12 +202,6 @@ public Sharpshooter_IceThink(iPlayer)
 	Sharpshooter_SetFree(iPlayer)
 }
 
-public Sharpshooter_GetFrozen(iPlayer)
-{
-	g_rgflFrozenNextthink[iPlayer] = get_gametime() + get_pcvar_float(cvar_icegrenade_time);
-	set_pev(iPlayer, pev_flags, (pev(iPlayer, pev_flags) | FL_FROZEN));
-}
-
 public Sharpshooter_SetFree(iPlayer)
 {
 	set_pdata_float(iPlayer, m_flNextAttack, 0.0);
@@ -209,12 +209,12 @@ public Sharpshooter_SetFree(iPlayer)
 	set_pev(iPlayer, pev_framerate, 1.0);
 	set_pev(iPlayer, pev_fixangle, 0);
 	
-	if (is_user_connected(iPlayer))
+	if (is_user_alive2(iPlayer))
 		UTIL_ScreenFade(iPlayer, 0.9, 0.1, FFADE_IN, 0, 50, 200, 100);
 	
 	engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, SHARPSHOOTER_ICEGRE_BREAKOUT_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
-	if(g_rgflFrozenNextthink[iPlayer] == 0.0)
+	if(g_rgflFrozenNextthink[iPlayer] <= 0.0)
 		return;
 	
 	Sharpshooter_IceBroken(iPlayer);

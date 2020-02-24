@@ -82,7 +82,7 @@ public HealingGrenade_Think(iEntity)
 	new pPlayer = -1, Float:vecVictimOrigin[3], Float:flHealth, Float:flMaxHealth;
 	while ((pPlayer = engfunc(EngFunc_FindEntityInSphere, pPlayer, vecOrigin, 280.0)) > 0)
 	{
-		if (!is_user_connected(pPlayer))
+		if (!is_user_alive2(pPlayer))
 			continue;
 		
 		pev(pPlayer, pev_origin, vecVictimOrigin);
@@ -92,6 +92,23 @@ public HealingGrenade_Think(iEntity)
 		if (pPlayer == THE_GODFATHER)	// never heal the godfather.
 			continue;
 		
+		// clear debuff and rmeove DOTs. (not godfather)
+		if (g_rgflFrozenNextthink[pPlayer] > 0.0)	// player is frozen.
+			Sharpshooter_SetFree(pPlayer);
+		
+		if (g_rgPlayerRole[pPlayer] == Role_Berserker && g_rgbUsingSkill[pPlayer])	// terminate berserker's skill.
+			Berserker_TerminateSkill(pPlayer);
+		
+		if (g_rgflPlayerElectrified[pPlayer] > 0.0)	// remove electrified state.
+			g_rgflPlayerElectrified[pPlayer] = 1.0;
+		
+		if (g_rgflPlayerPoisoned[pPlayer] > 0.0)	// remove poisoned state.
+			g_rgflPlayerPoisoned[pPlayer] = 1.0;
+		
+		if (g_rgPlayerRole[pPlayer] == Role_Assassin && g_rgbUsingSkill[pPlayer])
+			Assassin_Revealed(pPlayer, iMedicPlayer);
+		
+		// start the healing job,
 		pev(pPlayer, pev_health, flHealth);
 		pev(pPlayer, pev_max_health, flMaxHealth);
 		

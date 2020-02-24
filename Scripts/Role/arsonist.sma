@@ -44,11 +44,13 @@ public Arsonist_Precache()
 	g_idFireHit = engfunc(EngFunc_PrecacheModel, "sprites/xspark4.spr")
 }
 
-public Arsonist_ExecuteSkill(pPlayer)
+public bool:Arsonist_ExecuteSkill(pPlayer)
 {
 	set_task(get_pcvar_float(cvar_arsonistDuration), "Arsonist_RevokeSkill", ARSONIST_TASK + pPlayer);
 
 	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, ARSONIST_GRAND_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	
+	return true;
 }
 
 public Arsonist_RevokeSkill(iTaskId)

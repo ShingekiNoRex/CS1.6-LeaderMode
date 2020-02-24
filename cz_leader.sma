@@ -34,29 +34,29 @@ S.W.A.T.
 (優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
 (立即填充所有手榴彈、彈藥和護甲，15秒内轉移所有傷害至護甲)	✔ (LUNA)
 (被動：AP 200，周围友军缓慢恢复护甲)	✔ (LUNA)
-(角色針對性互動: 使用主動技能時：為爆破手填充霰彈槍子彈、為神射手填充狙擊槍子彈、為軍醫填充大口徑手槍子彈)	✔ (LUNA: UNTESTED)
+(角色針對性互動: 使用主動技能時：為爆破手填充霰彈槍子彈、為神射手填充狙擊槍子彈、為軍醫填充大口徑手槍子彈)	✔ (LUNA)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
 (10秒内无限高爆手雷，爆炸伤害+50%，所有武器擁有爆炸彈藥)	✔ (REX)
 (被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (LUNA)
-(角色針對性互動: 使用主動技能時：為神射手填充冰凍手榴彈、為軍醫填充治療煙霧彈)
+(角色針對性互動: 使用主動技能時：為神射手填充冰凍手榴彈、為軍醫填充治療煙霧彈)	✔ (LUNA)
 神射手
 (優惠M200、手榴彈、ANACONDA、DEAGLE和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
 (狙擊槍和大威力手槍10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：長弓冰凍手榴彈) ✔ (REX)
-(角色針對性互動: 使用主動技能時：若為原始爆頭則強制擊殺狂戰士，可以看見刺客。冰凍手榴彈: 解除毒氣彈與火焰手榴彈的作用。被冰凍的角色不受電擊的影響。)
+(角色針對性互動: 使用主動技能時：若為原始爆頭則強制擊殺狂戰士，可以看見刺客。冰凍手榴彈: 解除毒氣彈(UNDONE)與火焰手榴彈(UNDONE)的作用。被冰凍的角色不受電擊的影響。)	(LUNA: UNTESTED)
 軍醫
 (優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
 (包含自己在内恢复周圍非隊長角色的HP)
 (被動：大威力手槍射出治疗弹，煙霧彈具有治療效果，能為指揮官Overhealing)	✔ (LUNA)
-(角色針對性互動: 可以用治療煙霧彈Overheal指揮官。治療煙霧彈可以: 解凍角色、強制中斷絕唱但不予擊殺、範圍內不會中毒與觸電、令刺客顯形。治療飛鏢可以: 強制中斷絕唱但不予擊殺，解除凍結、燃燒、中毒與觸電狀態)
+(角色針對性互動: 可以用治療煙霧彈Overheal指揮官。治療煙霧彈可以: 解凍角色、強制中斷絕唱但不予擊殺、範圍內不會中毒與觸電、令刺客顯形。治療飛鏢可以: 強制中斷絕唱但不予擊殺，解除凍結、燃燒(UNDONE)、中毒與觸電狀態)	(LUNA: UNTESTED)
 
 TR:
 教父
 (優惠手槍，半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
-(角色針對性互動: 教子關係存續間: 狂戰士不得絕唱(如已開始則中斷之)、刺客不得隱形(如已經隱形則令其現身))
+(角色針對性互動: 教子關係存續間: 狂戰士不得絕唱(如已開始則中斷之)、刺客不得隱形(如已經隱形則令其現身))	(LUNA: UNTESTED)
 狂战士
 (優惠輕機槍、自動步槍、衝鋒槍、霰彈槍)
 (5秒内最低维持1血，5秒后若血量不超过1则死亡；移動速度提升，但瀕死狀態速度為0)	✔ (REX)
@@ -66,17 +66,17 @@ TR:
 (允許KSG和UMP45，煙霧彈帶有懲罰，禁止G18C、雙持P99)
 (發射電擊彈藥(減速，扳機和視角不受控制)，將瞄準目標吸往自己的方向) ✔ (LUNA)
 (被動：煙霧彈更換為毒氣彈、擁有完全護甲時遭受傷害的15%以電擊形式返還) ✔ (LUNA)
-(角色針對性互動: 毒氣令刺客顯形)
+(角色針對性互動: 毒氣令刺客顯形)	(LUNA: UNTESTED)
 刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
 (消音武器，標記敌方指挥官位置；隱身10秒，接觸其他角色會被發現) ✔ (LUNA)
 (被動：消音武器有1%的概率暴擊) ✔ (LUNA)
-(角色針對性互動: 指揮官死亡後可以標記餘下敵人)
+(角色針對性互動: 指揮官死亡後可以標記餘下敵人)	✔ (LUNA)
 纵火犯
 (優惠霰彈槍，允許M4A1、SCAR-L，手榴彈帶有懲罰)
 (火焰弹药，燃烧伤害附带减速效果) ✔ (REX)
 (被動：燃烧手雷，免疫燃烧伤害) ✔ (REX)
-(角色針對性互動: 燃燒彈可以: 解除冰凍、令刺客顯形、移除治療煙霧彈、引爆毒氣)
+(角色針對性互動: 燃燒彈可以: 解除冰凍、令刺客顯形、移除治療煙霧彈(UNDONE)、引爆毒氣(UNDONE))	(LUNA: UNTESTED)
 
 **/
 
@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.3"
+#define VERSION	"1.14.4"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -832,7 +832,7 @@ public HamF_Killed(iVictim, iAttacker, bShouldGib)
 	if (!is_user_connected(iVictim))
 		return HAM_IGNORED;
 	
-	if (g_rgflFrozenNextthink[iVictim] != 0.0)	// freezing death.
+	if (g_rgflFrozenNextthink[iVictim] > 0.0)	// freezing death.
 	{
 		SetHamParamInteger(3, GIB_ALWAYS);
 		Sharpshooter_SetFree(iVictim);
@@ -1005,7 +1005,7 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 	
 	if (g_rgbShootingHealingDart[iAttacker])	// medic passive skill
 	{
-		if (is_user_alive(iVictim) && fm_is_user_same_team(iAttacker, iVictim) && iVictim != THE_COMMANDER)
+		if (is_user_alive(iVictim) && fm_is_user_same_team(iAttacker, iVictim) && iVictim != THE_COMMANDER)	// heal teammates.
 		{
 			new Float:vecOrigin[3];
 			get_tr2(tr, TR_vecEndPos, vecOrigin);
@@ -1026,9 +1026,33 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 			
 			if (flHealth > flMaxHealth)
 				g_rgflOverhealingThink[iVictim] = get_gametime() + get_pcvar_float(cvar_medicOHDecayInv);
+			
+			if (g_rgflFrozenNextthink[iVictim] > 0.0)	// player is frozen.
+				Sharpshooter_SetFree(iVictim);
+			
+			if (g_rgflPlayerElectrified[iVictim] > 0.0)	// remove electrified state.
+				g_rgflPlayerElectrified[iVictim] = 1.0;
+			
+			if (g_rgflPlayerPoisoned[iVictim] > 0.0)	// remove poisoned state.
+				g_rgflPlayerPoisoned[iVictim] = 1.0;
 
 			SetHamParamFloat(3, 0.0);	// it won't do any damage no nomatter what mp_friendfire says.
 			return HAM_HANDLED;
+		}
+		
+		if (g_rgPlayerRole[iVictim] == Role_Berserker && g_rgbUsingSkill[iVictim])	// terminate berserker's skill.
+		{
+			Berserker_TerminateSkill(iVictim);
+			
+			new Float:flHealth;
+			pev(iVictim, pev_health, flHealth);
+			
+			if (flHealth <= 1.0)
+				set_pev(iVictim, pev_health, 2.0);
+			
+			new Float:vecOrigin[3];
+			get_tr2(tr, TR_vecEndPos, vecOrigin);
+			UTIL_BeamEntPoint(iAttacker|0x1000, vecOrigin, g_idFireTrace, 1, 10, 1, 6, 0, 51, 204, 255, 128, 10);
 		}
 	}
 	
@@ -1080,12 +1104,20 @@ public HamF_TakeDamage(iVictim, iInflictor, iAttacker, Float:flDamage, bitsDamag
 			pev(iVictim, pev_health, flCurHealth);
 			if (flCurHealth - flDamage < 1.0)
 			{
-				set_pev(iVictim, pev_health, 1.0);
-				
-				engfunc(EngFunc_SetClientMaxspeed, iVictim, get_pcvar_float(cvar_berserkerDyingSpeed));	// dying speed applied.
-				set_pev(iVictim, pev_maxspeed, get_pcvar_float(cvar_berserkerDyingSpeed));
-				
-				return HAM_SUPERCEDE;
+				// sharpshooter can enforce this kill by headshot.
+				if (get_pdata_int(iVictim, m_LastHitGroup) == HIT_HEAD && is_user_alive2(iAttacker) && g_rgPlayerRole[iAttacker] == Role_Sharpshooter && g_rgbUsingSkill[iAttacker])
+				{
+					Berserker_TerminateSkill(iVictim);
+				}
+				else
+				{
+					set_pev(iVictim, pev_health, 1.0);
+					
+					engfunc(EngFunc_SetClientMaxspeed, iVictim, get_pcvar_float(cvar_berserkerDyingSpeed));	// dying speed applied.
+					set_pev(iVictim, pev_maxspeed, get_pcvar_float(cvar_berserkerDyingSpeed));
+					
+					return HAM_SUPERCEDE;
+				}
 			}
 		}
 		else if (g_rgPlayerRole[iVictim] == Role_SWAT)
@@ -1153,12 +1185,6 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	
 	if (g_rgPlayerRole[iVictim] == Role_Assassin && g_rgbUsingSkill[iVictim])	// cacha !!!
 		Assassin_Revealed(iVictim, iAttacker);
-	
-	if (is_user_alive(iVictim))
-	{
-		if (bitsDamageTypes & DMG_FREEZE && iInflictor && pev(iInflictor, pev_weapons) == ICE_GRENADE_KEY)
-			Sharpshooter_GetFrozen(iVictim);
-	}
 	
 	if (bitsDamageTypes & (DMG_SHOCK | DMG_NERVEGAS))
 		set_pdata_float(iVictim, m_flVelocityModifier, get_pcvar_float(cvar_msPoisonVelMod));
@@ -1430,13 +1456,15 @@ public HamF_Weaponbox_Touch(iEntity, iPlayer)
 			return HAM_SUPERCEDE;
 		
 		if (g_rgPlayerRole[iPlayer] == Role_Commander &&		// sell weapon.
-			(pev(iPlayer, pev_button) & IN_USE || Commander_CheckWeaponSell(iPlayer, iId)) )
+			(pev(iPlayer, pev_button) & IN_USE || Commander_CheckWeaponSell(iPlayer, iId)) &&
+			pev(iEntity, pev_iuser4) != COMMANDER_TASK)
 		{
 			UTIL_AddAccount(iPlayer, g_rgiWeaponDefaultCost[iId] / 2);
 			UTIL_ColorfulPrintChat(iPlayer, "/g繳獲的武器/t%s/g已賣得/t%d/g$", BLUECHAT, g_rgszWeaponName[iId], g_rgiWeaponDefaultCost[iId] / 2);
 			engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, SFX_REFUND_GUNS, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 			
 			set_pev(iEntity, pev_nextthink, get_gametime());
+			set_pev(iEntity, pev_iuser4, COMMANDER_TASK);	// prevents lagging server cause multiple-sell of same weaponbox.
 			return HAM_SUPERCEDE;
 		}
 	}
@@ -1461,13 +1489,10 @@ public HamF_IsInWorld(iEntity)	// an extremely high velocity would cause entity 
 
 public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer, iSet)
 {
-	if (!is_user_connected(iHost))
-		return;
-	
 	if (is_user_bot(iHost))
 		return;
 	
-	if (bIsPlayer && is_user_alive(iHost))
+	if (bIsPlayer && is_user_alive2(iHost))
 	{
 		if (g_rgflFrozenNextthink[iEntity] > get_gametime())
 		{
@@ -1489,6 +1514,11 @@ public fw_AddToFullPack_Post(ES_Handle, e, iEntity, iHost, iHostFlags, bIsPlayer
 			set_es(ES_Handle, ES_RenderColor, {0, 0, 255})
 			set_es(ES_Handle, ES_RenderAmt, 1)
 			set_es(ES_Handle, ES_RenderMode, kRenderNormal)
+		}
+		else if (g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity])
+		{
+			if (g_rgPlayerRole[iHost] != Role_Sharpshooter || !g_rgbUsingSkill[iHost])
+				set_es(ES_Handle, ES_Effects, EF_NODRAW);
 		}
 		
 		if (g_rgPlayerRole[iHost] == Role_Sharpshooter && g_rgbUsingSkill[iHost] && get_pdata_int(iEntity, m_iTeam) != TEAM_CT)
@@ -1603,6 +1633,12 @@ public fw_Think(iEntity)
 			
 			if (!UTIL_PointVisible(origin, fOrigin, IGNORE_MONSTERS))
 				continue;
+			
+			if (is_user_alive2(i) && g_rgflFrozenNextthink[i] > 0.0)	// melt the ice.
+				Sharpshooter_SetFree(i);
+			
+			if (is_user_alive2(i) && g_rgPlayerRole[i] == Role_Assassin && g_rgbUsingSkill[i])
+				Assassin_Revealed(i, pev(iEntity, pev_owner));
 			
 			new Float:fDistance = get_distance_f(fOrigin, origin);
 			new Float:range = get_pcvar_float(cvar_firegrenade_range);
@@ -2035,11 +2071,6 @@ public fw_PlayerPreThink_Post(pPlayer)
 	MadScientist_SkillThink(pPlayer);
 	GasGrenade_VictimThink(pPlayer);
 	Overhealing_Think(pPlayer);
-	
-	if (g_rgPlayerRole[pPlayer] == Role_Assassin)
-	{
-		client_print(pPlayer, print_chat, is_user_alive2(pPlayer) ? "alive" : "dead");
-	}
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -2259,6 +2290,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 	else if (iTeam == TEAM_TERRORIST)
 	{
 		Godfather_HealingThink(pPlayer);
+		Assassin_SelfThink(pPlayer);
 		
 		if (pPlayer == THE_GODFATHER && is_user_bot(pPlayer))
 			Godfather_BotThink(pPlayer);
@@ -2305,54 +2337,58 @@ public fw_CmdStart(iPlayer, uc_handle, seed)
 		return FMRES_IGNORED;
 	}
 
+	new bool:bSkillSuccessfullyExecuted = false;
 	switch (g_rgPlayerRole[iPlayer])
 	{
 		case Role_Godfather:
 		{
-			Godfather_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = Godfather_ExecuteSkill(iPlayer);
 		}
 		case Role_Commander:
 		{
-			Commander_ExecuteSkill();
+			bSkillSuccessfullyExecuted = Commander_ExecuteSkill();
 		}
 		case Role_Assassin:
 		{
-			Assassin_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = Assassin_ExecuteSkill(iPlayer);
 		}
 		case Role_Berserker:
 		{
-			Berserker_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = Berserker_ExecuteSkill(iPlayer);
 		}
 		case Role_Blaster:
 		{
-			Blaster_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = Blaster_ExecuteSkill(iPlayer);
 		}
 		case Role_Sharpshooter:
 		{
-			Sharpshooter_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = Sharpshooter_ExecuteSkill(iPlayer);
 		}
 		case Role_SWAT:
 		{
-			SWAT_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = SWAT_ExecuteSkill(iPlayer);
 		}
 		case Role_MadScientist:
 		{
-			MadScientist_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = MadScientist_ExecuteSkill(iPlayer);
 		}
 		case Role_Arsonist:
 		{
-			Arsonist_ExecuteSkill(iPlayer);
+			bSkillSuccessfullyExecuted = Arsonist_ExecuteSkill(iPlayer);
 		}
 		default:
 			return FMRES_IGNORED;
 	}
 
-	print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
-	g_rgbUsingSkill[iPlayer] = true;
-	g_rgbAllowSkill[iPlayer] = false;
-	g_rgflSkillExecutedTime[iPlayer] = get_gametime();
+	if (bSkillSuccessfullyExecuted)
+	{
+		print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
+		g_rgbUsingSkill[iPlayer] = true;
+		g_rgbAllowSkill[iPlayer] = false;
+		g_rgflSkillExecutedTime[iPlayer] = get_gametime();
+	}
+	
 	set_uc(uc_handle, UC_Impulse, 0);
-
 	return FMRES_IGNORED;
 }
 
@@ -2408,7 +2444,7 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 	if (g_rgbShootingElectrobullets[iSkipEntity])
 	{
 		new iVictim = get_tr2(tr, TR_pHit);
-		if (is_user_connected(iVictim))
+		if (is_user_connected(iVictim) && g_rgflFrozenNextthink[iVictim] <= 0.0)	// a frozen character cannot be electrified.
 		{
 			if (g_rgflPlayerElectrified[iVictim] <= 0.0)	// never overlap
 				engfunc(EngFunc_EmitSound, iVictim, CHAN_ITEM, ELECTRIFY_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
@@ -2535,6 +2571,13 @@ public OrpheuF_Player_ResetMaxSpeed(pPlayer)
 			
 			return _:OrpheuSupercede;
 		}
+	}
+	else if (g_rgPlayerRole[pPlayer] == Role_Assassin && g_rgbUsingSkill[pPlayer])
+	{
+		engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_assassinSpeed));
+		set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_assassinSpeed));
+		
+		return _:OrpheuSupercede;
 	}
 	
 	return _:OrpheuIgnored;

@@ -81,10 +81,10 @@ public Commander_Assign(pPlayer)
 	emessage_end();
 }
 
-public Commander_ExecuteSkill()
+public bool:Commander_ExecuteSkill()
 {
 	if (g_rgbUsingSkill[THE_COMMANDER])
-		return;
+		return false;
 	
 	if (!is_user_alive(THE_GODFATHER))	// then pick a random guy.
 	{
@@ -107,7 +107,9 @@ public Commander_ExecuteSkill()
 	if (!is_user_alive2(g_iCommanderTracing))
 	{
 		print_chat_color(THE_COMMANDER, REDCHAT, "沒有可以追蹤的目標!");
-		return;
+		set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
+		
+		return true;	// the commander may still use the weapon buff.
 	}
 	
 	new Float:vecOrigin[3];
@@ -143,6 +145,7 @@ public Commander_ExecuteSkill()
 	}
 	
 	set_task(get_pcvar_float(cvar_commanderMarkingDur), "Commander_RevokeSkill", COMMANDER_TASK);
+	return true;
 }
 
 public Commander_SkillThink(pPlayer)	// place at PlayerPostThink()

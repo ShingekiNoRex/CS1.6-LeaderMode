@@ -47,7 +47,7 @@ public Blaster_Precache()
 	g_idGibsModels[4] = engfunc(EngFunc_PrecacheModel, "models/gibs5.mdl")
 }
 
-public Blaster_ExecuteSkill(pPlayer)
+public bool:Blaster_ExecuteSkill(pPlayer)
 {
 	fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_HEGRENADE]);
 	fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_FLASHBANG]);
@@ -56,8 +56,39 @@ public Blaster_ExecuteSkill(pPlayer)
 	
 	engclient_cmd(pPlayer, g_rgszWeaponEntity[CSW_HEGRENADE]);	// switch to grenade.
 	
+	new Float:vecOrigin[3];
+	pev(pPlayer, pev_origin,vecOrigin);
+	
+	new iEntity = -1;	// support other characters.
+	while ((iEntity = engfunc(EngFunc_FindEntityInSphere, iEntity, vecOrigin, 250.0)) > 0)
+	{
+		if (!is_user_alive2(iEntity))
+			continue;
+		
+		if (iEntity == pPlayer)
+			continue;
+
+		switch (g_rgPlayerRole[iEntity])
+		{
+			case Role_Sharpshooter:
+			{
+				if (!(pev(iEntity, pev_weapons) & (1<<CSW_HEGRENADE)) )
+					fm_give_item(iEntity, g_rgszWeaponEntity[CSW_HEGRENADE]);
+			}
+			
+			case Role_Medic:
+			{
+				if (!(pev(iEntity, pev_weapons) & (1<<CSW_SMOKEGRENADE)) )
+					fm_give_item(iEntity, g_rgszWeaponEntity[CSW_SMOKEGRENADE]);
+			}
+			
+			default: { }
+		}
+	}
+	
 	set_task(get_pcvar_float(cvar_blasterDuration), "Blaster_RevokeSkill", BLASTER_TASK + pPlayer);
 	client_cmd(pPlayer, "spk %s", BLASTER_GRAND_SFX);
+	return true;
 }
 
 public Blaster_RevokeSkill(iTaskId)

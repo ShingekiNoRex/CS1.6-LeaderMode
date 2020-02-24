@@ -25,15 +25,23 @@ public Berserker_Precache()
 	engfunc(EngFunc_PrecacheSound, BERSERKER_GRAND_SFX);
 }
 
-public Berserker_ExecuteSkill(pPlayer)
+public bool:Berserker_ExecuteSkill(pPlayer)
 {
+	if (g_rgflGodchildrenSavedHP[pPlayer] > 0.0)
+	{
+		UTIL_ColorfulPrintChat(pPlayer, "/t受/g%s/t的/g洗禮/t約束期間，/g天鵝絕唱/t技能無法使用!", REDCHAT, GODFATHER_TEXT);
+		return false;
+	}
+	
 	set_task(get_pcvar_float(cvar_berserkerDuration), "Berserker_RevokeSkill", BERSERKER_TASK + pPlayer);
 	
 	engfunc(EngFunc_SetClientMaxspeed, pPlayer, get_pcvar_float(cvar_berserkerDashSpeed));
 	set_pev(pPlayer, pev_maxspeed, get_pcvar_float(cvar_berserkerDashSpeed));
 
 	UTIL_ScreenFade(pPlayer, 0.5, get_pcvar_float(cvar_berserkerDuration), FFADE_IN, 255, 10, 10, 60);
-	engfunc(EngFunc_EmitSound, pPlayer, CHAN_AUTO, BERSERKER_GRAND_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_VOICE, BERSERKER_GRAND_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	
+	return true;
 }
 
 public Berserker_RevokeSkill(iTaskId)
@@ -51,11 +59,39 @@ public Berserker_RevokeSkill(iTaskId)
 	g_rgbUsingSkill[pPlayer] = false;
 	g_rgflSkillCooldown[pPlayer] = get_gametime() + get_pcvar_float(cvar_berserkerCooldown);
 	print_chat_color(pPlayer, REDCHAT, "技能已结束！");
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_VOICE, BERSERKER_GRAND_SFX, VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
 
 	if (is_user_alive(pPlayer))
 	{
 		new Float:flCurHealth;
 		pev(pPlayer, pev_health, flCurHealth);
+		
+		if (flCurHealth <= 1.0)
+		{
+			ExecuteHamB(Ham_TakeDamage, pPlayer, 0, 0, 100.0, DMG_GENERIC | DMG_NEVERGIB);
+		}
+	}
+}
+
+public Berserker_TerminateSkill(pPlayer)
+{
+	remove_task(pPlayer + BERSERKER_TASK);
+	
+	ResetMaxSpeed(pPlayer);
+	
+	new Float:flSkillUsedPercentage = (get_gametime() - g_rgflSkillExecutedTime[pPlayer]) / (get_pcvar_float(cvar_berserkerDuration));
+	flSkillUsedPercentage = floatclamp(flSkillUsedPercentage, 0.0, 1.0);
+
+	g_rgbUsingSkill[pPlayer] = false;
+	g_rgflSkillCooldown[pPlayer] = get_gametime() + (get_pcvar_float(cvar_berserkerCooldown) * flSkillUsedPercentage);
+	print_chat_color(pPlayer, REDCHAT, "技能被迫中斷!");
+	engfunc(EngFunc_EmitSound, pPlayer, CHAN_VOICE, BERSERKER_GRAND_SFX, VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+	
+	if (is_user_alive(pPlayer))
+	{
+		new Float:flCurHealth;
+		pev(pPlayer, pev_health, flCurHealth);
+		
 		if (flCurHealth <= 1.0)
 		{
 			ExecuteHamB(Ham_TakeDamage, pPlayer, 0, 0, 100.0, DMG_GENERIC | DMG_NEVERGIB);
