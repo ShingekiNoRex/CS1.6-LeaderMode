@@ -262,12 +262,16 @@ public FrostGrenade_CreateIceCube(pPlayer)
 	pev(pPlayer, pev_origin, vecOrigin);
 	vecOrigin[2] -= 36.0;	// the origin of this model is on the ground.
 	
+	new Float:vecAngles[3];
+	xs_vec_set(vecAngles, 0.0, random_float(0.0, 360.0, 0.0), 0.0);
+	
 	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
 	engfunc(EngFunc_SetModel, iEntity, ICEGRE_VFX_MODEL);
 	engfunc(EngFunc_SetOrigin, iEntity, vecOrigin);
-	engfunc(EngFunc_SetSize, iEntity, Float:{-25.0, -20.0, -4.0}, Float:{32.0, 32.0, 80.0});
+	engfunc(EngFunc_SetSize, iEntity, Float:{-32.0, -32.0, 0.0}, Float:{32.0, 32.0, 80.0});
 	set_pev(iEntity, pev_classname, ICEGRE_VFX_CLASSNAME);
 	set_pev(iEntity, pev_solid, SOLID_BBOX);
+	set_pev(iEntity, pev_angles, vecAngles);
 	
 	set_pev(iEntity, pev_renderfx, kRenderFxNone);
 	set_pev(iEntity, pev_rendercolor, Float:{255.0, 255.0, 255.0} );

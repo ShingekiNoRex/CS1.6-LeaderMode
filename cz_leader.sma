@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.6"
+#define VERSION	"1.14.7"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -456,7 +456,7 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 /*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_D },
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
-/*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_D, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
+/*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_A, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
 /*Role_MadScientist*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F },
 /*Role_Assassin*/		{ WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
 /*Role_Arsonist = 10*/	{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_P, WPN_D, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F }
