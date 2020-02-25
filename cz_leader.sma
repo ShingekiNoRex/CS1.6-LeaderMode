@@ -512,7 +512,7 @@ stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
 stock g_rgszPlayerDefaultModel[][] = { "urban", "urban", "terror", "leet", "arctic", "gsg9", "gign", "sas", "guerilla", "vip", "militia", "spetsnaz" };
 
 new g_fwBotForwardRegister;
-new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4], g_rgbitsPlayerRebuy[33], bool:g_rgbFullBotsTeam[4];
+new g_iLeader[2], bool:g_bRoundStarted = false, g_szLeaderNetname[2][64], g_rgiTeamMenPower[4], g_rgbitsPlayerRebuy[33], bool:g_rgbFullBotsTeam[4], bool:g_rgbPlayerBuildRebuyOnDeath[33];
 new Float:g_rgflHUDThink[33], g_rgszLastHUDText[33][2][192];
 new Float:g_flNewPlayerScan, bool:g_rgbResurrecting[33], Float:g_flStopResurrectingThink;
 new TacticalScheme_e:g_rgTacticalSchemeVote[33], Float:g_flTeamTacticalSchemeThink, TacticalScheme_e:g_rgTeamTacticalScheme[4], Float:g_rgflTeamTSEffectThink[4], g_rgiTeamSchemeBallotBox[4][SCHEMES_COUNT], Float:g_flOpeningBallotBoxes, Float:g_flNextMWDThink;
@@ -791,6 +791,7 @@ public client_putinserver(pPlayer)
 	g_rgflPlayerElectrified[pPlayer] = 0.0;
 	g_rgflPlayerPoisoned[pPlayer] = 0.0;
 	g_rgbSWATShouldPlaySelfRegenSFX[pPlayer] = true;
+	g_rgbPlayerBuildRebuyOnDeath[pPlayer] = true;
 }
 
 public client_connect(pPlayer)
@@ -839,7 +840,8 @@ public HamF_Killed(iVictim, iAttacker, bShouldGib)
 	}
 	
 	// save rebuy info. do it in PRE, or all the weapons would be removed from player during CBasePlayer::Killed()
-	g_rgbitsPlayerRebuy[iVictim] = pev(iVictim, pev_weapons);
+	if (g_rgbPlayerBuildRebuyOnDeath[iVictim])
+		g_rgbitsPlayerRebuy[iVictim] = pev(iVictim, pev_weapons);
 	
 	if (!is_user_connected(iAttacker))
 		return HAM_IGNORED;
@@ -3243,7 +3245,9 @@ public Command_Rebuy(pPlayer)
 			AttemptPurchase(pPlayer, i);
 	}
 	
-	Command_Autobuy(pPlayer);
+	engclient_cmd(pPlayer, "primammo");
+	engclient_cmd(pPlayer, "secammo");
+	engclient_cmd(pPlayer, "vesthelm");
 }
 
 public Command_Autobuy(pPlayer)
@@ -3655,6 +3659,7 @@ public MenuHandler_Buy3(pPlayer, hMenu, iItem)
 		case 8:	// manually save rebuy
 		{
 			g_rgbitsPlayerRebuy[pPlayer] = pev(pPlayer, pev_weapons);
+			g_rgbPlayerBuildRebuyOnDeath[pPlayer] = false;	// no more accidents.
 			
 			new szItems[192];
 			formatex(szItems, charsmax(szItems), "/y已保存的購買清單: ");
