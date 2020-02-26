@@ -263,7 +263,7 @@ public FrostGrenade_CreateIceCube(pPlayer)
 	vecOrigin[2] -= 36.0;	// the origin of this model is on the ground.
 	
 	new Float:vecAngles[3];
-	xs_vec_set(vecAngles, 0.0, random_float(0.0, 360.0, 0.0), 0.0);
+	xs_vec_set(vecAngles, 0.0, random_float(0.0, 360.0), 0.0);
 	
 	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
 	engfunc(EngFunc_SetModel, iEntity, ICEGRE_VFX_MODEL);

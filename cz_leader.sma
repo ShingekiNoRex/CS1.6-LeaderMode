@@ -504,7 +504,8 @@ new const g_rgszEntityToRemove[][] =
 	"func_escapezone",
 	"armoury_entity",
 	"game_player_equip",
-	"game_player_team"
+	"game_player_team",
+	"weapon_shield"
 }
 
 stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
