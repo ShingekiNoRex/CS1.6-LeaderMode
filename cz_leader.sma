@@ -58,7 +58,7 @@ TR:
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
 (角色針對性互動: 教子關係存續間: 狂戰士不得絕唱(如已開始則中斷之)、刺客不得隱形(如已經隱形則令其現身))	(LUNA: UNTESTED)
 狂战士
-(優惠輕機槍、自動步槍、衝鋒槍、霰彈槍)
+(優惠自動步槍、衝鋒槍、霰彈槍，允許輕機槍)
 (5秒内最低维持1血，5秒后若血量不超过1则死亡；移動速度提升，但瀕死狀態速度為0)	✔ (REX)
 (被動：血量越低枪械伤害越高，復活需要雙倍人力)	✔ (REX)
 (角色針對性互動: 無)
@@ -544,6 +544,7 @@ new g_strRadioViewModel, g_strRadioPersonalModel;
 #define SFX_RADAR_BEEP			"leadermode/nes_8bit_alien3_radar_beep1.wav"
 #define SFX_REFUND_GUNS			"leadermode/money_out.wav"
 #define SFX_RADAR_TRACE_DOWN	"leadermode/sfx_event_duel_win_01.wav"
+#define SFX_CD_COMPLETE			"leadermode/pope_accepts_crusade_arrived.wav"
 
 #if defined AIR_SUPPORT_ENABLE
 #define SFX_RADIO_DRAW			"weapons/radio_draw.wav"
@@ -728,6 +729,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheGeneric, MUSIC_GAME_LOST);
 	engfunc(EngFunc_PrecacheSound, SFX_REFUND_GUNS);
 	engfunc(EngFunc_PrecacheSound, SFX_RADAR_TRACE_DOWN);
+	engfunc(EngFunc_PrecacheSound, SFX_CD_COMPLETE);
 	
 	// Radio
 	#if defined AIR_SUPPORT_ENABLE
@@ -2281,6 +2283,7 @@ public fw_PlayerPostThink_Post(pPlayer)
 		{
 			g_rgbAllowSkill[pPlayer] = true;
 			print_chat_color(pPlayer, GREENCHAT, "技能冷卻完毕！");
+			client_cmd(pPlayer, "spk %s", SFX_CD_COMPLETE);
 		}
 	}
 	
