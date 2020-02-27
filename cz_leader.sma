@@ -41,12 +41,12 @@ S.W.A.T.
 (被動：死後強力爆炸、霰彈槍改為爆炸彈藥) ✔ (REX) (LUNA)
 (角色針對性互動: 使用主動技能時：為神射手填充冰凍手榴彈、為軍醫填充治療煙霧彈)	✔ (LUNA)
 神射手
-(優惠M200、手榴彈、ANACONDA、DEAGLE和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍帶有懲罰)
+(優惠M200、ANACONDA、DEAGLE和AWP，允許半自動狙擊槍、煙霧彈和閃光彈，突擊步槍、手榴彈帶有懲罰)
 (狙擊槍和大威力手槍10秒内强制爆头，命中的目標致盲3秒)	✔ (LUNA)
 (被動：長弓冰凍手榴彈) ✔ (REX)
 (角色針對性互動: 使用主動技能時：若為原始爆頭則強制擊殺狂戰士，可以看見刺客。冰凍手榴彈: 解除毒氣彈(UNDONE)與火焰手榴彈(UNDONE)的作用。被冰凍的角色不受電擊的影響。)	(LUNA: UNTESTED)
 軍醫
-(優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
+(優惠衝鋒槍，允許霰彈槍、M4A1和ACR，煙霧彈帶有懲罰)
 (5秒內所有射出的子彈均帶有治療效果)	✔ (LUNA)
 (被動：煙霧彈具有治療效果，能為指揮官Overhealing)	✔ (LUNA)
 (角色針對性互動: 可以用治療煙霧彈Overheal指揮官。治療煙霧彈可以: 解凍角色、滅除角色身上的火焰、強制中斷絕唱但不予擊殺、範圍內不會中毒與觸電、令刺客顯形。治療飛鏢可以: 強制中斷絕唱但不予擊殺，解除凍結、燃燒、中毒與觸電狀態)	(LUNA: UNTESTED)
@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.15.1"
+#define VERSION	"1.15.2"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -452,8 +452,8 @@ stock const g_rgRoleWeaponsAccessibility[ROLE_COUNT][CSW_P90 + 1] =
 /*Role_Commander = 1*/	{ WPN_F, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_SWAT*/			{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D },
 /*Role_Blaster*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_D, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A },
-/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_D, WPN_P, WPN_P, WPN_F, WPN_F },
-/*Role_Medic = 5*/		{ WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_D, WPN_A, WPN_A, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_A, WPN_F, WPN_D, WPN_F, WPN_F, WPN_D, WPN_F, WPN_F, WPN_F, WPN_D },
+/*Role_Sharpshooter*/	{ WPN_F, WPN_D, WPN_F, WPN_D, WPN_P, WPN_F, WPN_F, WPN_F, WPN_P, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_P, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_P, WPN_F, WPN_A, WPN_A, WPN_D, WPN_P, WPN_P, WPN_F, WPN_F },
+/*Role_Medic = 5*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_A, WPN_F, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_F, WPN_A, WPN_A, WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D },
 
 /*Role_Godfather = 6*/	{ WPN_F, WPN_D, WPN_F, WPN_A, WPN_A, WPN_A, WPN_F, WPN_A, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_P, WPN_A, WPN_A, WPN_D, WPN_D, WPN_A, WPN_A, WPN_P, WPN_A, WPN_A, WPN_A, WPN_P, WPN_A, WPN_D, WPN_A, WPN_A, WPN_F, WPN_A },
 /*Role_Berserker*/		{ WPN_F, WPN_A, WPN_F, WPN_F, WPN_F, WPN_D, WPN_F, WPN_D, WPN_D, WPN_F, WPN_A, WPN_A, WPN_D, WPN_F, WPN_D, WPN_D, WPN_A, WPN_A, WPN_F, WPN_D, WPN_A, WPN_D, WPN_D, WPN_D, WPN_F, WPN_F, WPN_A, WPN_D, WPN_D, WPN_F, WPN_D },
@@ -1096,6 +1096,9 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 		Arsonist_CreateTrace(iAttacker, vecOrigin);
 		g_rgflPlayerBurning[iVictim] = get_gametime() + get_pcvar_float(cvar_arsonistIgniteDur);
 		g_rgiIgnitedBy[iVictim] = iAttacker;
+		
+		if (is_user_alive2(iVictim) && g_rgflFrozenNextthink[iVictim] > 0.0)	// melt the ice.
+			Sharpshooter_SetFree(iVictim);
 	}
 	
 	return HAM_IGNORED;

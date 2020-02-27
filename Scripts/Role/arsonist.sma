@@ -301,6 +301,9 @@ public IncendiaryGrenade_Blast(iEntity)
 		if (pev(i, pev_takedamage) == DAMAGE_NO)
 			continue;
 		
+		if (is_user_alive2(i) && g_rgflFrozenNextthink[i] > 0.0)	// melt the ice.
+			Sharpshooter_SetFree(i);
+		
 		ExecuteHamB(Ham_TakeDamage, i, iEntity, pev(iEntity, pev_owner), get_pcvar_float(cvar_firegrenade_dmg), DMG_SLOWBURN);
 		
 		if (is_user_alive2(i) && g_rgPlayerRole[i] != Role_Arsonist)
