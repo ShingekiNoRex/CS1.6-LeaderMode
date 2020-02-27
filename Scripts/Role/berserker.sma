@@ -27,7 +27,10 @@ public Berserker_Precache()
 
 public bool:Berserker_ExecuteSkill(pPlayer)
 {
-	if (g_rgflGodchildrenSavedHP[pPlayer] > 0.0)
+	new Float:flHealth;
+	pev(pPlayer, pev_health, flHealth);
+	
+	if (g_rgflGodchildrenSavedHP[pPlayer] > 0.0 && flHealth > 100.0)	// skill is forbidden only if health still greater than 100.
 	{
 		UTIL_ColorfulPrintChat(pPlayer, "/t受/g%s/t的/g洗禮/t約束期間，/g天鵝絕唱/t技能無法使用!", REDCHAT, GODFATHER_TEXT);
 		return false;
@@ -142,8 +145,6 @@ public Berserker_BotThink(pPlayer)
 	
 	if (iEnemyCounts >= 2)
 	{
-		Berserker_ExecuteSkill(pPlayer);
-		g_rgbUsingSkill[pPlayer] = true;
-		g_rgbAllowSkill[pPlayer] = false;
+		Hub_ExecuteSkill(pPlayer);
 	}
 }

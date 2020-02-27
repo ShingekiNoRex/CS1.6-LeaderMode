@@ -359,9 +359,7 @@ public MadScientist_BotThink(pPlayer)
 		}
 		else if (g_rgbAllowSkill[pPlayer])
 		{
-			MadScientist_ExecuteSkill(pPlayer);
-			g_rgbUsingSkill[pPlayer] = true;
-			g_rgbAllowSkill[pPlayer] = false;
+			Hub_ExecuteSkill(pPlayer);
 		}
 	}
 }

@@ -112,10 +112,11 @@ public bool:Godfather_ExecuteSkill(pPlayer)
 		if (iGodchild == pPlayer)
 			continue;
 		
-		if (g_rgPlayerRole[iGodchild] == Role_Berserker && g_rgbUsingSkill[iGodchild])	// these two would not allow to be both godchildren and crazy freaking monster.
+		if (g_rgPlayerRole[iGodchild] == Role_Assassin && g_rgbUsingSkill[iGodchild])	// assassin cannot accepts baptism when using skill.
+			continue;
+		
+		if (g_rgPlayerRole[iGodchild] == Role_Berserker && g_rgbUsingSkill[iGodchild])	// berserker would not allow to be both godchildren and crazy freaking monster.
 			Berserker_TerminateSkill(iGodchild);
-		else if (g_rgPlayerRole[iGodchild] == Role_Assassin && g_rgbUsingSkill[iGodchild])
-			Assassin_Revealed(iGodchild, 0);
 		
 		g_iGodchildrenCount++;	// thus, the indexes are started from 1 and end with its exact number.
 		g_rgiGodchildren[g_iGodchildrenCount] = iGodchild;
@@ -256,9 +257,7 @@ public Godfather_BotThink(pPlayer)
 
 	if (iPlayerCount > 0 && iPlayerCount <= 2)
 	{
-		Godfather_ExecuteSkill(pPlayer);
-		g_rgbUsingSkill[pPlayer] = true;
-		g_rgbAllowSkill[pPlayer] = false;	// we need to set this value manually, since we bypass fw_CmdStart().
+		Hub_ExecuteSkill(pPlayer);
 		return;
 	}
 	
@@ -267,8 +266,6 @@ public Godfather_BotThink(pPlayer)
 	
 	if (!iPlayerCount && is_user_alive(iEntity) && get_pdata_int(iEntity, m_iTeam) == TEAM_CT)	// don't use this skill when too many people around. it's dangerous.
 	{
-		Godfather_ExecuteSkill(pPlayer);
-		g_rgbUsingSkill[pPlayer] = true;
-		g_rgbAllowSkill[pPlayer] = false;
+		Hub_ExecuteSkill(pPlayer);
 	}
 }

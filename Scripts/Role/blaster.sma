@@ -319,9 +319,7 @@ public Breacher_BotThink(pPlayer)
 	new iEntity = get_tr2(0, TR_pHit);
 	if (is_user_alive2(iEntity) && !fm_is_user_same_team(pPlayer, iEntity))
 	{
-		Blaster_ExecuteSkill(pPlayer);
-		g_rgbUsingSkill[pPlayer] = true;
-		g_rgbAllowSkill[pPlayer] = false;
+		Hub_ExecuteSkill(pPlayer);
 	}
 }
 

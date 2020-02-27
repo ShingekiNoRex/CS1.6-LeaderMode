@@ -15,6 +15,7 @@
 
 #define RANDOM_IN_ARRAY(%1)		%1[random_num(0, sizeof %1)]
 
+new cvar_medicHDCD, cvar_medicHDDur;
 new cvar_medicHGAmount, cvar_medicHGInterval, cvar_medicOHLimit, cvar_medicOHDecayInv, cvar_medicOHDecayAmt;
 new Float:g_rgflOverhealingThink[33];
 new bool:g_rgbShootingHealingDart[33];
@@ -23,11 +24,16 @@ new g_idHealingSpr;
 
 public Medic_Initialize()
 {
+	cvar_medicHDCD			= register_cvar("lm_medic_healingdart_cd",		"20.0");
+	cvar_medicHDDur			= register_cvar("lm_medic_healingdart_dur",		"5.0");
 	cvar_medicHGAmount		= register_cvar("lm_medic_healing_gr_amount",	"5.0");
 	cvar_medicHGInterval	= register_cvar("lm_medic_healing_gr_inv",		"2.0");
 	cvar_medicOHLimit		= register_cvar("lm_medic_overhealing_limit",	"200.0");
 	cvar_medicOHDecayInv	= register_cvar("lm_medic_overhealing_decayInv","1.0");
 	cvar_medicOHDecayAmt	= register_cvar("lm_medic_overhealing_decayAmt","1.0");
+	
+	g_rgSkillDuration[Role_Medic] = cvar_medicHDDur;
+	g_rgSkillCooldown[Role_Medic] = cvar_medicHDCD;
 }
 
 public Medic_Precache()
@@ -69,6 +75,34 @@ public Command_Harm(pPlayer)
 	set_pev(pPlayer, pev_health, 50.0);
 	
 	return PLUGIN_HANDLED;
+}
+
+public bool:Medic_ExecuteSkill(pPlayer)
+{
+	set_task(get_pcvar_float(cvar_medicHDDur), "Medic_RevokeSkill", MEDIC_TASK + pPlayer);
+	
+	//client_cmd(pPlayer, "spk %s", MEDIC_GRAND_SFX);
+	
+	return true;
+}
+
+public Medic_RevokeSkill(iTaskId)
+{
+	new pPlayer = iTaskId - MEDIC_TASK;
+	
+	if (!is_user_alive(pPlayer))
+		return;
+	
+	g_rgbUsingSkill[pPlayer] = false;
+	g_rgflSkillCooldown[pPlayer] = get_gametime() + get_pcvar_float(cvar_medicHDCD);
+	print_chat_color(pPlayer, BLUECHAT, "技能已结束！");
+	//client_cmd(pPlayer, "spk %s", MEDIC_REVOKE_SFX);
+}
+
+public Medic_TerminateSkill(pPlayer)
+{
+	remove_task(MEDIC_TASK + pPlayer);
+	Medic_RevokeSkill(MEDIC_TASK + pPlayer);
 }
 
 public HealingGrenade_Think(iEntity)
@@ -115,6 +149,9 @@ public HealingGrenade_Think(iEntity)
 		
 		if (g_rgflPlayerPoisoned[pPlayer] > 0.0)	// remove poisoned state.
 			g_rgflPlayerPoisoned[pPlayer] = 1.0;
+		
+		if (g_rgflPlayerBurning[pPlayer] > 0.0)		// quench player.
+			g_rgflPlayerBurning[pPlayer] = 1.0;
 		
 		if (g_rgPlayerRole[pPlayer] == Role_Assassin && g_rgbUsingSkill[pPlayer])
 			Assassin_Revealed(pPlayer, iMedicPlayer);
@@ -241,7 +278,7 @@ new Float:g_rgflMedicBotThink[33], Float:g_rgflMedicGrenadeThrow[33];
 public Medic_BotThink(pPlayer)
 {
 	// throw medic grenade to player when they are under control of DOTs.
-	// heal player with their DEAGLE or ANACONDA.
+	// heal player with their gun.
 	
 	if (!is_user_bot(pPlayer) || g_rgflMedicBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
 		return;
@@ -294,25 +331,7 @@ public Medic_BotThink(pPlayer)
 			|| (flHealth < 120.0 && get_pdata_int(i, m_iTeam) == TEAM_CT)				// or some bleeding teammates
 			|| (g_rgPlayerRole[pPlayer] == Role_Berserker && g_rgbUsingSkill[pPlayer]))	// or just a random freaking guy.
 		{
-			new iEntity = get_pdata_cbase(pPlayer, m_rgpPlayerItems[2]);
-			
-			if (pev_valid(iEntity) == 2 && ((1<<get_pdata_int(iEntity, m_iId)) & ((1<<CSW_DEAGLE)|(1<<CSW_ANACONDA))) )
-			{
-				// you got a heal gun, then use it.
-				SelectItem(pPlayer, g_rgszWeaponEntity[get_pdata_int(iEntity, m_iId)]);
-			}
-			else
-			{
-				// you don't get one? find, I would get you one.
-				
-				new iId = random_num(0, 1) ? CSW_ANACONDA : CSW_DEAGLE;
-				
-				DropWeapons(pPlayer, 2);
-				fm_give_item(pPlayer, g_rgszWeaponEntity[iId]);
-				SelectItem(pPlayer, g_rgszWeaponEntity[iId]);
-				
-				iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
-			}
+			new iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
 			
 			new Float:vecDir[3], Float:vecVAngle[3];
 			xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
@@ -328,7 +347,7 @@ public Medic_BotThink(pPlayer)
 			ExecuteHamB(Ham_Weapon_PrimaryAttack, iEntity);
 			g_rgbShootingHealingDart[pPlayer] = false;
 			
-			// one problen per time.
+			// one problem per time.
 			break;
 		}
 	}

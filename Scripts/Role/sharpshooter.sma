@@ -337,8 +337,6 @@ public Sharpshooter_BotThink(pPlayer)
 			ExecuteHamB(Ham_GiveAmmo, pPlayer, 240, "50AE", 240);
 		}
 		
-		Sharpshooter_ExecuteSkill(pPlayer);
-		g_rgbUsingSkill[pPlayer] = true;
-		g_rgbAllowSkill[pPlayer] = false;
+		Hub_ExecuteSkill(pPlayer);
 	}
 }

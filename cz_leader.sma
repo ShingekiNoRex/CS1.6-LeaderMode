@@ -47,16 +47,16 @@ S.W.A.T.
 (角色針對性互動: 使用主動技能時：若為原始爆頭則強制擊殺狂戰士，可以看見刺客。冰凍手榴彈: 解除毒氣彈(UNDONE)與火焰手榴彈(UNDONE)的作用。被冰凍的角色不受電擊的影響。)	(LUNA: UNTESTED)
 軍醫
 (優惠ANACONDA、DEAGLE、衝鋒槍和煙霧彈，允許霰彈槍、CM901和QBZ95)
-(包含自己在内恢复周圍非隊長角色的HP)
-(被動：大威力手槍射出治疗弹，煙霧彈具有治療效果，能為指揮官Overhealing)	✔ (LUNA)
-(角色針對性互動: 可以用治療煙霧彈Overheal指揮官。治療煙霧彈可以: 解凍角色、強制中斷絕唱但不予擊殺、範圍內不會中毒與觸電、令刺客顯形。治療飛鏢可以: 強制中斷絕唱但不予擊殺，解除凍結、燃燒(UNDONE)、中毒與觸電狀態)	(LUNA: UNTESTED)
+(5秒內所有射出的子彈均帶有治療效果)	✔ (LUNA)
+(被動：煙霧彈具有治療效果，能為指揮官Overhealing)	✔ (LUNA)
+(角色針對性互動: 可以用治療煙霧彈Overheal指揮官。治療煙霧彈可以: 解凍角色、滅除角色身上的火焰、強制中斷絕唱但不予擊殺、範圍內不會中毒與觸電、令刺客顯形。治療飛鏢可以: 強制中斷絕唱但不予擊殺，解除凍結、燃燒、中毒與觸電狀態)	(LUNA: UNTESTED)
 
 TR:
 教父
 (優惠手槍，半自動狙擊槍與輕機槍帶有懲罰，允許其餘武器)
 (將自身HP均分至周圍角色，结束後收回。自身受伤减半) ✔ (LUNA)
 (被動：HP 1000，周围友军缓慢恢复生命) ✔ (REX)
-(角色針對性互動: 教子關係存續間: 狂戰士不得絕唱(如已開始則中斷之)、刺客不得隱形(如已經隱形則令其現身))	(LUNA: UNTESTED)
+(角色針對性互動: 教子關係存續且生命大於100時: 狂戰士不得絕唱(如已開始則中斷之)、刺客不得隱形)	(LUNA: UNTESTED)
 狂战士
 (優惠自動步槍、衝鋒槍、霰彈槍，允許輕機槍)
 (5秒内最低维持1血，5秒后若血量不超过1则死亡；移動速度提升，但瀕死狀態速度為0)	✔ (REX)
@@ -69,13 +69,13 @@ TR:
 (角色針對性互動: 毒氣令刺客顯形)	(LUNA: UNTESTED)
 刺客
 (優惠USP、MP7、M200，允許衝鋒槍、煙霧彈和閃光彈，M14EBR帶有懲罰)
-(消音武器，標記敌方指挥官位置；隱身10秒，接觸其他角色會被發現) ✔ (LUNA)
-(被動：消音武器有1%的概率暴擊) ✔ (LUNA)
+(消音武器，標記敌方指挥官位置；隱身10秒，接觸敵人會被發現) ✔ (LUNA)
+(被動：消音武器有3%的概率暴擊) ✔ (LUNA)
 (角色針對性互動: 指揮官死亡後可以標記餘下敵人)	✔ (LUNA)
 纵火犯
 (優惠霰彈槍，允許M4A1、SCAR-L，手榴彈帶有懲罰)
 (火焰弹药，燃烧伤害附带减速效果) ✔ (REX)
-(被動：燃烧手雷，免疫燃烧伤害) ✔ (REX)
+(被動：燃烧手雷，免疫燃烧伤害，霰彈槍發射燃燒彈藥) ✔ (REX)
 (角色針對性互動: 燃燒彈可以: 解除冰凍、令刺客顯形、移除治療煙霧彈(UNDONE)、引爆毒氣(UNDONE))	(LUNA: UNTESTED)
 
 **/
@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.15"
+#define VERSION	"1.15.1"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -259,7 +259,7 @@ stock const g_rgszRoleSkills[ROLE_COUNT][] =
 	"[T]填充所有物資並於15秒內轉移所有傷害至護甲",
 	"[T]無限供應投擲物並增加50%%%%爆炸傷害",
 	"[T]狙擊槍或大口徑手槍強制命中頭部並令目標失明",
-	"",
+	"[T]立即填裝治療飛鏢，治療命中的角色",
 	
 	"[T]均分HP至周圍角色，结束后收回。自身受傷減半",
 	"[T]提升移速，承受致命伤不会立刻死亡",
@@ -281,7 +281,7 @@ stock const g_rgszRolePassiveSkills[ROLE_COUNT][] =
 	"[被动]周围友军缓慢恢复生命",
 	"[被动]血量越低伤害越高、復活需要雙倍人力",
 	"[被動]煙霧彈內有神經毒氣、護甲帶電",
-	"[被动]消音武器有1%%%%的概率暴擊",
+	"[被动]消音武器有3%%%%概率暴擊",
 	"[被动]燃烧手雷、免疫燃烧伤害"
 };
 
@@ -677,6 +677,7 @@ public plugin_init()
 	register_clcmd("healme",			"Command_Heal");
 	register_clcmd("harmme",			"Command_Harm");
 	register_clcmd("harmhim",			"Command_DamageOther");
+	register_clcmd("ignite",			"Command_Ignite");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -960,6 +961,7 @@ public HamF_Killed_Post(victim, attacker, shouldgib)
 	// remove DOTs
 	g_rgflPlayerPoisoned[victim] = floatmin(g_rgflPlayerPoisoned[victim], 1.0);	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
 	g_rgflPlayerElectrified[victim] = floatmin(g_rgflPlayerElectrified[victim], 1.0);
+	g_rgflPlayerBurning[victim] = floatmin(g_rgflPlayerBurning[victim], 1.0);
 
 	iTeam = get_pdata_int(victim, m_iTeam);
 	if (iTeam != TEAM_CT && iTeam != TEAM_TERRORIST)
@@ -1005,7 +1007,7 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 	
 	if (g_rgPlayerRole[iAttacker] == Role_Assassin &&
 		(iId == CSW_USP || iId == CSW_M14EBR || iId == CSW_MP7A1 || iId == CSW_M200) &&	// silenced weapons
-		!random_num(0, 99) )	// 1% chance
+		!random_num(0, 32) )	// 3% chance
 	{
 		new Float:vecOrigin[3];
 		get_tr2(tr, TR_vecEndPos, vecOrigin);
@@ -1029,9 +1031,9 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 		return HAM_HANDLED;
 	}
 	
-	if (g_rgbShootingHealingDart[iAttacker])	// medic passive skill
+	if (g_rgbShootingHealingDart[iAttacker])	// medic action skill
 	{
-		if (is_user_alive(iVictim) && fm_is_user_same_team(iAttacker, iVictim) && iVictim != THE_COMMANDER)	// heal teammates.
+		if (is_user_alive(iVictim) && iVictim != THE_GODFATHER && iVictim != THE_COMMANDER)	// heal everyone, including teammates and enemies.
 		{
 			new Float:vecOrigin[3];
 			get_tr2(tr, TR_vecEndPos, vecOrigin);
@@ -1061,6 +1063,9 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 			
 			if (g_rgflPlayerPoisoned[iVictim] > 0.0)	// remove poisoned state.
 				g_rgflPlayerPoisoned[iVictim] = 1.0;
+			
+			if (g_rgflPlayerBurning[iVictim] > 0.0)		// quench player.
+				g_rgflPlayerBurning[iVictim] = 1.0;
 
 			SetHamParamFloat(3, 0.0);	// it won't do any damage no nomatter what mp_friendfire says.
 			return HAM_HANDLED;
@@ -1076,10 +1081,21 @@ public HamF_TraceAttack(iVictim, iAttacker, Float:flDamage, Float:vecDirection[3
 			if (flHealth <= 1.0)
 				set_pev(iVictim, pev_health, 2.0);
 			
-			new Float:vecOrigin[3];
-			get_tr2(tr, TR_vecEndPos, vecOrigin);
-			UTIL_BeamEntPoint(iAttacker|0x1000, vecOrigin, g_idFireTrace, 1, 10, 1, 6, 0, 51, 204, 255, 128, 10);
+			// since we are healing everyone since 1.15.1 update, we don't need an extra VFX.
+			//new Float:vecOrigin[3];
+			//get_tr2(tr, TR_vecEndPos, vecOrigin);
+			//UTIL_BeamEntPoint(iAttacker|0x1000, vecOrigin, g_idFireTrace, 1, 10, 1, 6, 0, 51, 204, 255, 128, 10);
 		}
+	}
+	
+	if (g_rgbArsonistFiring[iAttacker])	// arsonist passive / action skill
+	{
+		new Float:vecOrigin[3];
+		get_tr2(tr, TR_vecEndPos, vecOrigin);
+		
+		Arsonist_CreateTrace(iAttacker, vecOrigin);
+		g_rgflPlayerBurning[iVictim] = get_gametime() + get_pcvar_float(cvar_arsonistIgniteDur);
+		g_rgiIgnitedBy[iVictim] = iAttacker;
 	}
 	
 	return HAM_IGNORED;
@@ -1231,7 +1247,7 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 	
 	if (iVictimTeam != iAttackerTeam)
 		UTIL_AddAccount(iAttacker, floatround(flDamage * (g_rgTeamTacticalScheme[iAttackerTeam] == Doctrine_GrandBattleplan ? get_pcvar_float(cvar_TSDbountymul) : 1.0 )) );
-	else
+	else if (!g_rgbShootingHealingDart[iAttacker])	// never reduce money due to shooting healing dart.
 		UTIL_AddAccount(iAttacker, -floatround(flDamage * 3.0));
 }
 
@@ -1275,13 +1291,12 @@ public HamF_Weapon_PrimaryAttack(iEntity)
 		engfunc(EngFunc_EmitSound, iPlayer, CHAN_AUTO, ELECTROBULLETS_SFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	}
 
-	if (g_rgPlayerRole[iPlayer] == Role_Arsonist && g_rgbUsingSkill[iPlayer])
+	if (g_rgPlayerRole[iPlayer] == Role_Arsonist && (g_rgbUsingSkill[iPlayer] || iId == CSW_KSG12 || iId == CSW_STRIKER))
 	{
 		g_rgbArsonistFiring[iPlayer] = true;	// LUNA: don't worry, REX. the code won't reach here if the clip is <= 0. check the first line of this function.
 	}
 
-	if (g_rgPlayerRole[iPlayer] == Role_Medic &&
-		(iId == CSW_ANACONDA || iId == CSW_DEAGLE) )
+	if (g_rgPlayerRole[iPlayer] == Role_Medic && g_rgbUsingSkill[iPlayer])
 	{
 		g_rgbShootingHealingDart[iPlayer] = true;
 	}
@@ -1572,7 +1587,7 @@ public fw_Touch_Post(iEntity, iOther)
 		return;
 	
 	// assassin would be revealed if touch by other players.
-	if (is_user_connected(iEntity) && g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity] && is_user_alive(iOther))
+	if (is_user_connected(iEntity) && g_rgPlayerRole[iEntity] == Role_Assassin && g_rgbUsingSkill[iEntity] && is_user_alive(iOther) && !fm_is_user_same_team(iEntity, iOther))
 	{
 		Assassin_Revealed(iEntity, iOther);
 		return;
@@ -1590,22 +1605,11 @@ public fw_Touch_Post(iEntity, iOther)
 		return;
 	}
 
-	if (pev(iEntity, pev_weapons) != FIRE_GRENADE_OPEN)
+	if (pev(iEntity, pev_weapons) == FIRE_GRENADE_OPEN)
+	{
+		IncendiaryGrenade_Blast(iEntity);
 		return;
-	
-	if (!engfunc(EngFunc_EntIsOnFloor, iEntity))
-		return;
-
-	new Float:fCurTime;
-	global_get(glb_time, fCurTime);
-	set_pev(iEntity, pev_rendermode, kRenderTransAlpha);
-	set_pev(iEntity, pev_renderamt, 0.0);
-	set_pev(iEntity, pev_solid, SOLID_NOT);
-	set_pev(iEntity, pev_movetype, MOVETYPE_NONE);
-	set_pev(iEntity, pev_dmgtime, fCurTime+get_pcvar_float(cvar_firegrenade_dmgtime)+10.0);
-	set_pev(iEntity, pev_weapons, FIRE_GRENADE_CLOSED);
-	engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_A, 1.0, ATTN_NORM, 0, PITCH_NORM);
-	set_pev(iEntity, pev_fuser3, fCurTime+1.0);
+	}
 }
 
 public fw_Think(iEntity)
@@ -1620,93 +1624,10 @@ public fw_Think(iEntity)
 		HealingGrenade_Think(iEntity);
 		return FMRES_IGNORED;
 	}
+	else if (pev(iEntity, pev_weapons) == FIRE_GRENADE_CLOSED)
+		return IncendiaryGrenade_Think(iEntity);
 	
-	static szClassName[32];
-	pev(iEntity, pev_classname, szClassName, charsmax(szClassName));
-	if (strcmp(szClassName, "grenade"))
-		return FMRES_IGNORED;
-	
-	if (pev(iEntity, pev_weapons) != FIRE_GRENADE_CLOSED)
-		return FMRES_IGNORED;
-	
-	new Float:dmgtime;
-	pev(iEntity, pev_dmgtime, dmgtime);
-	if (dmgtime - get_gametime() <= 10.0)
-	{
-		engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_B, 1.0, ATTN_NORM, SND_STOP, PITCH_NORM);
-		engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_C, 1.0, ATTN_NORM, 0, PITCH_NORM);
-		set_pev(iEntity, pev_flags, FL_KILLME);
-		return FMRES_SUPERCEDE;
-	}
-	
-	new Float:fCurTime, Float:ThinkTime;
-	global_get(glb_time, fCurTime);
-	set_pev(iEntity, pev_nextthink, fCurTime + 0.01);
-	pev(iEntity, pev_fuser1, ThinkTime);
-	
-	if (ThinkTime <= fCurTime)
-	{
-		new Float:origin[3];
-		pev(iEntity, pev_origin, origin);
-		new i = -1;
-		while ((i = engfunc(EngFunc_FindEntityInSphere, i, origin, get_pcvar_float(cvar_firegrenade_range))) > 0)
-		{
-			if (!pev_valid(i))
-				continue;
-			
-			if (pev(i, pev_takedamage) == DAMAGE_NO)
-				continue;
-			
-			new Float:fOrigin[3];
-			pev(i, pev_origin, fOrigin);
-			
-			if (!UTIL_PointVisible(origin, fOrigin, IGNORE_MONSTERS))
-				continue;
-			
-			if (is_user_alive2(i) && g_rgflFrozenNextthink[i] > 0.0)	// melt the ice.
-				Sharpshooter_SetFree(i);
-			
-			if (is_user_alive2(i) && g_rgPlayerRole[i] == Role_Assassin && g_rgbUsingSkill[i])
-				Assassin_Revealed(i, pev(iEntity, pev_owner));
-			
-			if (is_user_alive2(i) && g_rgflNextBurningScream[i] < get_gametime())
-			{
-				new szBurningScreamSFX[48];
-				formatex(szBurningScreamSFX, charsmax(szBurningScreamSFX), BURING_SCREAM_SFX, random_num(1, 5));
-				
-				engfunc(EngFunc_EmitSound, iEntity, CHAN_VOICE, szBurningScreamSFX, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-				g_rgflNextBurningScream[i] = get_gametime() + random_float(2.5, 3.0);
-			}
-			
-			new Float:fDistance = get_distance_f(fOrigin, origin);
-			new Float:range = get_pcvar_float(cvar_firegrenade_range);
-			new Float:fMaxDamage = floatmax(get_pcvar_float(cvar_firegrenade_dmg)*((range-fDistance)/range), 0.0);
-			
-			if (fMaxDamage <= 1.0)
-				continue;
-			
-			ExecuteHamB(Ham_TakeDamage, i, iEntity, pev(iEntity, pev_owner), fMaxDamage, DMG_SLOWBURN);
-		}
-		set_pev(iEntity, pev_fuser1, fCurTime + get_pcvar_float(cvar_firegrenade_interval));
-	}
-	
-	pev(iEntity, pev_fuser3, ThinkTime);
-	if (ThinkTime <= fCurTime)
-	{
-		engfunc(EngFunc_EmitSound, iEntity, CHAN_AUTO, FIREGRENADE_SFX_B, 1.0, ATTN_NORM, 0, PITCH_NORM);
-		set_pev(iEntity, pev_fuser3, fCurTime + 4.0);
-	}
-	
-	pev(iEntity, pev_fuser2, ThinkTime);
-	if (ThinkTime > fCurTime)
-		return FMRES_SUPERCEDE;
-	
-	new Float:origin[3];
-	pev(iEntity, pev_origin, origin);
-	Arsonist_MakeFlames(origin);
-	set_pev(iEntity, pev_fuser2, fCurTime + 0.1);
-	
-	return FMRES_SUPERCEDE;
+	return FMRES_IGNORED;
 }
 
 public fw_SetModel(iEntity, szModel[])
@@ -2109,6 +2030,7 @@ public fw_PlayerPreThink_Post(pPlayer)
 	MadScientist_SkillThink(pPlayer);
 	GasGrenade_VictimThink(pPlayer);
 	Overhealing_Think(pPlayer);
+	IncendiaryGrenade_VictimThink(pPlayer);
 }
 
 public fw_PlayerPostThink_Post(pPlayer)
@@ -2366,75 +2288,16 @@ public fw_Spawn(iEntity)	// 移除任务实体
 
 public fw_CmdStart(iPlayer, uc_handle, seed)
 {
-	if (!is_user_alive(iPlayer) || !g_bRoundStarted)	// you can't use your skill in freeze phase!
+	if (!is_user_alive2(iPlayer) || !g_bRoundStarted)	// you can't use your skill in freeze phase!
 		return FMRES_IGNORED;
 
 	if (get_uc(uc_handle, UC_Impulse) != 201)
 		return FMRES_IGNORED;
 
-	if (g_rgbUsingSkill[iPlayer])
-	{
-		print_chat_color(iPlayer, GREYCHAT, "技能正在使用中！");
+	if (!Hub_ExecuteSkill(iPlayer))
 		return FMRES_IGNORED;
-	}
-
-	if (!g_rgbAllowSkill[iPlayer])
-	{
-		print_chat_color(iPlayer, GREYCHAT, "技能正在冷卻中！");
-		return FMRES_IGNORED;
-	}
-
-	new bool:bSkillSuccessfullyExecuted = false;
-	switch (g_rgPlayerRole[iPlayer])
-	{
-		case Role_Godfather:
-		{
-			bSkillSuccessfullyExecuted = Godfather_ExecuteSkill(iPlayer);
-		}
-		case Role_Commander:
-		{
-			bSkillSuccessfullyExecuted = Commander_ExecuteSkill();
-		}
-		case Role_Assassin:
-		{
-			bSkillSuccessfullyExecuted = Assassin_ExecuteSkill(iPlayer);
-		}
-		case Role_Berserker:
-		{
-			bSkillSuccessfullyExecuted = Berserker_ExecuteSkill(iPlayer);
-		}
-		case Role_Blaster:
-		{
-			bSkillSuccessfullyExecuted = Blaster_ExecuteSkill(iPlayer);
-		}
-		case Role_Sharpshooter:
-		{
-			bSkillSuccessfullyExecuted = Sharpshooter_ExecuteSkill(iPlayer);
-		}
-		case Role_SWAT:
-		{
-			bSkillSuccessfullyExecuted = SWAT_ExecuteSkill(iPlayer);
-		}
-		case Role_MadScientist:
-		{
-			bSkillSuccessfullyExecuted = MadScientist_ExecuteSkill(iPlayer);
-		}
-		case Role_Arsonist:
-		{
-			bSkillSuccessfullyExecuted = Arsonist_ExecuteSkill(iPlayer);
-		}
-		default:
-			return FMRES_IGNORED;
-	}
-
-	if (bSkillSuccessfullyExecuted)
-	{
-		print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
-		g_rgbUsingSkill[iPlayer] = true;
-		g_rgbAllowSkill[iPlayer] = false;
-		g_rgflSkillExecutedTime[iPlayer] = get_gametime();
-	}
 	
+	// only after we actually executed skill, should we we stop the original T func.
 	set_uc(uc_handle, UC_Impulse, 0);
 	return FMRES_IGNORED;
 }
@@ -2531,13 +2394,6 @@ public fw_TraceLine_Post(Float:vecStart[3], Float:vecEnd[3], bitsConditions, iSk
 			write_byte(0);
 			message_end();
 		}
-	}
-
-	if (g_rgbArsonistFiring[iSkipEntity])
-	{
-		static Float:vecOrigin[3];
-		get_tr2(tr, TR_vecEndPos, vecOrigin);
-		Arsonist_CreateTrace(iSkipEntity, vecOrigin);
 	}
 }
 
@@ -2732,8 +2588,8 @@ public Event_FreezePhaseEnd()
 	}
 	
 	// menpower initiation
-	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
-	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount;
+	g_rgiTeamMenPower[TEAM_CT] = get_pcvar_num(cvar_menpower) * iPlayerAmount / 2;
+	g_rgiTeamMenPower[TEAM_TERRORIST] = get_pcvar_num(cvar_menpower) * iPlayerAmount / 2;
 	
 	for (new i = TEAM_TERRORIST; i <= TEAM_CT; i++)
 		if (g_rgTeamTacticalScheme[i] == Doctrine_MassAssault)
@@ -2760,6 +2616,7 @@ public Event_HLTV()
 		g_rgflFrozenNextthink[i] = 0.0
 		g_rgflPlayerPoisoned[i] = floatmin(g_rgflPlayerPoisoned[i], 1.0);	// LUNA: 0.0 would just stop the think. however, 1.0 would trigger the closure of EFX.
 		g_rgflPlayerElectrified[i] = floatmin(g_rgflPlayerElectrified[i], 1.0);
+		g_rgflPlayerBurning[i] = floatmin(g_rgflPlayerBurning[i], 1.0);
 	}
 	
 	g_bRoundStarted = false;
@@ -4546,6 +4403,78 @@ Bot_ForceGrenadeThrow(pPlayer, iId = CSW_HEGRENADE)
 	set_pdata_float(iEntity, m_flStartThrow, get_gametime(), 4);
 	set_pdata_float(iEntity, m_flReleaseThrow, 0.0, 4);
 	set_pdata_float(iEntity, m_flTimeWeaponIdle, 0.1, 4);
+}
+
+bool:Hub_ExecuteSkill(iPlayer)
+{
+	if (g_rgbUsingSkill[iPlayer])
+	{
+		print_chat_color(iPlayer, GREYCHAT, "技能正在使用中！");
+		return false;
+	}
+
+	if (!g_rgbAllowSkill[iPlayer])
+	{
+		print_chat_color(iPlayer, GREYCHAT, "技能正在冷卻中！");
+		return false;
+	}
+
+	new bool:bSkillSuccessfullyExecuted = false;
+	switch (g_rgPlayerRole[iPlayer])
+	{
+		case Role_Godfather:
+		{
+			bSkillSuccessfullyExecuted = Godfather_ExecuteSkill(iPlayer);
+		}
+		case Role_Commander:
+		{
+			bSkillSuccessfullyExecuted = Commander_ExecuteSkill();
+		}
+		case Role_Assassin:
+		{
+			bSkillSuccessfullyExecuted = Assassin_ExecuteSkill(iPlayer);
+		}
+		case Role_Berserker:
+		{
+			bSkillSuccessfullyExecuted = Berserker_ExecuteSkill(iPlayer);
+		}
+		case Role_Blaster:
+		{
+			bSkillSuccessfullyExecuted = Blaster_ExecuteSkill(iPlayer);
+		}
+		case Role_Sharpshooter:
+		{
+			bSkillSuccessfullyExecuted = Sharpshooter_ExecuteSkill(iPlayer);
+		}
+		case Role_SWAT:
+		{
+			bSkillSuccessfullyExecuted = SWAT_ExecuteSkill(iPlayer);
+		}
+		case Role_MadScientist:
+		{
+			bSkillSuccessfullyExecuted = MadScientist_ExecuteSkill(iPlayer);
+		}
+		case Role_Arsonist:
+		{
+			bSkillSuccessfullyExecuted = Arsonist_ExecuteSkill(iPlayer);
+		}
+		case Role_Medic:
+		{
+			bSkillSuccessfullyExecuted = Medic_ExecuteSkill(iPlayer);
+		}
+		default:
+			return bSkillSuccessfullyExecuted;
+	}
+
+	if (bSkillSuccessfullyExecuted)
+	{
+		print_chat_color(iPlayer, GREENCHAT, "技能已施放！");
+		g_rgbUsingSkill[iPlayer] = true;
+		g_rgbAllowSkill[iPlayer] = false;
+		g_rgflSkillExecutedTime[iPlayer] = get_gametime();
+	}
+	
+	return bSkillSuccessfullyExecuted;
 }
 
 
