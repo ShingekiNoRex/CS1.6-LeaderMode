@@ -265,3 +265,21 @@ public Assassin_Revealed(pPlayer, iAttacker)	// cacha !!!
 		client_cmd(iAttacker, "spk %s", ASSASSIN_DISCOVERED_SFX);
 }
 
+new Float:g_rgflAssassinBotThink[33];
+
+public Assassin_BotThink(pPlayer)
+{
+	// use their skill whenever they can.
+	
+	if (!is_user_bot(pPlayer) || g_rgflAssassinBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive2(pPlayer))
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+		return;
+	
+	g_rgflAssassinBotThink[pPlayer] = get_gametime() + 1.0;
+	
+	Assassin_ExecuteSkill(pPlayer);
+	g_rgbUsingSkill[pPlayer] = true;
+	g_rgbAllowSkill[pPlayer] = false;
+}

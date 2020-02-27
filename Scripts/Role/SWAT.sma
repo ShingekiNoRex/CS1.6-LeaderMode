@@ -214,3 +214,28 @@ public SWAT_SkillThink(pPlayer)	// place at PlayerPostThink()
 	
 	g_rgflSWATArmourRegenThink[pPlayer] = get_gametime() + get_pcvar_float(cvar_swatArmourRegenInv);
 }
+
+new Float:g_rgflSWATBotThink[33];
+
+public SWAT_BotThink(pPlayer)
+{
+	// use skill when fighting against player.
+	
+	if (!is_user_bot(pPlayer) || g_rgflSWATBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+		return;
+	
+	g_rgflSWATBotThink[pPlayer] = get_gametime() + 0.2;
+	
+	get_aiming_trace(pPlayer);
+	
+	new iEntity = get_tr2(0, TR_pHit);
+	if (is_user_alive2(iEntity) && !fm_is_user_same_team(pPlayer, iEntity))
+	{
+		SWAT_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
+		g_rgbAllowSkill[pPlayer] = false;
+	}
+}

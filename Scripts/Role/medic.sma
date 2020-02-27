@@ -1,6 +1,5 @@
 /**
 
-negative effect would be cancel when stay in the smoke
 **/
 
 #define MEDIC_TASK	5687361
@@ -62,6 +61,16 @@ public Command_DamageOther(pPlayer)
 	return PLUGIN_HANDLED;
 }
 
+public Command_Harm(pPlayer)
+{
+	if (!get_pcvar_num(cvar_DebugMode))
+		return PLUGIN_CONTINUE;
+	
+	set_pev(pPlayer, pev_health, 50.0);
+	
+	return PLUGIN_HANDLED;
+}
+
 public HealingGrenade_Think(iEntity)
 {
 	static Float:flTimeRemove;
@@ -79,15 +88,17 @@ public HealingGrenade_Think(iEntity)
 	static iMedicPlayer;
 	iMedicPlayer = pev(iEntity, pev_iuser4);
 	
-	new pPlayer = -1, Float:vecVictimOrigin[3], Float:flHealth, Float:flMaxHealth;
+	new pPlayer = -1, /*Float:vecVictimOrigin[3],*/ Float:flHealth, Float:flMaxHealth;
 	while ((pPlayer = engfunc(EngFunc_FindEntityInSphere, pPlayer, vecOrigin, 280.0)) > 0)
 	{
 		if (!is_user_alive2(pPlayer))
 			continue;
 		
+		/*
 		pev(pPlayer, pev_origin, vecVictimOrigin);
 		if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
 			continue;
+		*/
 		
 		if (pPlayer == THE_GODFATHER)	// never heal the godfather.
 			continue;
@@ -223,6 +234,106 @@ public CommanderOH_Think()
 	set_pev(THE_COMMANDER, pev_health, flHealth);
 	
 	client_cmd(THE_COMMANDER, "spk %s", OVERHEALING_DECAY_SFX);
+}
+
+new Float:g_rgflMedicBotThink[33], Float:g_rgflMedicGrenadeThrow[33];
+
+public Medic_BotThink(pPlayer)
+{
+	// throw medic grenade to player when they are under control of DOTs.
+	// heal player with their DEAGLE or ANACONDA.
+	
+	if (!is_user_bot(pPlayer) || g_rgflMedicBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	new Float:vecOrigin[3], Float:vecVictimOrigin[3];
+	pev(pPlayer, pev_origin, vecOrigin);
+	pev(pPlayer, pev_view_ofs, vecVictimOrigin);
+	xs_vec_add(vecOrigin, vecVictimOrigin, vecOrigin);
+	
+	new Float:flHealth;
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_alive2(i))
+			continue;
+		
+		if (i == THE_GODFATHER)
+			continue;
+		
+		pev(i, pev_origin, vecVictimOrigin);
+		if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
+			continue;
+		
+		pev(i, pev_health, flHealth);
+		if (i == THE_COMMANDER || i == pPlayer)
+		{
+			new Float:flMaxHealth;
+			pev(i, pev_max_health, flMaxHealth);
+			
+			if (flHealth / flMaxHealth <= 0.5 && g_rgflMedicGrenadeThrow[pPlayer] <= get_gametime())
+			{
+				new Float:vecDir[3], Float:vecVAngle[3];
+				vecVictimOrigin[2] += 36.0;	// consider the arc.
+				xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
+				engfunc(EngFunc_VecToAngles, vecDir, vecVAngle);
+				vecVAngle[0] *= -1.0;
+				set_pev(pPlayer, pev_angles, vecVAngle);
+				set_pev(pPlayer, pev_v_angle, vecVAngle);
+				set_pev(pPlayer, pev_fixangle, 1);
+				
+				Bot_ForceGrenadeThrow(pPlayer, CSW_SMOKEGRENADE);
+				g_rgflMedicGrenadeThrow[pPlayer] = get_gametime() + 5.0;
+			}
+			
+			break;
+		}
+		
+		if (g_rgflFrozenNextthink[pPlayer] > 0.0			// player is frozen.
+			|| g_rgflPlayerElectrified[pPlayer] > 0.0		// is electrified.
+			|| g_rgflPlayerPoisoned[pPlayer] > 0.0			// is poisoned.
+			|| (flHealth < 120.0 && get_pdata_int(i, m_iTeam) == TEAM_CT)				// or some bleeding teammates
+			|| (g_rgPlayerRole[pPlayer] == Role_Berserker && g_rgbUsingSkill[pPlayer]))	// or just a random freaking guy.
+		{
+			new iEntity = get_pdata_cbase(pPlayer, m_rgpPlayerItems[2]);
+			
+			if (pev_valid(iEntity) == 2 && ((1<<get_pdata_int(iEntity, m_iId)) & ((1<<CSW_DEAGLE)|(1<<CSW_ANACONDA))) )
+			{
+				// you got a heal gun, then use it.
+				SelectItem(pPlayer, g_rgszWeaponEntity[get_pdata_int(iEntity, m_iId)]);
+			}
+			else
+			{
+				// you don't get one? find, I would get you one.
+				
+				new iId = random_num(0, 1) ? CSW_ANACONDA : CSW_DEAGLE;
+				
+				DropWeapons(pPlayer, 2);
+				fm_give_item(pPlayer, g_rgszWeaponEntity[iId]);
+				SelectItem(pPlayer, g_rgszWeaponEntity[iId]);
+				
+				iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+			}
+			
+			new Float:vecDir[3], Float:vecVAngle[3];
+			xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
+			engfunc(EngFunc_VecToAngles, vecDir, vecVAngle);
+			vecVAngle[0] *= -1.0;
+			set_pev(pPlayer, pev_angles, vecVAngle);
+			set_pev(pPlayer, pev_v_angle, vecVAngle);
+			set_pev(pPlayer, pev_fixangle, 1);
+			
+			//set_pev(pPlayer, pev_button, pev(pPlayer, pev_button) | IN_ATTACK);	// I don't know why, but it just doesn't work.
+			set_pdata_int(iEntity, m_iClip, 7);
+			g_rgbShootingHealingDart[pPlayer] = true;
+			ExecuteHamB(Ham_Weapon_PrimaryAttack, iEntity);
+			g_rgbShootingHealingDart[pPlayer] = false;
+			
+			// one problen per time.
+			break;
+		}
+	}
+	
+	g_rgflMedicBotThink[pPlayer] = get_gametime() + 1.0;
 }
 
 Healing_VFX(pPlayer)

@@ -1,7 +1,10 @@
 /**
 
 sub_10083E20: CGrenade::ShootSmokeGrenade()
+0x56,0x57,0xff,0x15,"*","*","*","*",0x85,0xc0,0x75,"*",0x33,0xff,0xeb,"*"
 better 3rd person poisoned VFX. some green smoke around player?
+put the speed reduction back. only SWAT with skill can resist it.
+the gravity gun have a chance to drop player's weapon and drag it back.
 **/
 
 #define MADSCIENTIST_TASK	136874
@@ -24,7 +27,7 @@ new bool:g_rgbShootingElectrobullets[33], Float:g_rgvecElectrobulletsHitsOfs[33]
 
 public MadScientist_Initialize()
 {
-	cvar_msGravityGunCD		= register_cvar("lm_ms_gravity_gun_cd",			"75.0");
+	cvar_msGravityGunCD		= register_cvar("lm_ms_gravity_gun_cd",			"60.0");
 	cvar_msGravityGunDur	= register_cvar("lm_ms_gravity_gun_dur",		"14.0");
 	cvar_msGravityGunDragSpd= register_cvar("lm_ms_gravity_gun_drag_speed",	"900.0");
 	cvar_msElectrobltDur	= register_cvar("lm_ms_electrobullets_lasting",	"3.0");
@@ -32,7 +35,7 @@ public MadScientist_Initialize()
 	cvar_msPoisonDmg		= register_cvar("lm_ms_poison_damage",			"7.0");
 	cvar_msPoisonLast		= register_cvar("lm_ms_poison_lasting",			"5.0");
 	cvar_msPoisonDmgInv		= register_cvar("lm_ms_poison_damage_interval",	"1.0");
-	cvar_msPoisonVelMod		= register_cvar("lm_ms_poison_dmg_vel_modifier","0.8");	// nerf the freaking sticky damage feedback.
+	cvar_msPoisonVelMod		= register_cvar("lm_ms_poison_dmg_vel_modifier","0.5");
 	cvar_msRevengeRatio		= register_cvar("lm_ms_revenge_ratio",			"0.15");
 	
 	g_rgSkillDuration[Role_MadScientist] = cvar_msGravityGunDur;
@@ -318,7 +321,50 @@ public GasGrenade_VictimThink(pPlayer)
 	}
 }
 
+new Float:g_rgflMadScientistBotThink[33], Float:g_rgflMadScientistBotNextGR[33];
 
+public MadScientist_BotThink(pPlayer)
+{
+	// use skill when fighting against player.
+	
+	if (!is_user_bot(pPlayer) || g_rgflMadScientistBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	g_rgflMadScientistBotThink[pPlayer] = get_gametime() + 0.5;
+	
+	get_aiming_trace(pPlayer);
+	
+	new iEntity = get_tr2(0, TR_pHit);
+	if (is_user_alive2(iEntity) && !fm_is_user_same_team(pPlayer, iEntity))
+	{
+		if (g_rgflMadScientistBotNextGR[pPlayer] < get_gametime())
+		{
+			new Float:vecOrigin[3], Float:vecVictimOrigin[3];
+			pev(pPlayer, pev_origin, vecOrigin);
+			pev(pPlayer, pev_view_ofs, vecVictimOrigin);
+			xs_vec_add(vecOrigin, vecVictimOrigin, vecOrigin);
+			pev(iEntity, pev_origin, vecVictimOrigin);
+			
+			new Float:vecDir[3], Float:vecVAngle[3];
+			vecVictimOrigin[2] += 36.0;	// consider the arc.
+			xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
+			engfunc(EngFunc_VecToAngles, vecDir, vecVAngle);
+			vecVAngle[0] *= -1.0;
+			set_pev(pPlayer, pev_angles, vecVAngle);
+			set_pev(pPlayer, pev_v_angle, vecVAngle);
+			set_pev(pPlayer, pev_fixangle, 1);
+			
+			Bot_ForceGrenadeThrow(pPlayer, CSW_SMOKEGRENADE);
+			g_rgflMadScientistBotNextGR[pPlayer] = get_gametime() + 5.0;
+		}
+		else if (g_rgbAllowSkill[pPlayer])
+		{
+			MadScientist_ExecuteSkill(pPlayer);
+			g_rgbUsingSkill[pPlayer] = true;
+			g_rgbAllowSkill[pPlayer] = false;
+		}
+	}
+}
 
 
 

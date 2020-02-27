@@ -1,6 +1,7 @@
 /**
 
 sub_10083560: CGrenade::ShootTimed2()
+0x83,0xEC,0x0C,0x56,0x57,0xFF,0x15,"*","*","*","*",0x85,0xC0,0x75,"*",0x33,0xFF,0xEB,"*",0x8D,0xB8,0x80,0x00,0x00,0x00,0x8B,0x87,0x08,0x02,0x00,0x00,0x85,0xC0
 **/
 
 #define SHARPSHOOTER_TEXT	g_rgszRoleNames[Role_Sharpshooter]
@@ -263,7 +264,7 @@ public FrostGrenade_CreateIceCube(pPlayer)
 	vecOrigin[2] -= 36.0;	// the origin of this model is on the ground.
 	
 	new Float:vecAngles[3];
-	xs_vec_set(vecAngles, 0.0, random_float(0.0, 360.0, 0.0), 0.0);
+	xs_vec_set(vecAngles, 0.0, random_float(0.0, 360.0), 0.0);
 	
 	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "info_target"));
 	engfunc(EngFunc_SetModel, iEntity, ICEGRE_VFX_MODEL);
@@ -279,4 +280,65 @@ public FrostGrenade_CreateIceCube(pPlayer)
 	set_pev(iEntity, pev_renderamt, 255.0);
 	
 	g_rgiIceCubeEntity[pPlayer] = iEntity;
+}
+
+new Float:g_rgflSharpshooterBotThink[33], Float:g_rgflSharpshooterBotNextGR[33];
+
+#define SS_SKILL_WEAPON	((1<<CSW_AWP)|(1<<CSW_M200)|(1<<CSW_M14EBR)|(1<<CSW_SVD)|(1<<CSW_DEAGLE)|(1<<CSW_ANACONDA))
+
+public Sharpshooter_BotThink(pPlayer)
+{
+	// use his skill only if a godfather is met and a proper weapon is being used.
+	// give & switch to a grenade if a godfather is met.
+	// throw frost gr if a player is met.
+	
+	if (!is_user_bot(pPlayer) || g_rgflSharpshooterBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	g_rgflSharpshooterBotThink[pPlayer] = get_gametime() + 0.1;
+	
+	get_aiming_trace(pPlayer);
+	
+	new iEntity = get_tr2(0, TR_pHit);
+	
+	if (is_user_alive2(iEntity) && !fm_is_user_same_team(pPlayer, iEntity) && g_rgflSharpshooterBotNextGR[pPlayer] < get_gametime())
+	{
+		new Float:vecOrigin[3], Float:vecVictimOrigin[3];
+		pev(pPlayer, pev_origin, vecOrigin);
+		pev(pPlayer, pev_view_ofs, vecVictimOrigin);
+		xs_vec_add(vecOrigin, vecVictimOrigin, vecOrigin);
+		pev(iEntity, pev_origin, vecVictimOrigin);
+		
+		new Float:vecDir[3], Float:vecVAngle[3];	// no arc on longbow grenades.
+		xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
+		engfunc(EngFunc_VecToAngles, vecDir, vecVAngle);
+		vecVAngle[0] *= -1.0;
+		set_pev(pPlayer, pev_angles, vecVAngle);
+		set_pev(pPlayer, pev_v_angle, vecVAngle);
+		set_pev(pPlayer, pev_fixangle, 1);
+		
+		Bot_ForceGrenadeThrow(pPlayer, CSW_HEGRENADE);
+		g_rgflSharpshooterBotNextGR[pPlayer] = get_gametime() + 15.0;
+		return;
+	}
+	
+	if (iEntity == THE_GODFATHER && g_rgbAllowSkill[pPlayer])
+	{
+		iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+		
+		if (pev_valid(iEntity) != 2 || !((1<<get_pdata_int(iEntity, m_iId)) & SS_SKILL_WEAPON))
+		{
+			DropWeapons(pPlayer, 1);
+			fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_SVD]);
+			DropWeapons(pPlayer, 2);
+			fm_give_item(pPlayer, g_rgszWeaponEntity[CSW_DEAGLE]);
+			
+			ExecuteHamB(Ham_GiveAmmo, pPlayer, 240, "762Nato", 240);
+			ExecuteHamB(Ham_GiveAmmo, pPlayer, 240, "50AE", 240);
+		}
+		
+		Sharpshooter_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
+		g_rgbAllowSkill[pPlayer] = false;
+	}
 }

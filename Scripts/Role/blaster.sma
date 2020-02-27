@@ -263,6 +263,68 @@ public Breacher_Light(const Float:vecOrigin[3])
 	message_end();
 }
 
+new Float:g_rgflBreacherBotThink[33], Float:g_rgflBreacherBotNextGR[33];
+
+public Breacher_BotThink(pPlayer)
+{
+	// use his skill when fighting against a player.
+	
+	if (!is_user_bot(pPlayer) || g_rgflBreacherBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+	{
+		if (g_rgbUsingSkill[pPlayer] && g_rgflBreacherBotNextGR[pPlayer] <= get_gametime())
+		{
+			new Float:vecOrigin[3], Float:vecVictimOrigin[3];
+			pev(pPlayer, pev_origin, vecOrigin);
+			pev(pPlayer, pev_view_ofs, vecVictimOrigin);
+			xs_vec_add(vecOrigin, vecVictimOrigin, vecOrigin);
+			
+			for (new i = 1; i <= global_get(glb_maxClients); i++)
+			{
+				if (!is_user_alive2(i))
+					continue;
+				
+				if (fm_is_user_same_team(i, pPlayer))
+					continue;
+				
+				pev(i, pev_origin, vecVictimOrigin);
+				if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
+					continue;
+				
+				new Float:vecDir[3], Float:vecVAngle[3];
+				vecVictimOrigin[2] += 36.0;	// consider the arc.
+				xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
+				engfunc(EngFunc_VecToAngles, vecDir, vecVAngle);
+				vecVAngle[0] *= -1.0;
+				set_pev(pPlayer, pev_angles, vecVAngle);
+				set_pev(pPlayer, pev_v_angle, vecVAngle);
+				set_pev(pPlayer, pev_fixangle, 1);
+				
+				Bot_ForceGrenadeThrow(pPlayer, CSW_HEGRENADE);
+				break;
+			}
+			
+			g_rgflBreacherBotNextGR[pPlayer] = get_gametime() + 0.8;
+		}
+		
+		return;
+	}
+	
+	g_rgflBreacherBotThink[pPlayer] = get_gametime() + 0.2;
+	
+	get_aiming_trace(pPlayer);
+	
+	new iEntity = get_tr2(0, TR_pHit);
+	if (is_user_alive2(iEntity) && !fm_is_user_same_team(pPlayer, iEntity))
+	{
+		Blaster_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
+		g_rgbAllowSkill[pPlayer] = false;
+	}
+}
+
 stock get_aim_origin_vector2(Float:vAngle[3], Float:vOrigin[3], Float:forw, Float:right, Float:up, Float:vStart[])
 {
 	new Float:vForward[3], Float:vRight[3], Float:vUp[3]

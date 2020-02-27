@@ -223,13 +223,13 @@ public Commander_BotThink(pPlayer)
 	// never sell weapons on the ground. (players may needs it). unless the entire CT-team is bot team.
 	// use skill only when firing at someone. unless one of the CTs is the player.
 	
-	if (g_flCommanderBotThink > get_gametime())
+	if (!is_user_bot(pPlayer) || g_flCommanderBotThink > get_gametime() || !is_user_alive(pPlayer))
 		return;
 	
 	if (!g_rgbAllowSkill[pPlayer])
 		return;
 	
-	g_flCommanderBotThink = get_gametime() + 1.0;
+	g_flCommanderBotThink = get_gametime() + 0.5;
 	
 	if (g_rgbFullBotsTeam[TEAM_CT])
 	{

@@ -33,7 +33,7 @@ CT:
 S.W.A.T.
 (優惠霰彈槍、衝鋒槍、煙霧彈和閃光彈，允許突擊步槍)
 (立即填充所有手榴彈、彈藥和護甲，15秒内轉移所有傷害至護甲)	✔ (LUNA)
-(被動：AP 200，周围友军缓慢恢复护甲)	✔ (LUNA)
+(被動：AP 200，周围友军缓慢恢复护甲、無視地形和異常狀態)	✔ (LUNA)
 (角色針對性互動: 使用主動技能時：為爆破手填充霰彈槍子彈、為神射手填充狙擊槍子彈、為軍醫填充大口徑手槍子彈)	✔ (LUNA)
 爆破手
 (優惠投擲物、霰彈槍、MP7、PM9，允許衝鋒槍)
@@ -89,7 +89,7 @@ TR:
 #include <celltrie>
 
 #define PLUGIN	"CZ Leader"
-#define VERSION	"1.14.7"
+#define VERSION	"1.15"
 #define AUTHOR	"ShingekiNoRex & Luna the Reborn"
 
 #define HUD_SHOWMARK	1	//HUD提示消息通道
@@ -504,7 +504,9 @@ new const g_rgszEntityToRemove[][] =
 	"func_escapezone",
 	"armoury_entity",
 	"game_player_equip",
-	"game_player_team"
+	"game_player_team",
+	
+	"weapon_shield"
 }
 
 stock const g_rgszCnfdnceMtnText[][] = { "罷免", "信任", "棄權" };
@@ -522,7 +524,7 @@ new cvar_WMDLkilltime, cvar_humanleader, cvar_menpower;
 new cvar_TSDmoneyaddinv, cvar_TSDmoneyaddnum, cvar_TSDbountymul, cvar_TSDrefillinv, cvar_TSDmenpowermul, cvar_TSDresurrect, cvar_TSVcooldown;
 new cvar_VONCperTeam, cvar_VONCtimeLimit;
 new cvar_DebugMode, cvar_restartSV;
-new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed;
+new OrpheuFunction:g_pfn_RadiusFlash, OrpheuFunction:g_pfn_CBasePlayer_ResetMaxSpeed, OrpheuFunction:g_pfn_CBasePlayer_SelectItem;
 new g_ptrBeamSprite;
 
 #if defined AIR_SUPPORT_ENABLE
@@ -635,7 +637,7 @@ public plugin_init()
 	cvar_DebugMode 		= register_cvar("lm_debug", 							"0");
 	cvar_WMDLkilltime	= register_cvar("lm_dropped_wpn_remove_time",			"120.0");
 	cvar_humanleader	= register_cvar("lm_human_player_leadership_priority",	"1");
-	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"5");
+	cvar_menpower		= register_cvar("lm_starting_menpower_per_player",		"1");
 	cvar_TSVcooldown	= register_cvar("lm_TS_voting_cooldown",				"20.0");
 	cvar_TSDrefillinv	= register_cvar("lm_TSD_SFD_clip_refill_interval",		"1.0");
 	cvar_TSDresurrect	= register_cvar("lm_TSD_MAD_resurrection_time",			"1.0");
@@ -673,6 +675,8 @@ public plugin_init()
 	register_clcmd("electrify",			"Command_Electrify");
 	register_clcmd("poison",			"Command_Poison");
 	register_clcmd("healme",			"Command_Heal");
+	register_clcmd("harmme",			"Command_Harm");
+	register_clcmd("harmhim",			"Command_DamageOther");
 	
 	// roles custom initiation
 	Godfather_Initialize();
@@ -692,6 +696,7 @@ public plugin_init()
 	// orpheu
 	g_pfn_RadiusFlash = OrpheuGetFunction("RadiusFlash");
 	g_pfn_CBasePlayer_ResetMaxSpeed = OrpheuGetFunctionFromClass("player", "ResetMaxSpeed", "CBasePlayer");
+	g_pfn_CBasePlayer_SelectItem = OrpheuGetFunction("SelectItem", "CBasePlayer");
 	
 	// orpheu hooks
 	OrpheuRegisterHook(g_pfn_CBasePlayer_ResetMaxSpeed, "OrpheuF_Player_ResetMaxSpeed");
@@ -1217,6 +1222,9 @@ public HamF_TakeDamage_Post(iVictim, iInflictor, iAttacker, Float:flDamage, bits
 		else
 			set_pdata_float(iVictim, m_flVelocityModifier, 0.9);
 	}
+	
+	if (g_rgPlayerRole[iVictim] == Role_SWAT && (g_rgPlayerRole[iAttacker] != Role_Arsonist || !g_rgbUsingSkill[iAttacker]))	// PASSIVE skill: SWAT won't get slow on damage.
+		set_pdata_float(iVictim, m_flVelocityModifier, 1.1);
 	
 	new iVictimTeam = get_pdata_int(iVictim, m_iTeam);
 	new iAttackerTeam = get_pdata_int(iAttacker, m_iTeam);
@@ -2314,17 +2322,25 @@ public fw_PlayerPostThink_Post(pPlayer)
 	{
 		Commander_SkillThink(pPlayer);
 		SWAT_SkillThink(pPlayer);
-		
-		if (pPlayer == THE_COMMANDER && is_user_bot(pPlayer))
-			Commander_BotThink(pPlayer);
 	}
 	else if (iTeam == TEAM_TERRORIST)
 	{
 		Godfather_HealingThink(pPlayer);
 		Assassin_SelfThink(pPlayer);
-		
-		if (pPlayer == THE_GODFATHER && is_user_bot(pPlayer))
-			Godfather_BotThink(pPlayer);
+	}
+	
+	switch(g_rgPlayerRole[pPlayer])
+	{
+		case Role_Commander: Commander_BotThink(pPlayer);
+		case Role_Godfather: Godfather_BotThink(pPlayer);
+		case Role_Medic: Medic_BotThink(pPlayer);
+		case Role_Berserker: Berserker_BotThink(pPlayer);
+		case Role_Assassin: Assassin_BotThink(pPlayer);
+		case Role_MadScientist: MadScientist_BotThink(pPlayer);
+		case Role_SWAT: SWAT_BotThink(pPlayer);
+		case Role_Blaster: Breacher_BotThink(pPlayer);
+		case Role_Sharpshooter: Sharpshooter_BotThink(pPlayer);
+		case Role_Arsonist: Arsonist_BotThink(pPlayer);
 	}
 }
 
@@ -2432,6 +2448,10 @@ public fw_ClientCommand(iPlayer)
 	{
 		Command_Buy3(iPlayer);
 		return FMRES_IGNORED;
+	}
+	else if (!strcmp(szCommand, "test"))
+	{
+		Bot_ForceGrenadeThrow(iPlayer);
 	}
 
 	for(new i = 0; i < sizeof g_rgszBuyCommand; i ++)
@@ -4387,6 +4407,11 @@ stock UTIL_SetPlayerModel(iPlayer, const szModel[] = "")
 	dllfunc(DLLFunc_ClientUserInfoChanged, iPlayer);
 }
 
+stock SelectItem(pPlayer, const szWeapon[])
+{
+	OrpheuCallSuper(g_pfn_CBasePlayer_SelectItem, pPlayer, szWeapon);
+}
+
 AddMenuWeaponItem(Role_e:iRoleIndex, iId, hMenu, iCurrentAccount)
 {
 	static szBuffer[192], szInfo[16];
@@ -4511,6 +4536,17 @@ bool:is_user_alive2(pPlayer)	// designed for assassin.
 	return !!is_user_alive(pPlayer);
 }
 
+Bot_ForceGrenadeThrow(pPlayer, iId = CSW_HEGRENADE)
+{
+	fm_give_item(pPlayer, g_rgszWeaponEntity[iId]);
+	SelectItem(pPlayer, g_rgszWeaponEntity[iId]);
+	set_pdata_float(pPlayer, m_flNextAttack, 0.0);
+	
+	new iEntity = get_pdata_cbase(pPlayer, m_pActiveItem);
+	set_pdata_float(iEntity, m_flStartThrow, get_gametime(), 4);
+	set_pdata_float(iEntity, m_flReleaseThrow, 0.0, 4);
+	set_pdata_float(iEntity, m_flTimeWeaponIdle, 0.1, 4);
+}
 
 
 

@@ -228,7 +228,7 @@ public Godfather_BotThink(pPlayer)
 	// call the skill when no more than 2 teammates around.
 	// call the skill when fighting against someone, even if no one around.
 	
-	if (g_flGodfatherBotThink > get_gametime())
+	if (!is_user_bot(pPlayer) || g_flGodfatherBotThink > get_gametime() || !is_user_alive(pPlayer))
 		return;
 	
 	if (!g_rgbAllowSkill[pPlayer])

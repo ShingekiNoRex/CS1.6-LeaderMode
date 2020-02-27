@@ -98,3 +98,52 @@ public Berserker_TerminateSkill(pPlayer)
 		}
 	}
 }
+
+new Float:g_rgflBerserkerBotThink[33];
+
+public Berserker_BotThink(pPlayer)
+{
+	// use their skill when fighting against player.
+	
+	if (!is_user_bot(pPlayer) || g_rgflBerserkerBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+		return;
+	
+	g_rgflBerserkerBotThink[pPlayer] = get_gametime() + 0.5;
+	
+	new Float:vecOrigin[3], Float:vecVictimOrigin[3];
+	pev(pPlayer, pev_origin, vecOrigin);
+	pev(pPlayer, pev_view_ofs, vecVictimOrigin);
+	xs_vec_add(vecOrigin, vecVictimOrigin, vecOrigin);
+	
+	new iEnemyCounts = 0;
+	for (new i = 1; i <= global_get(glb_maxClients); i++)
+	{
+		if (!is_user_alive2(i))
+			continue;
+		
+		if (fm_is_user_same_team(pPlayer, i))
+			continue;
+		
+		pev(i, pev_origin, vecVictimOrigin);
+		if (!UTIL_PointVisible(vecOrigin, vecVictimOrigin, IGNORE_MONSTERS))
+			continue;
+		
+		iEnemyCounts++;
+		
+		if (i == THE_COMMANDER)
+			iEnemyCounts += 10;	// COMMANDER? KILL HIM!!!!!!!!
+		
+		if (iEnemyCounts >= 2)
+			break;
+	}
+	
+	if (iEnemyCounts >= 2)
+	{
+		Berserker_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
+		g_rgbAllowSkill[pPlayer] = false;
+	}
+}

@@ -158,3 +158,47 @@ public Arsonist_CreateTrace(iPlayer, Float:End[3])
 	write_byte(180);
 	message_end();
 }
+
+new Float:g_rgflArsonistBotThink[33];
+
+public Arsonist_BotThink(pPlayer)
+{
+	// use the skill if a player is in his fire.
+	// use the skill if fighting against a player.
+	// give a grenade if commander is met.
+	
+	if (!is_user_bot(pPlayer) || g_rgflArsonistBotThink[pPlayer] > get_gametime() || !g_bRoundStarted || !is_user_alive(pPlayer))
+		return;
+	
+	if (!g_rgbAllowSkill[pPlayer])
+		return;
+	
+	g_rgflArsonistBotThink[pPlayer] = get_gametime() + 0.5;
+	
+	get_aiming_trace(pPlayer);
+	
+	new iEntity = get_tr2(0, TR_pHit);
+	if (is_user_alive2(iEntity) && !fm_is_user_same_team(pPlayer, iEntity))
+	{
+		new Float:vecOrigin[3], Float:vecVictimOrigin[3];
+		pev(pPlayer, pev_origin, vecOrigin);
+		pev(pPlayer, pev_view_ofs, vecVictimOrigin);
+		xs_vec_add(vecOrigin, vecVictimOrigin, vecOrigin);
+		pev(iEntity, pev_origin, vecVictimOrigin);
+		
+		new Float:vecDir[3], Float:vecVAngle[3];
+		vecVictimOrigin[2] += 36.0;	// consider the arc.
+		xs_vec_sub(vecVictimOrigin, vecOrigin, vecDir);
+		engfunc(EngFunc_VecToAngles, vecDir, vecVAngle);
+		vecVAngle[0] *= -1.0;
+		set_pev(pPlayer, pev_angles, vecVAngle);
+		set_pev(pPlayer, pev_v_angle, vecVAngle);
+		set_pev(pPlayer, pev_fixangle, 1);
+		
+		Bot_ForceGrenadeThrow(pPlayer, CSW_HEGRENADE);
+		Arsonist_ExecuteSkill(pPlayer);
+		g_rgbUsingSkill[pPlayer] = true;
+		g_rgbAllowSkill[pPlayer] = false;
+	}
+}
+
