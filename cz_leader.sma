@@ -505,7 +505,7 @@ new const g_rgszEntityToRemove[][] =
 	"armoury_entity",
 	"game_player_equip",
 	"game_player_team",
-	
+
 	"weapon_shield"
 }
 
