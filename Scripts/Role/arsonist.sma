@@ -182,6 +182,8 @@ public Command_Ignite(pPlayer)
 	
 	g_rgflPlayerBurning[pPlayer] = get_gametime() + str_to_float(szCommand);
 	g_rgiIgnitedBy[pPlayer] = pPlayer;
+	NvgScreen(pPlayer, 255, 117, 26, 40);
+	
 	return PLUGIN_HANDLED;
 }
 
@@ -310,6 +312,7 @@ public IncendiaryGrenade_Blast(iEntity)
 		{
 			g_rgflPlayerBurning[i] = fCurTime + get_pcvar_float(cvar_arsonistIgniteDur);
 			g_rgiIgnitedBy[i] = pev(iEntity, pev_owner);
+			NvgScreen(i, 255, 117, 26, 40);
 		}
 	}
 }

@@ -98,7 +98,7 @@ public MadScientist_RevokeSkill(iTaskId)
 public MadScientist_TerminateSkill(pPlayer)
 {
 	remove_task(MADSCIENTIST_TASK + pPlayer);
-	SWAT_RevokeSkill(MADSCIENTIST_TASK + pPlayer);
+	MadScientist_RevokeSkill(MADSCIENTIST_TASK + pPlayer);
 }
 
 public MadScientist_SkillThink(pPlayer)	// apply on victims
